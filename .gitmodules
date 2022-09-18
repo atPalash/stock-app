@@ -1,3 +1,6 @@
 [submodule "StockAppApi/vendor/--force"]
 	path = StockAppApi/vendor/--force
 	url = https://github.com/CrowCpp/Crow.git
+[submodule "StockAppApi/vendor/spdlog"]
+	path = StockAppApi/vendor/spdlog
+	url = https://github.com/gabime/spdlog.git

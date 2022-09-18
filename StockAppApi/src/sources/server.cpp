@@ -1,15 +1,39 @@
 #include "server.h"
 
-// install crow to usr/local
-#include "crow.h" 
+#include "logger.h"
 
-void handle_get()
+namespace StockAppApi
 {
-    crow::SimpleApp app;
+    namespace server
+    {
+        Server::Server(int port) : portM(port) 
+        {}
 
-    CROW_ROUTE(app, "/")([](){
-        return "Hello world";
-    });
+        Server::~Server() 
+        {}
+        
+        void Server::run() {
+            crow::SimpleApp app;
 
-    app.port(18080).run();
+            CROW_ROUTE(app, "/")
+            .methods("POST"_method)([](const crow::request& req){
+                auto x = crow::json::load(req.body);
+                if (!x)
+                    return crow::response(400);
+
+                std::ostringstream os;
+                
+                for(const auto key: x.keys())
+                {
+                    os << key << ": "<< x[key] << "\n";
+                }
+
+                SA_CORE_INFO(os.str());
+                SA_FILE_INFO(os.str());
+                return crow::response{os.str()};
+            });
+
+            app.port(portM).multithreaded().run();
+        }
+    }
 }
