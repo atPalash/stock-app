@@ -2,17 +2,20 @@
 // install crow to usr/local
 #include "crow.h"
 
+#include "serverIf.h"
+
 namespace StockAppApi
 {
     namespace server
     {
-        class Server
+        class Server : public interfaces::ServerIf
         {
             public:
                 Server(int port);
                 ~Server();
 
-                void run();
+                void run() override;
+                void registerRoutes() override {};
             private:
                 int portM;
         };
