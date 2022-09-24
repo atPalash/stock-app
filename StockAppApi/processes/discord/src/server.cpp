@@ -1,43 +1,54 @@
 #include "server.h"
 
+#include "listener.h"
 #include "messenger.h"
-#include "messageParser.h"
+#include "utility/messageParser.h"
 
 namespace DiscordConnector
 {
-    Server::Server(int port, std::string &token) : portM(port),
-                                                   tokenM(token),
-                                                   discordMessengerM(new Messenger(tokenM))
+    namespace Src
     {
-        try
+        Server::Server(int port,
+                       const std::string &token,
+                       const std::map<std::string, std::string> &webhooks) : portM(port),
+                                                                             tokenM(token),
+                                                                             webhooksM(webhooks),
+                                                                             discordMessengerM(new Messenger(tokenM))
         {
-            std::string wh{"https://discord.com/api/webhooks/961329477785387008/yAYntyDBdRLX56vi78BlSNAgf64ZQ_Ae5ekJzOc0f93XAGV5pQ0U016VBrV3gaLF5FPm"};
-            discordMessengerM->addWebhook("querry", wh);
+            try
+            {
+                for (auto const webhook : webhooksM)
+                {
+                    discordMessengerM->addWebhook(webhook.first, webhook.second);
+                }
+
+                // Send a message to first webhook
+                discordMessengerM->sendEmbed(webhooks.begin()->first, "server online", "Keep up!");
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << std::endl;
+                throw;
+            }
         }
-        catch (const std::exception &e)
+
+        Server::~Server()
         {
-            std::cerr << e.what() << '\n';
         }
-    }
 
-    Server::~Server()
-    {
-    }
+        void Server::run()
+        {
+            crow::SimpleApp app;
 
-    void Server::run()
-    {
-        crow::SimpleApp app;
-
-        CROW_ROUTE(app, "/")
-            .methods("POST"_method)([this](const crow::request &req)
-                                    {
+            CROW_ROUTE(app, "/")
+                .methods("POST"_method)([this](const crow::request &req)
+                                        {
                 auto body = req.body;
                 
                 std::map<std::string, std::string> parsedMessage;
                 try
                 {
-                    parsedMessage = DiscordConnector::parseMessage(body);
-                    this->discordMessengerM->sendMessage("general", parsedMessage["command"]);
+                    parsedMessage = DiscordConnector::Utility::parseMessage(body, "--");
                     this->discordMessengerM->sendEmbed("general", parsedMessage["command"], "got command");
                 }
                 catch (...)
@@ -47,6 +58,16 @@ namespace DiscordConnector
 
                 return crow::response{200, parsedMessage["command"]}; });
 
-        app.port(portM).multithreaded().run();
+            // Start the listener thread
+            std::string listenerRouteApi = "http://localhost:" + std::to_string(portM) + "/listener";
+            std::thread listenerThread(initListener, listenerRouteApi);
+
+            app.port(portM).multithreaded().run();
+        }
+
+        void Server::initListener(const std::string &route)
+        {
+            DiscordConnector::Src::Listener discordListener{tokenM, route};
+        }
     }
 }

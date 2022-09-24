@@ -4,6 +4,9 @@
 [submodule "StockAppApi/vendor/spdlog"]
 	path = StockAppApi/vendor/spdlog
 	url = https://github.com/gabime/spdlog.git
-[submodule "StockAppApi/processes/discord/vendor/DPP"]
-	path = StockAppApi/processes/discord/vendor/DPP
+[submodule "StockAppApi/processes/discord/libs/vendor/DPP"]
+	path = StockAppApi/processes/discord/libs/vendor/DPP
 	url = https://github.com/brainboxdotcc/DPP.git
+[submodule "StockAppApi/processes/discord/vendor/yaml-cpp"]
+	path = StockAppApi/processes/discord/vendor/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git

@@ -1,0 +1,12 @@
+messenger:
+  webhook:
+    general: https://discord.com/api/webhooks/960993827877969970/cRSL2_258Ha7jXhKrW6hWlpXBrprCb0POSt2lu0NGOdvgzQKUPTsAaJZRLAZzKYj7wcb
+    buy: https://discord.com/api/webhooks/960994040780836907/aUnYDih9og87xkNiyrbOTIt0ci0KsGcxYFCFjqVbE3J33tAd9XpxOUBVlYBKOf0qu4SG
+    sell: https://discord.com/api/webhooks/960994140689150072/974KWeqJUXnbPcdktEtyQ6jTx2mAe9YnY4zL6GY6o3vEjr2DGkRZFmd4gfkaQ_oI1ojA
+    query: https://discord.com/api/webhooks/961329477785387008/yAYntyDBdRLX56vi78BlSNAgf64ZQ_Ae5ekJzOc0f93XAGV5pQ0U016VBrV3gaLF5FPm
+
+listener:
+  webhook:
+    query: https://discord.com/api/webhooks/961329477785387008/yAYntyDBdRLX56vi78BlSNAgf64ZQ_Ae5ekJzOc0f93XAGV5pQ0U016VBrV3gaLF5FPm
+  bot:
+    token: OTA2MzIyOTY2MTAxNDk1ODM4.YYW9CQ.ubld8BfYpa7s60hU2yU48Pr7gA4

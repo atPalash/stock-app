@@ -1,3 +1,4 @@
 build
 .vscode
 StockAppApi/logs/*.log
+StockAppApi/processes/discord/libs/

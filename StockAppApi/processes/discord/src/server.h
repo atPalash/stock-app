@@ -7,19 +7,30 @@
 
 namespace DiscordConnector
 {
-    class Server : public interfaces::ServerIf
+    namespace Src
     {
-    public:
-        Server(int port);
-        Server(int port, std::string &token);
-        ~Server();
+        class Server : public interfaces::ServerIf
+        {
+        public:
+            Server(int port, const std::string &token, const std::map<std::string, std::string> &webhooks);
+            ~Server();
 
-        void run() override;
-        void registerRoutes() override{};
+            void run() override;
+            void registerRoutes() override{};
 
-    private:
-        int portM;
-        std::string tokenM;
-        std::unique_ptr<Messenger> discordMessengerM;
-    };
+        private:
+            /**
+             * @brief Runs the listener in a separate thread.
+             *
+             * @param route api address to post messages from listener.e.g. errors
+             */
+            void initListener(const std::string &route);
+
+        private:
+            int portM;
+            const std::string &tokenM;
+            const std::map<std::string, std::string> &webhooksM;
+            std::unique_ptr<Messenger> discordMessengerM;
+        };
+    }
 }
