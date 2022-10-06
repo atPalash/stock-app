@@ -10,3 +10,15 @@
 [submodule "StockAppApi/processes/discord/vendor/yaml-cpp"]
 	path = StockAppApi/processes/discord/vendor/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "StockAppApi/processes/discord/libs/vendor/cpr"]
+	path = StockAppApi/processes/discord/libs/vendor/cpr
+	url = https://github.com/libcpr/cpr.git
+[submodule "StockAppApi/processes/discord/libs/vendor/json"]
+	path = StockAppApi/processes/discord/libs/vendor/json
+	url = https://github.com/nlohmann/json.git
+[submodule "StockAppApi/processes/news/libs/vendor/cpr"]
+	path = StockAppApi/processes/news/libs/vendor/cpr
+	url = https://github.com/libcpr/cpr.git
+[submodule "StockAppApi/processes/news/libs/vendor/json"]
+	path = StockAppApi/processes/news/libs/vendor/json
+	url = https://github.com/nlohmann/json.git

@@ -9,9 +9,10 @@ set(CMAKE_CXX_STANDARD 20)
 # Define C++ standard (PREFFERRED)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add DPP as dependency
+# Add vendors as dependency
 add_subdirectory(libs/vendor/DPP)
 add_subdirectory(libs/vendor/yaml-cpp)
+add_subdirectory(libs/vendor/cpr)
 
 # Define all headers and sources to be included in the library.
 file(GLOB_RECURSE SOURCES src/*.cpp utility/*.cpp)
@@ -32,6 +33,7 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/DPP/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/yaml-cpp/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/cpr/include
 )
 
 # Add libs this target depends on
@@ -40,6 +42,7 @@ target_link_libraries(${PROJECT_NAME}
     Interfaces 
     dpp
     yaml-cpp
+    cpr
     )
 
 # Copy the config file to build directory

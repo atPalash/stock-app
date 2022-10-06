@@ -2,7 +2,6 @@
 
 #include "listener.h"
 #include "messenger.h"
-#include "utility/messageParser.h"
 
 namespace DiscordConnector
 {
@@ -13,7 +12,8 @@ namespace DiscordConnector
                        const std::map<std::string, std::string> &webhooks) : portM(port),
                                                                              tokenM(token),
                                                                              webhooksM(webhooks),
-                                                                             discordMessengerM(new Messenger(tokenM))
+                                                                             discordMessengerM(new Messenger(tokenM)),
+                                                                             commandHandlerM(new CommandHandler())
         {
             try
             {
@@ -44,30 +44,37 @@ namespace DiscordConnector
                 .methods("POST"_method)([this](const crow::request &req)
                                         {
                 auto body = req.body;
-                
-                std::map<std::string, std::string> parsedMessage;
                 try
                 {
-                    parsedMessage = DiscordConnector::Utility::parseMessage(body, "--");
-                    this->discordMessengerM->sendEmbed("general", parsedMessage["command"], "got command");
+                    Response res = commandHandlerM->execute(body);
+                    switch (res.errorCode)
+                    {
+                    case ErrorCode::None:
+                        return crow::response{200, res.response};
+                        break;
+                    case ErrorCode::NotImplemented:
+                        return crow::response{200, "Method not implemented"};
+                        break;
+                    case ErrorCode::Critical:
+                        return crow::response{200, res.exception.what()};
+                        break;
+                    default:
+                        break;
+                    }
+                    // this->discordMessengerM->sendEmbed("general", parsedMessage["command"], "got command");
+                }
+                catch (std::exception& e)
+                {
+                    return crow::response{400, e.what()};
                 }
                 catch (...)
                 {
-                    return crow::response(400);
+                    return crow::response{400};
                 }
 
-                return crow::response{200, parsedMessage["command"]}; });
-
-            // Start the listener thread
-            std::string listenerRouteApi = "http://localhost:" + std::to_string(portM) + "/listener";
-            std::thread listenerThread(initListener, listenerRouteApi);
+                return crow::response{400, "undefined exception"}; });
 
             app.port(portM).multithreaded().run();
-        }
-
-        void Server::initListener(const std::string &route)
-        {
-            DiscordConnector::Src::Listener discordListener{tokenM, route};
         }
     }
 }
