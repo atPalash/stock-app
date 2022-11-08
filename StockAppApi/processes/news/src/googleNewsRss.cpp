@@ -1,6 +1,5 @@
 #include "googleNewsRss.h"
 
-#include "iostream"
 #include "boost/format.hpp"
 
 #include "cpr/cpr.h"
@@ -33,9 +32,6 @@ namespace
                 throw std::runtime_error("Couldnot load xml");
 
             int articleCount = 1;
-            auto test = doc.child("rss").child("channel").select_nodes("item");
-            // auto title = doc.child("channel").find_child("item").find_child("title").value();
-            // std::cout << title << std::endl;
             for (auto item : doc.child("rss").child("channel").children("item"))
             {
                 std::string title(item.child("title").first_child().value());

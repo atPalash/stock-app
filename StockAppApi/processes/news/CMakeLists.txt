@@ -13,8 +13,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(NOT TARGET cpr)
     add_subdirectory(libs/vendor/cpr)
 endif()
-add_subdirectory(libs/vendor/json)
-add_subdirectory(libs/vendor/date)
 add_subdirectory(libs/vendor/pugixml)
 
 # Define all headers and sources to be included in the library.
@@ -35,8 +33,6 @@ add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES} main.cpp)
 target_include_directories(${PROJECT_NAME} 
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/cpr/include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/json/include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/date/include
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/pugixml/src
 )
 
@@ -44,7 +40,5 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     Interfaces
     cpr
-    nlohmann_json
-    date
     pugixml
 )
