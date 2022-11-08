@@ -22,3 +22,9 @@
 [submodule "StockAppApi/processes/news/libs/vendor/json"]
 	path = StockAppApi/processes/news/libs/vendor/json
 	url = https://github.com/nlohmann/json.git
+[submodule "StockAppApi/processes/news/libs/vendor/date"]
+	path = StockAppApi/processes/news/libs/vendor/date
+	url = https://github.com/HowardHinnant/date.git
+[submodule "StockAppApi/processes/news/libs/vendor/pugixml"]
+	path = StockAppApi/processes/news/libs/vendor/pugixml
+	url = https://github.com/zeux/pugixml.git

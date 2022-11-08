@@ -1,6 +1,6 @@
 #include "server.h"
 
-#include "newsApi.h"
+#include "googleNewsRss.h"
 
 namespace News
 {
@@ -24,7 +24,7 @@ namespace News
                 auto body = req.body;
                 try
                 {
-                    auto res = getNews(body);
+                    auto res = getNewsInDiscordFormat(body);
                     return crow::response{200, res};
                 }
                 catch (std::exception& e)

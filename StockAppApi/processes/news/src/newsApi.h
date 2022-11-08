@@ -1,8 +1,7 @@
 #pragma once
 
 #include <string>
-
-#include <cpr/cpr.h>
+#include <vector>
 
 namespace News
 {
@@ -26,15 +25,14 @@ namespace News
          * @param searchIn title, description, content. e.g. title,description.
          * No space between search parameters.
          * @param language of article
+         * @param count max number of articles needed
          * @return std::string in discord link format
          */
-        std::string getNewsInDiscordFormat(std::string query, std::string from = "",
-                                           std::string sortBy = "", std::string searchIn = "",
-                                           std::string language = "");
-        cpr::Response httpGet(std::string query, std::string from,
-                              std::string sortBy, std::string searchIn,
-                              std::string language);
-        std::vector<std::string> getArticles(std::string data);
-        std::string getArticlesN(std::string data, int numberOfArticles);
+        // std::string getNewsInDiscordFormat(std::string query,
+        //                                    std::string from = "",
+        //                                    std::string sortBy = "publishedAt",
+        //                                    std::string searchIn = "title",
+        //                                    std::string language = "en",
+        //                                    int count = 10);
     }
 }
