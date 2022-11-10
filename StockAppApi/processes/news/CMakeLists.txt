@@ -38,7 +38,6 @@ target_include_directories(${PROJECT_NAME}
 
 # Add libs this target depends on
 target_link_libraries(${PROJECT_NAME}
-    Interfaces
-    cpr
+    Base
     pugixml
 )
