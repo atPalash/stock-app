@@ -22,3 +22,6 @@
 [submodule "StockAppApi/processes/news/libs/vendor/pugixml"]
 	path = StockAppApi/processes/news/libs/vendor/pugixml
 	url = https://github.com/zeux/pugixml.git
+[submodule "StockAppApi/vendor/cpr"]
+	path = StockAppApi/vendor/cpr
+	url = https://github.com/libcpr/cpr.git
