@@ -1,34 +1,25 @@
 #pragma once
 
-#include <string>
-#include <map>
+#include "commandHandlerIf.h"
+
+#include "messenger.h"
 
 namespace DiscordConnector
 {
     namespace Src
     {
-        enum class ErrorCode
-        {
-            None,
-            NotImplemented,
-            Warning,
-            Critical
-        };
-
-        struct Response
-        {
-            std::string response;
-            ErrorCode errorCode;
-            std::exception exception;
-        };
-
-        class CommandHandler
+        class CommandHandler : public interfaces::CommandHandlerIf
         {
         public:
-            CommandHandler(){};
+            CommandHandler(const std::string &token, const std::map<std::string, std::string> &webhooks);
             ~CommandHandler(){};
 
-            Response execute(std::string message);
+            interfaces::Response execute(std::string toDoMessage) override;
+
+        private:
+            const std::string &tokenM;
+            const std::map<std::string, std::string> &webhooksM;
+            std::unique_ptr<Messenger> discordMessengerM;
         };
     }
 }

@@ -1,6 +1,7 @@
 #include "googleNewsRss.h"
 
 #include "boost/format.hpp"
+#include <boost/algorithm/string/replace.hpp>
 
 #include "cpr/cpr.h"
 #include "pugixml.hpp"
@@ -100,6 +101,7 @@ namespace News
         {
             try
             {
+                boost::replace_all(query, " ", "%20");
                 auto articles = getNews(query, searchIn, when, language, country,
                                         count);
 

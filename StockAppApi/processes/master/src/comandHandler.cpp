@@ -4,6 +4,7 @@
 
 #include "messageParser.h"
 #include "httpRequester.h"
+#include "logger.h"
 
 namespace StockAppApi
 {
@@ -21,6 +22,8 @@ namespace StockAppApi
         {
             try
             {
+                SA_FILE_INFO(message);
+                SA_FILE_FLUSH();
                 auto arguments = Base::Src::parseMessage(message, "--");
                 if (arguments["command"] == commmandsM)
                 {

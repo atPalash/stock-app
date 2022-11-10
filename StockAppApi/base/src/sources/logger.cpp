@@ -6,9 +6,9 @@
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/async.h"
 
-namespace StockAppApi
+namespace Base
 {
-    namespace logger
+    namespace Src
     {
         std::shared_ptr<spdlog::logger> Log::sCoreLogger;
         std::shared_ptr<spdlog::logger> Log::sClientLogger;
@@ -17,7 +17,7 @@ namespace StockAppApi
         void Log::Init()
         {
             // spdlog::set_pattern("%^[%T] %n: %v%s");
-            
+
             sCoreLogger = spdlog::stdout_color_mt("StockAppApi");
             sCoreLogger->set_level(spdlog::level::trace);
 
@@ -28,8 +28,8 @@ namespace StockAppApi
             auto tm = *std::localtime(&t);
 
             std::ostringstream oss;
-            oss << "../logs/" << std::put_time(&tm, "%Y-%m-%d %H-%M-%S") << ".log";
-            sFileLogger = spdlog::basic_logger_mt<spdlog::async_factory>("async_file_logger", oss.str());
+            oss << "/home/palash/dev/stock-app/StockAppApi/logs/" << std::put_time(&tm, "%Y-%m-%d %H-%M-%S") << ".log";
+            sFileLogger = spdlog::basic_logger_mt<spdlog::async_factory>("StockLogger", oss.str());
             sFileLogger->set_level(spdlog::level::trace);
         }
     }
