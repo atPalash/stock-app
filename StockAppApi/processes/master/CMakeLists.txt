@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.10) 
 
 # Define cmake version (OPTIONAL, may have CMAKE which initiatest the cmake directory structure e.g. stock-app/CMakeLists.txt)
-project(StockAppApi) 
+project(Master) 
 
 # Define C++ standard version (PREFFERRED)
 set(CMAKE_CXX_STANDARD 20) 
