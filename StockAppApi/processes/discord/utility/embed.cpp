@@ -15,16 +15,17 @@ namespace DiscordConnector
             boost::split(messageArr, message, boost::is_any_of("\n"));
 
             std::string chunk;
-            for (auto &msg : messageArr)
+            for (int i = 0; i < messageArr.size(); i++)
             {
-                if ((chunk + msg).size() < 4096)
+                if ((chunk + messageArr[i]).size() < 4096)
                 {
-                    chunk += msg;
+                    chunk += messageArr[i] + "\n";
                 }
                 else
                 {
                     chunks.push_back(chunk);
                     chunk.clear();
+                    i--; // get the last message again
                 }
             }
 
