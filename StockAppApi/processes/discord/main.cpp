@@ -1,8 +1,9 @@
 #include <iostream>
 
 #include "src/listener.h"
-#include "src/server.h"
+#include "server.h"
 #include "utility/yamlParser.h"
+#include "src/commandHandler.h"
 
 /**
  * @brief Runs the listener in a separate thread.
@@ -19,12 +20,14 @@ int main()
 {
     std::cout << "Hello Discord!";
     int serverPort = 8081;
+    int masterServerPort = 8080;
+
     // Setup the bot
     YAML::Node config = DiscordConnector::Utility::parseYaml("config.yaml");
     std::string token = config["listener"]["bot"]["token"].as<std::string>();
 
     // Start the listener
-    std::string api = "http://localhost:" + std::to_string(serverPort) + "/";
+    std::string api = "http://localhost:" + std::to_string(masterServerPort) + "/";
     std::thread listenerThread(initListener, token, api);
 
     /* Get the messenger webhooks */
@@ -34,7 +37,9 @@ int main()
         webhooks.insert({webhook.first.as<std::string>(), webhook.second.as<std::string>()});
     }
 
-    DiscordConnector::Src::Server server{8081, token, webhooks};
+    auto commandHandler = std::make_unique<DiscordConnector::Src::CommandHandler>(token, webhooks);
+    Base::Src::Server server(serverPort, masterServerPort, std::move(commandHandler));
+    server.registerRoutes();
     server.run();
 
     listenerThread.join();

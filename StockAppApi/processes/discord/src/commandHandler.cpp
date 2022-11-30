@@ -2,7 +2,7 @@
 
 #include "boost/format.hpp"
 
-#include "utility/messageParser.h"
+#include "messageParser.h"
 
 namespace DiscordConnector
 {
@@ -12,7 +12,8 @@ namespace DiscordConnector
             const std::string &token,
             const std::map<std::string, std::string> &webhooks) : tokenM(token),
                                                                   webhooksM(webhooks),
-                                                                  discordMessengerM(new Messenger(tokenM))
+                                                                  discordMessengerM(new Messenger(tokenM)),
+                                                                  commmandsM("sendMessage, sendEmbed")
         {
             try
             {
@@ -31,11 +32,11 @@ namespace DiscordConnector
             }
         }
 
-        interfaces::Response CommandHandler::execute(std::string toDoMessage)
+        Base::Interface::Response CommandHandler::execute(std::string message)
         {
             try
             {
-                auto content = Utility::parseMessage(toDoMessage, "--");
+                auto content = Base::Src::parseMessage(message, "--");
 
                 if (content["command"] == "sendMessage")
                 {
@@ -45,18 +46,23 @@ namespace DiscordConnector
                 {
                     discordMessengerM->sendEmbed(content["channel"], content["title"], content["message"]);
                 }
-                else
-                {
-                    return interfaces::Response{"", interfaces::ErrorCode::MethodNotAllowed,
-                                                std::logic_error("MethodNotAllowed")};
-                }
+
+                return Base::Interface::Response{content["message"], Base::Commons::None,
+                                                 "", true};
             }
             catch (const std::exception &e)
             {
-                std::cerr << e.what() << '\n';
-                return interfaces::Response{e.what(), interfaces::ErrorCode::MethodNotAllowed,
-                                            std::logic_error("MethodNotAllowed")};
+                return Base::Interface::Response{"exception", Base::Commons::BadRequest,
+                                                 e.what(), false};
             }
+
+            return Base::Interface::Response{"NoContent", Base::Commons::NoContent,
+                                             "", false};
+        }
+
+        std::string CommandHandler::getCommandsAsStr()
+        {
+            return commmandsM;
         }
     }
 }

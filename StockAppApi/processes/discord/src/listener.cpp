@@ -2,8 +2,8 @@
 
 #include <cpr/cpr.h>
 
-#include "utility/messageParser.h"
-#include "utility/httpRequester.h"
+#include "messageParser.h"
+#include "httpRequester.h"
 #include "utility/embed.h"
 
 namespace DiscordConnector
@@ -27,9 +27,9 @@ namespace DiscordConnector
         {
             auto embedFunc = [this](const dpp::message_create_t &event)
             {
-                if (event.msg.author.username != this->botM->me.username /*&& parsedMessageMap.size() > 1*/)
+                if (event.msg.author.username == "palash") /*(event.msg.author.username != this->botM->me.username)*/
                 {
-                    auto response = Utility::post(routeM, event.msg.content);
+                    auto response = Base::Src::post(routeM, event.msg.content);
 
                     std::vector<std::string> chunks = Utility::divideInChunks(response.text);
 
@@ -38,7 +38,6 @@ namespace DiscordConnector
                         /* create the embed */
                         dpp::embed embed = dpp::embed()
                                                .set_color(dpp::colors::sti_blue)
-                                               .set_title("headlines")
                                                .set_description(chunk)
                                                .set_timestamp(time(0));
                         /* reply with the created embed */

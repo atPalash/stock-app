@@ -12,7 +12,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add vendors as dependency
 add_subdirectory(libs/vendor/DPP)
 add_subdirectory(libs/vendor/yaml-cpp)
-add_subdirectory(libs/vendor/cpr)
+if(NOT TARGET cpr)
+    add_subdirectory(libs/vendor/cpr)
+endif()
 
 # Define all headers and sources to be included in the library.
 file(GLOB_RECURSE SOURCES src/*.cpp utility/*.cpp)
@@ -39,7 +41,7 @@ target_include_directories(${PROJECT_NAME}
 # Add libs this target depends on
 target_link_libraries(${PROJECT_NAME}
     pthread 
-    Interfaces 
+    Base 
     dpp
     yaml-cpp
     cpr
