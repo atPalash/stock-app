@@ -12,7 +12,7 @@ namespace StockAppApi
 {
     namespace Src
     {
-        CommandHandler::CommandHandler() : commmandsM("register")
+        CommandHandler::CommandHandler() : commmandsM("register, unregister")
         {
         }
 
@@ -27,7 +27,7 @@ namespace StockAppApi
                 SA_FILE_INFO(message);
                 SA_FILE_FLUSH();
                 auto arguments = Base::Src::parseMessage(message, "--");
-                if (arguments["command"] == commmandsM)
+                if (arguments["command"] == "register")
                 {
                     std::vector<std::string> commandsArr;
                     boost::split(commandsArr, arguments["query"], boost::is_any_of(","));
@@ -39,6 +39,16 @@ namespace StockAppApi
                     }
                     return Base::Interface::Response{"registered", Base::Commons::None,
                                                      "", true};
+                }
+                else if (arguments["command"] == "unregister")
+                {
+                    for (auto command : registeredCommands)
+                    {
+                        if (command.second == arguments["port"])
+                        {
+                            registeredCommands.erase(command.first);
+                        }
+                    }
                 }
                 else if (registeredCommands.find(arguments["command"]) != registeredCommands.end())
                 {

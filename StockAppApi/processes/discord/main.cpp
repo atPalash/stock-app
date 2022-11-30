@@ -41,6 +41,7 @@ int main()
     Base::Src::Server server(serverPort, masterServerPort, std::move(commandHandler));
     server.registerRoutes();
     server.run();
+    server.unRegisterRoutes();
 
     listenerThread.join();
     return 0;

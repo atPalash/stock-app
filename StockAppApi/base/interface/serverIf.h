@@ -20,6 +20,12 @@ namespace Base
              *
              */
             virtual void registerRoutes() = 0;
+
+            /**
+             * @brief Unregister the routes when client server goes off.
+             *
+             */
+            virtual void unRegisterRoutes() = 0;
         };
     }
 }

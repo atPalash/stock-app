@@ -57,5 +57,13 @@ namespace Base
             std::string url{"localhost:8080"};
             auto res = Base::Src::post(url, registrationMessage);
         }
+
+        void Server::unRegisterRoutes()
+        {
+            std::string registrationMessage =
+                (boost::format("unregister --port %1%") % portM).str();
+            std::string url{"localhost:8080"}; // master is 8080
+            auto res = Base::Src::post(url, registrationMessage);
+        }
     }
 }

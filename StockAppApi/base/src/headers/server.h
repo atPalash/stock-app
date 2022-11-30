@@ -21,8 +21,9 @@ namespace Base
                    std::unique_ptr<Base::Interface::CommandHandlerIf> commandHandler);
             ~Server();
 
-            virtual void run();
-            virtual void registerRoutes();
+            virtual void run() override;
+            virtual void registerRoutes() override;
+            virtual void unRegisterRoutes() override;
         };
     }
 }
