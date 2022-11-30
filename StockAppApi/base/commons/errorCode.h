@@ -11,6 +11,7 @@ namespace Base
         enum HttpErrorCode
         {
             None = 200,
+            NoContent = 204,
             BadRequest = 400,
             MethodNotAllowed = 405
         };
