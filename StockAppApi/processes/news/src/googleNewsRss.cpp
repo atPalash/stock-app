@@ -109,7 +109,7 @@ namespace News
                 int newsCount = 1;
                 for (auto &article : articles)
                 {
-                    std::string news = (boost::format("[%1%.%2%](%3%)\n") % newsCount % article.headline % article.link).str();
+                    std::string news = (boost::format("[%1%. %2%](%3%)\n") % newsCount % article.headline % article.link).str();
                     ret += news;
                     newsCount++;
                 }

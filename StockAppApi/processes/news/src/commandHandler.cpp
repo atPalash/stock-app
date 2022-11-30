@@ -39,6 +39,9 @@ namespace News
                 return Base::Interface::Response{"exception", Base::Commons::BadRequest,
                                                  e.what(), false};
             }
+
+            return Base::Interface::Response{"NoContent", Base::Commons::NoContent,
+                                             "", false};
         }
 
         std::string CommandHandler::getCommandsAsStr()
