@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
+
 #include "messageParser.h"
 #include "httpRequester.h"
 #include "logger.h"
@@ -27,7 +29,14 @@ namespace StockAppApi
                 auto arguments = Base::Src::parseMessage(message, "--");
                 if (arguments["command"] == commmandsM)
                 {
-                    registeredCommands[arguments["query"]] = arguments["port"];
+                    std::vector<std::string> commandsArr;
+                    boost::split(commandsArr, arguments["query"], boost::is_any_of(","));
+
+                    for (auto query : commandsArr)
+                    {
+                        boost::trim(query); // trim spaces
+                        registeredCommands[query] = arguments["port"];
+                    }
                     return Base::Interface::Response{"registered", Base::Commons::None,
                                                      "", true};
                 }
@@ -40,8 +49,8 @@ namespace StockAppApi
                 }
                 else
                 {
-                    return Base::Interface::Response{"", Base::Commons::MethodNotAllowed,
-                                                     "MethodNotAllowed", false};
+                    return Base::Interface::Response{"MethodNotAllowed", Base::Commons::MethodNotAllowed,
+                                                     "", false};
                 }
             }
             catch (const std::exception &e)
@@ -49,6 +58,9 @@ namespace StockAppApi
                 return Base::Interface::Response{"exception", Base::Commons::BadRequest,
                                                  e.what(), false};
             }
+
+            return Base::Interface::Response{"NoContent", Base::Commons::NoContent,
+                                             "", false};
         }
 
         std::string CommandHandler::getCommandsAsStr()
