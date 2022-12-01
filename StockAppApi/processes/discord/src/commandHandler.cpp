@@ -3,6 +3,7 @@
 #include "boost/format.hpp"
 
 #include "messageParser.h"
+#include "logger.h"
 
 namespace DiscordConnector
 {
@@ -27,6 +28,7 @@ namespace DiscordConnector
             }
             catch (const std::exception &e)
             {
+                Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
                 std::cerr << e.what() << std::endl;
                 throw;
             }
@@ -52,6 +54,7 @@ namespace DiscordConnector
             }
             catch (const std::exception &e)
             {
+                Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
                 return Base::Interface::Response{"exception", Base::Commons::BadRequest,
                                                  e.what(), false};
             }

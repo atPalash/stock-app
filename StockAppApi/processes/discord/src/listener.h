@@ -28,14 +28,6 @@ namespace DiscordConnector
              */
             void init();
 
-            /**
-             * @brief post listener error to the parent server address, such that it can be
-             * notified to user
-             *
-             * @param errorMessage defining what caused the error
-             */
-            void postListenerError(const std::string &errorMessage);
-
         private:
             const std::string &tokenM;
             const std::string &routeM;

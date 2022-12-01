@@ -49,9 +49,5 @@ namespace DiscordConnector
             botM->on_message_create(embedFunc);
             botM->start(dpp::st_wait);
         }
-
-        void Listener::postListenerError(const std::string &errorMessage)
-        {
-        }
     }
 }

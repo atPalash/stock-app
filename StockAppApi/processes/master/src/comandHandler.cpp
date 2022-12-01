@@ -24,8 +24,6 @@ namespace StockAppApi
         {
             try
             {
-                SA_FILE_INFO(message);
-                SA_FILE_FLUSH();
                 auto arguments = Base::Src::parseMessage(message, "--");
                 if (arguments["command"] == "register")
                 {
@@ -59,12 +57,14 @@ namespace StockAppApi
                 }
                 else
                 {
+                    Base::Src::Log::LogError(__FILE__, __LINE__, message);
                     return Base::Interface::Response{"MethodNotAllowed", Base::Commons::MethodNotAllowed,
                                                      "", false};
                 }
             }
             catch (const std::exception &e)
             {
+                Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
                 return Base::Interface::Response{"exception", Base::Commons::BadRequest,
                                                  e.what(), false};
             }

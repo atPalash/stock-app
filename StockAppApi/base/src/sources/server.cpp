@@ -4,6 +4,7 @@
 #include "crow.h"
 
 #include "httpRequester.h"
+#include "logger.h"
 
 namespace Base
 {
@@ -37,10 +38,12 @@ namespace Base
                         }
                         catch (std::exception &e)
                         {
+                            Base::Src::Log::LogError("POST", __LINE__, e.what());
                             return crow::response{400, e.what()};
                         }
                         catch (...)
                         {
+                            Base::Src::Log::LogError("POST", __LINE__, "Unknown error");
                             return crow::response{400};
                         } 
                         return crow::response{400, "undefined exception"}; });
@@ -50,20 +53,38 @@ namespace Base
 
         void Server::registerRoutes()
         {
-            std::string registrationMessage =
-                (boost::format("register --port %1% --query %2%") % portM %
-                 commandHandlerM->getCommandsAsStr())
-                    .str();
-            std::string url{"localhost:8080"};
-            auto res = Base::Src::post(url, registrationMessage);
+            try
+            {
+                std::string registrationMessage =
+                    (boost::format("register --port %1% --query %2%") % portM %
+                     commandHandlerM->getCommandsAsStr())
+                        .str();
+                std::string url{"localhost:8080"};
+                auto res = Base::Src::post(url, registrationMessage);
+
+                Base::Src::Log::LogInfo(__FILE__, __LINE__, registrationMessage);
+            }
+            catch (const std::exception &e)
+            {
+                Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
+            }
         }
 
         void Server::unRegisterRoutes()
         {
-            std::string registrationMessage =
-                (boost::format("unregister --port %1%") % portM).str();
-            std::string url{"localhost:8080"}; // master is 8080
-            auto res = Base::Src::post(url, registrationMessage);
+            try
+            {
+                std::string registrationMessage =
+                    (boost::format("unregister --port %1%") % portM).str();
+                std::string url{"localhost:8080"}; // master is 8080
+                auto res = Base::Src::post(url, registrationMessage);
+
+                Base::Src::Log::LogInfo(__FILE__, __LINE__, registrationMessage);
+            }
+            catch (const std::exception &e)
+            {
+                Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
+            }
         }
     }
 }

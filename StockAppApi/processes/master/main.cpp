@@ -11,7 +11,7 @@ int main()
     int masterServerPort = -1;
 
     // Initialize the logger from master server
-    Base::Src::Log::Init();
+    Base::Src::Log::Init("StockAppApi");
 
     auto commandHandler = std::make_unique<StockAppApi::Src::CommandHandler>();
     Base::Src::Server server(serverPort, masterServerPort, std::move(commandHandler));

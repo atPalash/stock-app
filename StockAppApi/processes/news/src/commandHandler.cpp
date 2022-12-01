@@ -4,6 +4,7 @@
 
 #include "googleNewsRss.h"
 #include "messageParser.h"
+#include "logger.h"
 
 namespace News
 {
@@ -30,12 +31,14 @@ namespace News
                 }
                 else
                 {
+                    Base::Src::Log::LogError(__FILE__, __LINE__, message);
                     return Base::Interface::Response{"", Base::Commons::MethodNotAllowed,
                                                      "MethodNotAllowed", false};
                 }
             }
             catch (const std::exception &e)
             {
+                Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
                 return Base::Interface::Response{"exception", Base::Commons::BadRequest,
                                                  e.what(), false};
             }

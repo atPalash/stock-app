@@ -2,6 +2,7 @@
 
 #include "src/listener.h"
 #include "server.h"
+#include "logger.h"
 #include "utility/yamlParser.h"
 #include "src/commandHandler.h"
 
@@ -21,6 +22,9 @@ int main()
     std::cout << "Hello Discord!";
     int serverPort = 8081;
     int masterServerPort = 8080;
+
+    // Initialize the logger from master server
+    Base::Src::Log::Init("Discord");
 
     // Setup the bot
     YAML::Node config = DiscordConnector::Utility::parseYaml("config.yaml");
