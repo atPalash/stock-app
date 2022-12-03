@@ -38,12 +38,12 @@ namespace Base
                         }
                         catch (std::exception &e)
                         {
-                            Base::Src::Log::LogError("POST", __LINE__, e.what());
+                            Base::Src::Log::LogCritical("POST", __LINE__, e.what());
                             return crow::response{400, e.what()};
                         }
                         catch (...)
                         {
-                            Base::Src::Log::LogError("POST", __LINE__, "Unknown error");
+                            Base::Src::Log::LogCritical("POST", __LINE__, "Unknown error");
                             return crow::response{400};
                         } 
                         return crow::response{400, "undefined exception"}; });
