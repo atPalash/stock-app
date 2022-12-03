@@ -26,8 +26,6 @@ add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES} main.cpp)
 # INTERFACE	All the objects following INTERFACE will only be used for providing the interface to the other targets that have dependencies on the current target.
 target_include_directories(${PROJECT_NAME} 
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/cpr/include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/vendor/pugixml/src
 )
 
 # Add libs this target depends on
