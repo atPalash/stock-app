@@ -40,13 +40,16 @@ namespace StockAppApi
                 }
                 else if (arguments["command"] == "unregister")
                 {
-                    for (auto command : registeredCommands)
+                    auto temp = registeredCommands; // keeping a temporary map since we erase from the main registeredCommands map
+                    for (auto command : temp)
                     {
                         if (command.second == arguments["port"])
                         {
                             registeredCommands.erase(command.first);
                         }
                     }
+                    return Base::Interface::Response{"unregistered", Base::Commons::None,
+                                                     "", true};
                 }
                 else if (registeredCommands.find(arguments["command"]) != registeredCommands.end())
                 {
