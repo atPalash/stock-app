@@ -8,13 +8,26 @@ namespace DiscordConnector
 {
     namespace Src
     {
+        /**
+         * Discord commandHandler.
+        */
         class CommandHandler : public Base::Interface::CommandHandlerIf
         {
         public:
+            /**
+             * @brief Constructor required discord listener bot token, and webhooks which determine where to send the reply.
+            */
             CommandHandler(const std::string &token, const std::map<std::string, std::string> &webhooks);
             ~CommandHandler(){};
 
+            /**
+             * @ref Base::Interface::CommandHandlerIf
+            */
             Base::Interface::Response execute(std::string message) override;
+
+            /**
+             * @ref Base::Interface::CommandHandlerIf
+            */
             std::string getCommandsAsStr() override;
 
         private:

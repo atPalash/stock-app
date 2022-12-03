@@ -23,13 +23,12 @@ namespace DiscordConnector
                     discordMessengerM->addWebhook(webhook.first, webhook.second);
                 }
 
-                // Send a message to first webhook
-                discordMessengerM->sendEmbed(webhooks.begin()->first, "server online", "Keep up!");
+                // Send a message to general webhook
+                discordMessengerM->sendEmbed("general", "server online", "Keep up!");
             }
             catch (const std::exception &e)
             {
                 Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
-                std::cerr << e.what() << std::endl;
                 throw;
             }
         }
