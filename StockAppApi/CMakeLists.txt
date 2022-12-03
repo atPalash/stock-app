@@ -12,7 +12,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add subdirectory to show in Cmake dir structure. Should add for source file. vendor files are optional.
 add_subdirectory(vendor/Crow)
 add_subdirectory(vendor/cpr)
+add_subdirectory(vendor/DPP)
+add_subdirectory(vendor/json)
+add_subdirectory(vendor/pugixml)
 add_subdirectory(vendor/spdlog)
+add_subdirectory(vendor/yaml-cpp)
 
 add_subdirectory(base)
 add_subdirectory(processes/master)

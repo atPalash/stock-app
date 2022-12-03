@@ -1,27 +1,21 @@
-[submodule "StockAppApi/vendor/--force"]
-	path = StockAppApi/vendor/--force
+[submodule "StockAppApi/vendor/Crow"]
+	path = StockAppApi/vendor/Crow
 	url = https://github.com/CrowCpp/Crow.git
 [submodule "StockAppApi/vendor/spdlog"]
 	path = StockAppApi/vendor/spdlog
 	url = https://github.com/gabime/spdlog.git
-[submodule "StockAppApi/processes/discord/libs/vendor/DPP"]
-	path = StockAppApi/processes/discord/libs/vendor/DPP
-	url = https://github.com/brainboxdotcc/DPP.git
-[submodule "StockAppApi/processes/discord/vendor/yaml-cpp"]
-	path = StockAppApi/processes/discord/vendor/yaml-cpp
-	url = https://github.com/jbeder/yaml-cpp.git
-[submodule "StockAppApi/processes/discord/libs/vendor/cpr"]
-	path = StockAppApi/processes/discord/libs/vendor/cpr
-	url = https://github.com/libcpr/cpr.git
-[submodule "StockAppApi/processes/discord/libs/vendor/json"]
-	path = StockAppApi/processes/discord/libs/vendor/json
-	url = https://github.com/nlohmann/json.git
-[submodule "StockAppApi/processes/news/libs/vendor/cpr"]
-	path = StockAppApi/processes/news/libs/vendor/cpr
-	url = https://github.com/libcpr/cpr.git
-[submodule "StockAppApi/processes/news/libs/vendor/pugixml"]
-	path = StockAppApi/processes/news/libs/vendor/pugixml
-	url = https://github.com/zeux/pugixml.git
 [submodule "StockAppApi/vendor/cpr"]
 	path = StockAppApi/vendor/cpr
 	url = https://github.com/libcpr/cpr.git
+[submodule "StockAppApi/vendor/DPP"]
+	path = StockAppApi/vendor/DPP
+	url = https://github.com/brainboxdotcc/DPP.git
+[submodule "StockAppApi/vendor/yaml-cpp"]
+	path = StockAppApi/vendor/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "StockAppApi/vendor/json"]
+	path = StockAppApi/vendor/json
+	url = https://github.com/nlohmann/json.git
+[submodule "StockAppApi/vendor/pugixml"]
+	path = StockAppApi/vendor/pugixml
+	url = https://github.com/zeux/pugixml.git

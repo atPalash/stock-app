@@ -9,13 +9,6 @@ set(CMAKE_CXX_STANDARD 20)
 # Define C++ standard (PREFFERRED)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add vendors as dependency
-add_subdirectory(libs/vendor/DPP)
-add_subdirectory(libs/vendor/yaml-cpp)
-if(NOT TARGET cpr)
-    add_subdirectory(libs/vendor/cpr)
-endif()
-
 # Define all headers and sources to be included in the library.
 file(GLOB_RECURSE SOURCES src/*.cpp utility/*.cpp)
 file(GLOB_RECURSE HEADERS src/*.h utility/*.h)
