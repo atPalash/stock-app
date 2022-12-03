@@ -3,7 +3,7 @@
 #include "src/listener.h"
 #include "server.h"
 #include "logger.h"
-#include "utility/yamlParser.h"
+#include "yamlParser.h"
 #include "src/commandHandler.h"
 
 /**
@@ -27,7 +27,7 @@ int main()
     Base::Src::Log::Init("Discord");
 
     // Setup the bot
-    YAML::Node config = DiscordConnector::Utility::parseYaml("config.yaml");
+    YAML::Node config = Base::Src::parseYaml("config.yaml");
     std::string token = config["listener"]["bot"]["token"].as<std::string>();
 
     // Start the listener

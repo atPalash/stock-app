@@ -2,9 +2,9 @@
 
 #include <iostream>
 
-namespace DiscordConnector
+namespace Base
 {
-    namespace Utility
+    namespace Src
     {
         YAML::Node parseYaml(std::string filePath)
         {
@@ -15,7 +15,6 @@ namespace DiscordConnector
             }
             catch (const std::exception &e)
             {
-                std::cerr << e.what() << std::endl;
                 throw;
             }
         }

@@ -33,7 +33,6 @@ target_link_libraries(${PROJECT_NAME}
     pthread 
     Base 
     dpp
-    yaml-cpp
     cpr
     )
 

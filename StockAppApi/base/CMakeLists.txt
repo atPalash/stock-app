@@ -36,4 +36,5 @@ target_link_libraries(${PROJECT_NAME}
     cpr
     spdlog
     Crow
+    yaml-cpp
     )

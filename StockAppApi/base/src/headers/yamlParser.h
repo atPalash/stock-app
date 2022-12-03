@@ -2,9 +2,9 @@
 
 #include "yaml-cpp/yaml.h"
 
-namespace DiscordConnector
+namespace Base
 {
-    namespace Utility
+    namespace Src
     {
         /**
          * @brief Read a yaml config file and get the elements
