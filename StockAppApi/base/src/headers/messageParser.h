@@ -2,11 +2,14 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 namespace Base
 {
     namespace Src
     {
+        std::vector<std::string> splitString(const std::string &delimiter, const std::string &textToSplit);
+
         /**
          * @brief parse user message to a map of command and arguments. The user
          * should follow this convention <command> <--arg_name> <arg_value>.

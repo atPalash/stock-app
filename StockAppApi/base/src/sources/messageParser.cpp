@@ -8,14 +8,27 @@ namespace Base
 {
     namespace Src
     {
+        std::vector<std::string> splitString(const std::string &delimiter, const std::string &textToSplit)
+        {
+            size_t pos = 0;
+            std::vector<std::string> tokens;
+            std::string tempText = textToSplit;
+            while ((pos = tempText.find(delimiter)) != std::string::npos) {
+                tokens.push_back(tempText.substr(0, pos));
+                tempText.erase(0, pos + delimiter.length());
+            }
+
+            tokens.push_back(tempText);
+            return tokens;
+        }
+
         std::map<std::string, std::string> parseMessage(const std::string &message, const std::string &parserSymbol)
         {
             try
             {
                 std::string messageToParse{message};
                 boost::trim(messageToParse);
-                std::vector<std::string> messageArr;
-                boost::split(messageArr, messageToParse, boost::is_any_of(parserSymbol));
+                std::vector<std::string> messageArr = splitString(parserSymbol, message);
                 std::map<std::string, std::string> result;
 
                 // first element is always command
