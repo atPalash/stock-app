@@ -1,4 +1,5 @@
 #include "messenger.h"
+#include "utility/embed.h"
 
 namespace DiscordConnector
 {
@@ -20,16 +21,20 @@ namespace DiscordConnector
 
         void Messenger::sendEmbed(const std::string &channel, const std::string &title, const std::string &message) const
         {
-            dpp::embed embed = dpp::embed()
-                                   .set_color(dpp::colors::sti_blue)
-                                   .set_title(title)
-                                   .set_description(message)
-                                   .set_timestamp(time(0));
-
             auto itr = channelWebhookM.find(channel);
             if (itr != channelWebhookM.end())
             {
-                botM->execute_webhook_sync(itr->second, dpp::message(channel, embed));
+                std::vector<std::string> chunks = Utility::divideInChunks(message);
+                for (auto &chunk : chunks)
+                {
+                    /* create the embed */
+                    dpp::embed embed = dpp::embed()
+                                           .set_color(dpp::colors::sti_blue)
+                                           .set_description(chunk)
+                                           .set_timestamp(time(0));
+                    /* reply with the created embed */
+                    botM->execute_webhook_sync(itr->second, dpp::message(channel, embed));
+                }
             }
             else
             {
@@ -42,7 +47,11 @@ namespace DiscordConnector
             auto itr = channelWebhookM.find(channel);
             if (itr != channelWebhookM.end())
             {
-                botM->execute_webhook_sync(itr->second, dpp::message(message));
+                std::vector<std::string> chunks = Utility::divideInChunks(message);
+                for (auto &chunk : chunks)
+                {
+                    botM->execute_webhook_sync(itr->second, dpp::message(message));
+                }
             }
             else
             {
