@@ -10,7 +10,7 @@ namespace Base
         {
             try
             {
-                YAML::Node config = YAML::LoadFile("config.yaml");
+                YAML::Node config = YAML::LoadFile(filePath);
                 return config;
             }
             catch (const std::exception &e)
