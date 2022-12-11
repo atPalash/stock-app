@@ -21,10 +21,10 @@ namespace
         }
     }
 
-    std::vector<News::Src::info> getArticles(std::string data,
+    std::vector<News::Src::Info> getArticles(std::string data,
                                              int count = 10)
     {
-        std::vector<News::Src::info> articles;
+        std::vector<News::Src::Info> articles;
         try
         {
             pugi::xml_document doc;
@@ -38,7 +38,7 @@ namespace
                 std::string title(item.child("title").first_child().value());
                 std::string link(item.child("link").first_child().value());
 
-                News::Src::info newsLink{title, link};
+                News::Src::Info newsLink{title, link};
                 articles.push_back(newsLink);
                 articleCount++;
 
@@ -61,17 +61,17 @@ namespace News
 {
     namespace Src
     {
-        std::vector<info> getNews(std::string query,
+        std::vector<Info> getNews(std::string query,
+                                  int count,
                                   std::string searchIn,
                                   std::string when,
                                   std::string language,
-                                  std::string country,
-                                  int count)
+                                  std::string country)
         {
             try
             {
                 std::string queryUrl = News::Src::BASE_URL + "q=" + searchIn +
-                                       ":" + query + "&hl=" + language + "-" +
+                                       ":" + query + "+when:" + when + "&hl=" + language + "-" +
                                        country + "&gl=" + country + "&ceid=" +
                                        country + ":" + language;
                 cpr::Response res = httpGet(queryUrl);
@@ -93,17 +93,17 @@ namespace News
         }
 
         std::string getNewsInDiscordFormat(std::string query,
+                                           int count,
                                            std::string searchIn,
                                            std::string when,
                                            std::string language,
-                                           std::string country,
-                                           int count)
+                                           std::string country)
         {
             try
             {
                 boost::replace_all(query, " ", "%20");
-                auto articles = getNews(query, searchIn, when, language, country,
-                                        count);
+                auto articles = getNews(query, count, searchIn, when, language,
+                                        country);
 
                 std::string ret;
                 int newsCount = 1;

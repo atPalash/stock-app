@@ -11,7 +11,7 @@ namespace News
          * @brief A data type to store headline and link to the news.
          *
          */
-        struct info
+        struct Info
         {
             std::string headline;
             std::string link;
@@ -28,39 +28,39 @@ namespace News
          *          "link": "link of news" }
          *
          * @param query string to search
+         * @param count max number of articles needed
          * @param searchIn title, description, content. e.g. intitle, indescription.
          * Space between search parameters are replaced by %20.
          * @param when can be 1h, 1y etc. Currently not used.
          * @param language of article
          * @param country of news
-         * @param count max number of articles needed
          * @return list of dictionary
          */
-        std::vector<info> getNews(std::string query,
-                                  std::string searchIn = "intitle",
-                                  std::string when = "1y",
+        std::vector<Info> getNews(std::string query,
+                                  int count = 10,
+                                  std::string searchIn = "",
+                                  std::string when = "1d",
                                   std::string language = "en",
-                                  std::string country = "IN",
-                                  int count = 10);
+                                  std::string country = "IN");
 
         /**
          * @brief Get the News In Discord formatted string, such that the string
          * is a clickable type to the entire news in discord.
          *
          * @param query string to search
+         * @param count max number of articles needed
          * @param searchIn title, description, content. e.g. intitle, indescription.
          * Space between search parameters are replaced by %20.
          * @param when can be 1h, 1y etc. Currently not used.
          * @param language of article
          * @param country of news
-         * @param count max number of articles needed
          * @return std::string
          */
         std::string getNewsInDiscordFormat(std::string query,
-                                           std::string searchIn = "intitle",
-                                           std::string when = "30d",
+                                           int count = 10,
+                                           std::string searchIn = "",
+                                           std::string when = "1d",
                                            std::string language = "en",
-                                           std::string country = "IN",
-                                           int count = 10);
+                                           std::string country = "IN");
     }
 }
