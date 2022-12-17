@@ -12,7 +12,7 @@ namespace News
         class CommandHandler : public Base::Interface::CommandHandlerIf
         {
         public:
-            CommandHandler();
+            CommandHandler(const std::string& config);
             ~CommandHandler();
 
             /**
@@ -27,6 +27,7 @@ namespace News
 
         private:
             std::string commmandsM;
+            std::string configM;
         };
     }
 }

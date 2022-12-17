@@ -1,4 +1,4 @@
-latest:
+stock:
 # basic material
   - ASIANPAINT
   - PIDILITIND
@@ -54,3 +54,13 @@ latest:
   - ITC
   - NLCINDIA
   - TITAN
+# Added
+topic:
+  - NIFTY
+  - SENSEX
+  - RBI
+  - FED
+  - US MARKET
+  - ADANI ENTERPRISE
+  - ADANI
+  - TATA

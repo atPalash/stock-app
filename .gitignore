@@ -1,6 +1,5 @@
 build
 .vscode
 StockAppApi/logs/*.log
-StockAppApi/processes/discord/libs/
-StockAppApi/processes/news/libs/
 backup
+delivery.csv

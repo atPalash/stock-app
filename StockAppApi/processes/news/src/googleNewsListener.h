@@ -16,17 +16,18 @@ namespace News
             News::Src::Info info;
         };
 
+        /**
+         * @brief news listener with stocklist to listen on topic and the
+         * interval
+         *
+         * @param stockListYaml list of selected stocks in yaml
+         * @param interval polling interval in minutes
+         * @param masterUrl url of master server
+         */
         class GoogleNewsListener
         {
         public:
-            /**
-             * @brief news listener with stocklist to listen on topic and the
-             * interval
-             *
-             * @param stockListYaml list of selected stocks in yaml
-             * @param interval polling interval in minutes
-             */
-            GoogleNewsListener(std::string stockListYaml, int interval, std::string masterUrl);
+            GoogleNewsListener(const std::string &stockListYaml, int interval, const std::string &masterUrl);
             ~GoogleNewsListener(){};
 
             /**
@@ -39,14 +40,16 @@ namespace News
         private:
             /**
              * @brief send the list of latest news to discord
-            */
+             */
             void sendDiscordMessage();
 
+            void readConfig();
         private:
             int intervalM;
             std::vector<std::string> stockListM;
             std::map<std::string, LatestNews> latestNewsM;
             std::string masterUrlM;
+            std::string configM;
             bool stopM;
         };
     }

@@ -14,16 +14,11 @@ namespace News
 {
     namespace Src
     {
-        GoogleNewsListener::GoogleNewsListener(std::string stockListYaml,
-                                               int interval, std::string masterUrl) : intervalM(interval), stopM(false),
-                                                                                      masterUrlM(masterUrl)
+        GoogleNewsListener::GoogleNewsListener(const std::string &stockListYaml,
+                                               int interval, const std::string &masterUrl) : configM(stockListYaml),
+                                                                                             intervalM(interval), stopM(false),
+                                                                                             masterUrlM(masterUrl)
         {
-            YAML::Node res = Base::Src::parseYaml(stockListYaml);
-
-            for (auto i : res["latest"])
-            {
-                stockListM.push_back(i.as<std::string>());
-            }
         }
 
         void GoogleNewsListener::run()
@@ -32,6 +27,7 @@ namespace News
             {
                 try
                 {
+                    readConfig();
                     for (auto stock : stockListM)
                     {
                         try
@@ -45,6 +41,10 @@ namespace News
                                     {
                                         latestNewsM[stock].isSentToDiscord = false;
                                         latestNewsM[stock].info = articles[0];
+                                    }
+                                    else
+                                    {
+                                        latestNewsM[stock].isSentToDiscord = true;
                                     }
                                 }
                                 else
@@ -75,7 +75,8 @@ namespace News
 
         void GoogleNewsListener::sendDiscordMessage()
         {
-            std::string toSend = "sendEmbed --channel general --message ";
+            std::string toSendTemplate = "sendEmbed --channel general --message ";
+            std::string toSend = toSendTemplate;
             for (auto news : latestNewsM)
             {
                 if (!news.second.isSentToDiscord)
@@ -87,9 +88,24 @@ namespace News
                 }
             }
 
-            if (toSend != "")
+            if (toSend != toSendTemplate)
             {
                 Base::Src::post(masterUrlM, toSend);
+            }
+        }
+
+        void GoogleNewsListener::readConfig()
+        {
+            YAML::Node res = Base::Src::parseYaml(configM);
+
+            for (auto i : res["stock"])
+            {
+                stockListM.push_back(i.as<std::string>());
+            }
+
+            for (auto i : res["topic"])
+            {
+                stockListM.push_back(i.as<std::string>());
             }
         }
     }

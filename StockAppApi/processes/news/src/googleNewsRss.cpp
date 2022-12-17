@@ -70,6 +70,7 @@ namespace News
         {
             try
             {
+                boost::replace_all(query, " ", "%20");
                 std::string queryUrl = News::Src::BASE_URL + "q=" + searchIn +
                                        ":" + query + "+when:" + when + "&hl=" + language + "-" +
                                        country + "&gl=" + country + "&ceid=" +
@@ -101,7 +102,6 @@ namespace News
         {
             try
             {
-                boost::replace_all(query, " ", "%20");
                 auto articles = getNews(query, count, searchIn, when, language,
                                         country);
 

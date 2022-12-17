@@ -29,7 +29,7 @@ namespace Base
         {
             try
             {
-                std::string logToFile = "[" + file + "/" + std::to_string(line) + "] " + message;
+                std::string logToFile = "[" + file + ":" + std::to_string(line) + "] " + message;
                 switch (level)
                 {
                 case Info:
