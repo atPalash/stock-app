@@ -2,6 +2,8 @@
 
 #include <unistd.h>
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 
 #include "boost/format.hpp"
 
@@ -32,7 +34,7 @@ namespace News
                     {
                         try
                         {
-                            auto articles = getNews(stock, 1);
+                            auto articles = getNews("intitle:" + stock, 1);
                             if (articles.size() > 0)
                             {
                                 if (latestNewsM.find(stock) != latestNewsM.end())
@@ -64,7 +66,11 @@ namespace News
                     throw;
                 }
                 sendDiscordMessage();
-                sleep(intervalM * 60);
+
+                srand(time(0));
+                int minInterval = intervalM * 60 * 0.5;
+                int randomInterval = rand() % minInterval  + minInterval;
+                sleep(randomInterval);
             }
         }
 
