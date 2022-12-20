@@ -33,6 +33,3 @@ target_link_libraries(${PROJECT_NAME}
     Base
     pugixml
 )
-
-# Copy the config file to build directory
-configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/selected_stocks.yaml ${CMAKE_CURRENT_BINARY_DIR}/selected_stocks.yaml COPYONLY)

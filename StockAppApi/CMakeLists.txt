@@ -22,3 +22,13 @@ add_subdirectory(base)
 add_subdirectory(processes/master)
 add_subdirectory(processes/news)
 add_subdirectory(processes/discord)
+
+# Create a list of source files
+set(CONFIG_FILES "${CMAKE_CURRENT_SOURCE_DIR}/configuration/config.yaml"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/configuration/selected_stocks.yaml"
+                 )
+
+# Loop over the list of files and copy each file individually
+foreach(CONFIG_FILE ${CONFIG_FILES})
+  file(COPY ${CONFIG_FILE} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/configuration)
+endforeach()

@@ -35,6 +35,3 @@ target_link_libraries(${PROJECT_NAME}
     dpp
     cpr
     )
-
-# Copy the config file to build directory
-configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/config.yaml ${CMAKE_CURRENT_BINARY_DIR}/config.yaml COPYONLY)
