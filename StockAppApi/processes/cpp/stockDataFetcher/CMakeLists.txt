@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.10) 
 
 # Define cmake version (OPTIONAL, may have CMAKE which initiatest the cmake directory structure e.g. stock-app/CMakeLists.txt)
-project(News) 
+project(StockDataFetcher) 
 
 # Define C++ standard version (PREFFERRED)
 set(CMAKE_CXX_STANDARD 20) 
@@ -10,8 +10,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Define all headers and sources to be included in the library.
-file(GLOB_RECURSE SOURCES src/*.cpp utility/*.cpp)
-file(GLOB_RECURSE HEADERS src/*.h utility/*.h)
+file(GLOB_RECURSE SOURCES src/*.cpp)
+file(GLOB_RECURSE HEADERS src/*.h)
 
 # find_package(CURL REQUIRED)
 
@@ -31,5 +31,4 @@ target_include_directories(${PROJECT_NAME}
 # Add libs this target depends on
 target_link_libraries(${PROJECT_NAME}
     Base
-    pugixml
 )

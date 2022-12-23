@@ -43,6 +43,7 @@ namespace News
                                     {
                                         latestNewsM[stock].isSentToDiscord = false;
                                         latestNewsM[stock].info = articles[0];
+                                        sendDiscordMessage();
                                     }
                                     else
                                     {
@@ -59,18 +60,17 @@ namespace News
                         {
                             Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
                         }
+
+                        srand(time(0));
+                        int minInterval = (intervalM * 60) / stockListM.size();
+                        int randomInterval = rand() % 10 + minInterval;
+                        sleep(randomInterval);
                     }
                 }
                 catch (std::exception &e)
                 {
                     throw;
                 }
-                sendDiscordMessage();
-
-                srand(time(0));
-                int minInterval = intervalM * 60 * 0.5;
-                int randomInterval = rand() % minInterval  + minInterval;
-                sleep(randomInterval);
             }
         }
 

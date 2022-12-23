@@ -19,9 +19,10 @@ add_subdirectory(vendor/spdlog)
 add_subdirectory(vendor/yaml-cpp)
 
 add_subdirectory(base)
-add_subdirectory(processes/master)
-add_subdirectory(processes/news)
-add_subdirectory(processes/discord)
+add_subdirectory(processes/cpp/master)
+add_subdirectory(processes/cpp/news)
+add_subdirectory(processes/cpp/discord)
+add_subdirectory(processes/cpp/stockDataFetcher)
 
 # Create a list of source files
 set(CONFIG_FILES "${CMAKE_CURRENT_SOURCE_DIR}/configuration/config.yaml"

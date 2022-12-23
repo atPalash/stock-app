@@ -3,3 +3,6 @@ build
 StockAppApi/logs/*.log
 backup
 delivery.csv
+database
+StockAppApi/venv/*
+*__pycache__
