@@ -3,52 +3,53 @@ stock:
   - PIDILITIND
   - PREMEXPLN
   - BHARTIARTL
-  - ROUTE
-  - TITAN
-  - TATAMOTORS
-  - BHARATFORG
-  - TATACONSUM
-  - BATAINDIA
-  - HATSUN
-  - UBL
-  - DEEPENR
-  - ADANIENT
-  - RELIANCE
-  - ONELIFECAP
-  - ICICIPRULI
-  - SBILIFE
-  - HDFCLIFE
-  - HDFCBANK
-  - SBIN
-  - MAXHEALTH
-  - BIOCON
-  - SYNGENE
-  - BEL
-  - ZENTEC
-  - SNOWMAN
-  - RIIL
-  - ABB
-  - TATAELXSI
-  - TCS
-  - INFY
-  - ITI
-  - ADANIGREEN
-  - ATGL
-  - ADANITRANS
-  - VIPIND
-  - IRCTC
-  - CARTRADE
-  - BERGEPAINT
-  - EVEREADY
-  - ITC
-  - NLCINDIA
-  - TITAN
-topic:
-  - NIFTY
-  - SENSEX
-  - RBI
-  - FED
-  - US MARKET
-  - ADANI ENTERPRISE
-  - ADANI
-  - TATA
+  
+#   - ROUTE
+#   - TITAN
+#   - TATAMOTORS
+#   - BHARATFORG
+#   - TATACONSUM
+#   - BATAINDIA
+#   - HATSUN
+#   - UBL
+#   - DEEPENR
+#   - ADANIENT
+#   - RELIANCE
+#   - ONELIFECAP
+#   - ICICIPRULI
+#   - SBILIFE
+#   - HDFCLIFE
+#   - HDFCBANK
+#   - SBIN
+#   - MAXHEALTH
+#   - BIOCON
+#   - SYNGENE
+#   - BEL
+#   - ZENTEC
+#   - SNOWMAN
+#   - RIIL
+#   - ABB
+#   - TATAELXSI
+#   - TCS
+#   - INFY
+#   - ITI
+#   - ADANIGREEN
+#   - ATGL
+#   - ADANITRANS
+#   - VIPIND
+#   - IRCTC
+#   - CARTRADE
+#   - BERGEPAINT
+#   - EVEREADY
+#   - ITC
+#   - NLCINDIA
+#   - TITAN
+# topic:
+#   - NIFTY
+#   - SENSEX
+#   - RBI
+#   - FED
+#   - US MARKET
+#   - ADANI ENTERPRISE
+#   - ADANI
+#   - TATA

@@ -1,8 +1,8 @@
-build
+build/*
 .vscode
 StockAppApi/logs/*.log
-backup
-delivery.csv
-database
+database/day/*
+database/week/*
+database/hour/*
 StockAppApi/venv/*
 *__pycache__
