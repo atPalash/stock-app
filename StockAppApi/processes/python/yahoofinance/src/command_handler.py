@@ -27,7 +27,7 @@ class CommandHandler(CommandHandlerIf):
                     tickers = self.selected_stocks
                 else:
                     for stock in stock_list:
-                        tickers.append(stock.trim())
+                        tickers.append(stock.strip())
                 tickers = [tick + '.NS' for tick in tickers]
                 interval = arguments.get('interval', '1d')
                 period = arguments.get('period', self.period_config[interval])

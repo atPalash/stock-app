@@ -41,9 +41,10 @@ namespace News
                                 {
                                     if (latestNewsM[stock].info.headline != articles[0].headline)
                                     {
+                                        std::cout << "new news " << stock << std::endl;
                                         latestNewsM[stock].isSentToDiscord = false;
                                         latestNewsM[stock].info = articles[0];
-                                        sendDiscordMessage();
+
                                     }
                                     else
                                     {
@@ -52,6 +53,7 @@ namespace News
                                 }
                                 else
                                 {
+                                    std::cout << "new news " << stock << std::endl;
                                     latestNewsM.insert({stock, LatestNews{false, articles[0]}});
                                 }
                             }
@@ -60,17 +62,16 @@ namespace News
                         {
                             Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
                         }
-
-                        srand(time(0));
-                        int minInterval = (intervalM * 60) / stockListM.size();
-                        int randomInterval = rand() % 10 + minInterval;
-                        sleep(randomInterval);
                     }
                 }
                 catch (std::exception &e)
                 {
                     throw;
                 }
+
+                sendDiscordMessage();
+                sleep(intervalM);
+                std::cout << "***********" << std::endl;
             }
         }
 
@@ -104,14 +105,22 @@ namespace News
         {
             YAML::Node res = Base::Src::parseYaml(configM);
 
-            for (auto i : res["stock"])
-            {
-                stockListM.push_back(i.as<std::string>());
-            }
+             for (auto i : res["stock"])
+             {
+                std::string stock = i.as<std::string>();
+                if(std::find(stockListM.begin(), stockListM.end(), stock) == stockListM.end())
+                {
+                    stockListM.push_back(stock);
+                }
+             }
 
             for (auto i : res["topic"])
             {
-                stockListM.push_back(i.as<std::string>());
+                std::string stock = i.as<std::string>();
+                if(std::find(stockListM.begin(), stockListM.end(), stock) == stockListM.end())
+                {
+                    stockListM.push_back(stock);
+                }
             }
         }
     }

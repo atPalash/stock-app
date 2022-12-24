@@ -10,7 +10,7 @@ def parse_message(message:str, parser_symbol:str) -> dict:
         
         for i in range(1, len(messageArr)):
             if messageArr[i] != "":
-                argVal = messageArr[i].split(" ")
+                argVal = messageArr[i].split(" ", 1)
                 argument = argVal[0].strip()
                 value = argVal[1].strip()
                 result[argument] = value
