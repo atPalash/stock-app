@@ -70,7 +70,7 @@ namespace News
                 }
 
                 sendDiscordMessage();
-                sleep(intervalM);
+                sleep(intervalM * 60 * 60);
                 std::cout << "***********" << std::endl;
             }
         }
