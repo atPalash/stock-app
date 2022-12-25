@@ -1,6 +1,6 @@
-from base.python.interface.commandHandlerIf import CommandHandlerIf, Response
-from base.python.src.message_parser import parse_message
-from processes.python.yahoofinance.src.dataFetcher import download_historical_data
+from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf, Response
+from StockAppApi.base.python.src.message_parser import parse_message
+from StockAppApi.processes.python.yahoofinance.src.dataFetcher import download_historical_data
 
 
 class CommandHandler(CommandHandlerIf):
@@ -31,7 +31,7 @@ class CommandHandler(CommandHandlerIf):
                 tickers = [tick + '.NS' for tick in tickers]
                 interval = arguments.get('interval', '1d')
                 period = arguments.get('period', self.period_config[interval])
-                destination = arguments.get('destination', f'database/{self.destination_config[interval]}')
+                destination = arguments.get('destination', f'StockAppApi/database/{self.destination_config[interval]}')
                 result = download_historical_data(tickers=tickers,
                                                   period=period,
                                                   interval=interval,

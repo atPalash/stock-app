@@ -1,5 +1,5 @@
-from base.python.interface.serverIf import ServerIf
-from base.python.interface.commandHandlerIf import CommandHandlerIf
+from StockAppApi.base.python.interface.serverIf import ServerIf
+from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf
 from flask import Flask, request
 import requests
 
