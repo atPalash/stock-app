@@ -20,14 +20,16 @@ void initListener(const std::string token, const std::string &route)
 int main()
 {
     std::cout << "Hello Discord!";
-    int serverPort = 8081;
-    int masterServerPort = 8080;
+
+    std::string configFolder = "../../../configuration/";
+    YAML::Node config = Base::Src::parseYaml(configFolder + "config.yaml");
+    int serverPort = config["port"]["discord"].as<int>();
+    int masterServerPort =  config["port"]["master"].as<int>();
 
     // Initialize the logger from master server
     Base::Src::Log::Init("Discord");
 
     // Setup the bot
-    YAML::Node config = Base::Src::parseYaml("../../../configuration/config.yaml");
     std::string token = config["listener"]["bot"]["token"].as<std::string>();
 
     // Start the listener

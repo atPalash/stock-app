@@ -3,8 +3,8 @@
 #include "server.h"
 #include "logger.h"
 #include "src/commandHandler.h"
-
 #include "src/googleNewsListener.h"
+#include "yamlParser.h"
 
 /**
  * @brief Runs the news listener in a separate thread.
@@ -33,10 +33,14 @@ void stopListener(News::Src::GoogleNewsListener& listener)
 int main()
 {
     std::cout << "Hello News!";
-    int serverPort = 8082;
-    int masterServerPort = 8080;
+
+    std::string configFolder = "../../../configuration/";
+    YAML::Node config = Base::Src::parseYaml(configFolder + "config.yaml");
+    int serverPort = config["port"]["news"].as<int>();
+    int masterServerPort =  config["port"]["master"].as<int>();
+
     // Initialize the logger from news server
-    std::string selectedStocksYaml{"../../../configuration/selected_stocks.yaml"};
+    std::string selectedStocksYaml{configFolder + "selected_stocks.yaml"};
     Base::Src::Log::Init("News");
     auto commandHandler = std::make_unique<News::Src::CommandHandler>(selectedStocksYaml);
     Base::Src::Server server(serverPort, masterServerPort, std::move(commandHandler));

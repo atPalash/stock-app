@@ -1,3 +1,10 @@
+port:
+  master: 8080
+  discord: 8081
+  news: 8082
+  yahoofinance: 8083
+  talib: 8084
+  
 messenger:
   webhook:
     general: https://discord.com/api/webhooks/960993827877969970/cRSL2_258Ha7jXhKrW6hWlpXBrprCb0POSt2lu0NGOdvgzQKUPTsAaJZRLAZzKYj7wcb
