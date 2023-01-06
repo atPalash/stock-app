@@ -19,7 +19,7 @@ class CommandHandler(CommandHandlerIf):
 
     def execute(self, message: str) -> Response:
         try:
-            arguments = parse_message(message=message, parser_symbol="--")
+            arguments = parse_message(message=message)
             if (arguments["command"] == "download"):
                 tickers = []
                 stock_list = arguments['stock'].split(",")

@@ -1,3 +1,30 @@
+from pyparsing import Word, alphanums, Group, Forward, ZeroOrMore, oneOf, Keyword, Suppress, OneOrMore
+
+alphanum = Word(alphanums + '<' + '>' + '<=' + '>=' + ',')
+
+key_symbol= "--"
+key_operator = oneOf(key_symbol, caseless=True)
+value_operator = oneOf("< > <= >= ,")
+bool_operator=oneOf("&& || !!")
+pipe_operator = oneOf("|")
+
+# Define a forward declarations
+key_value = Forward()
+key_value <<= ZeroOrMore(key_operator + ZeroOrMore(alphanum))
+
+# Main command comes before the pipe
+cmd = Forward()
+cmd <<= Group(alphanum + key_value)
+
+# sub-commands are joined and their result is computed 
+query = Forward()
+query <<= ZeroOrMore(cmd + ZeroOrMore(bool_operator))
+
+# Complete command query string
+cmd_with_query = Forward()
+cmd_with_query <<= cmd + ZeroOrMore(pipe_operator) + query
+
+@DeprecationWarning
 def parse_message(message:str, parser_symbol:str) -> dict:
     try:
         messageToParse = message
@@ -18,3 +45,84 @@ def parse_message(message:str, parser_symbol:str) -> dict:
         return result
     except Exception as e:
         raise
+
+def parse_message(message:str)->dict:
+    """
+    Parse the message string into key, value pairs. The string with the ``parser_symbol``
+    is taken as the key and the value is represented by the string after it. The
+    first string is the command.
+
+    e.g. select --stock all --interval day | where --indicator ema --interval 20,100 --condition value<=1000 & 
+    where --indicator macd --interval 20,100 --condition slope>0
+    
+    Args:
+        message (str): The query string message to be parsed
+        parser_symbol (str): String used to indicate key.
+
+    Returns:
+        dict: Of key value pairs
+    """
+    try:
+        # parse the string to a list of commands with query
+        cmd_query = cmd_with_query.parseString(message)
+        pipe_found = False # signifies there are sub-commands
+        condition_found = False # used to push the last sub-command to ret
+        ret = [] # place holder for parsed result
+        
+        for i in range(len(cmd_query)):
+            # find the main command
+            if cmd_query[i] == "|":
+                pipe_found = True
+                ret.append(make_map(cmd_query[i-1]))
+                ret.append(make_map(cmd_query[i]))    
+            
+            # find the sub-command
+            if cmd_query[i] == "&&" or cmd_query[i] == "||" or cmd_query[i] == "!!":
+                condition_found = True
+                ret.append(make_map(cmd_query[i-1]))
+                ret.append(make_map(cmd_query[i]))    
+        
+        # only main command
+        if not pipe_found:
+            ret.append(make_map(cmd_query[0]))
+        else:
+            # with sub-command
+            if condition_found:
+                ret.append(make_map(cmd_query[len(cmd_query) - 1]))
+            else:
+                ret.append(make_map(cmd_query[2]))
+
+        return ret
+    except Exception as e:
+        print(e.args)
+
+# 
+def make_map(input: list)->dict:
+    """convert the list of commands to key-value pairs
+
+    Args:
+        input (list): of parsed string
+
+    Returns:
+        dict: of key-value key are the identifiers of action
+    """
+    ret = {}
+    for i in range(len(input)):
+        if i == 0:            
+            if(isinstance(input, str)):
+                ret['command'] = input
+            else:
+                ret['command'] = input[i]
+        else:
+            if(input[i] == key_symbol):
+                ret[input[i+1]] = input[i+2]
+                i+=2
+    return ret
+        
+if __name__ == "__main__":
+    test = f'select --stock all --interval day | where --indicator ema --interval 20,100 \
+        --condition value<=1000 && where --indicator macd --interval 20,100 --condition slope>0 \
+        || where --indicator rsi --condition value>70'
+    test2 = f'select --stock all --interval day,week --condition helo>100'
+    # print(parse_message(test))
+    print(parse_message(test2))
