@@ -1,13 +1,13 @@
 from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf, Response
 from StockAppApi.base.python.src.message_parser import parse_message
-from StockAppApi.processes.python.yahoofinance.src.dataFetcher import download_historical_data
+from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data
 
 
 class CommandHandler(CommandHandlerIf):
-    def __init__(self, selected_stocks) -> None:
+    def __init__(self, selected_stocks_yaml) -> None:
         super().__init__()
         self.commands = "download"
-        self.selected_stocks = selected_stocks
+        self.selected_stocks_yaml = selected_stocks_yaml
         # period : str
         #     Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
         #     Either Use period parameter or use start and end
@@ -20,7 +20,7 @@ class CommandHandler(CommandHandlerIf):
     def execute(self, message: str) -> Response:
         try:
             arguments = parse_message(message=message)
-            if (arguments["command"] == "download"):
+            if (arguments["command"] == "download"): # donot download here lets do it scheduled
                 tickers = []
                 stock_list = arguments['stock'].split(",")
                 if len(stock_list) == 1 and stock_list[0] == "all":

@@ -1,5 +1,11 @@
 import yfinance as yf
 
+def download_latest_data(tickers: list):
+    data = yf.download(tickers=tickers, period='1d', interval='1m', 
+                       progress=False, group_by="ticker", rounding=True, 
+                       actions=True, threads=10, show_errors=True)
+    data = data.dropna().tail(1)
+    
 def download_historical_data(tickers: list, period: int, interval: int, as_panda_df=False, 
                  as_csv=False, destination=""):
     data = yf.download(tickers=tickers, period=period, interval=interval, 
