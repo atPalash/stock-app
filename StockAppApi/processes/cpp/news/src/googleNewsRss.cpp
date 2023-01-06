@@ -63,7 +63,6 @@ namespace News
     {
         std::vector<Info> getNews(std::string query,
                                   int count,
-                                  std::string searchIn,
                                   std::string when,
                                   std::string language,
                                   std::string country)
@@ -71,8 +70,8 @@ namespace News
             try
             {
                 boost::replace_all(query, " ", "%20");
-                std::string queryUrl = News::Src::BASE_URL + "q=" + searchIn +
-                                       ":" + query + "+when:" + when + "&hl=" + language + "-" +
+                std::string queryUrl = News::Src::BASE_URL + "q=" + query +
+                                       "+when:" + when + "&hl=" + language + "-" +
                                        country + "&gl=" + country + "&ceid=" +
                                        country + ":" + language;
                 cpr::Response res = httpGet(queryUrl);
@@ -95,15 +94,13 @@ namespace News
 
         std::string getNewsInDiscordFormat(std::string query,
                                            int count,
-                                           std::string searchIn,
                                            std::string when,
                                            std::string language,
                                            std::string country)
         {
             try
             {
-                auto articles = getNews(query, count, searchIn, when, language,
-                                        country);
+                auto articles = getNews(query, count, when, language, country);
 
                 std::string ret;
                 int newsCount = 1;

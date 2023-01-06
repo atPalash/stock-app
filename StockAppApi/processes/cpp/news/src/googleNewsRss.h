@@ -29,8 +29,6 @@ namespace News
          *
          * @param query string to search
          * @param count max number of articles needed
-         * @param searchIn title, description, content. e.g. intitle, indescription.
-         * Space between search parameters are replaced by %20.
          * @param when can be 1h, 1y etc. Currently not used.
          * @param language of article
          * @param country of news
@@ -38,7 +36,6 @@ namespace News
          */
         std::vector<Info> getNews(std::string query,
                                   int count = 10,
-                                  std::string searchIn = "",
                                   std::string when = "1d",
                                   std::string language = "en",
                                   std::string country = "IN");
@@ -58,7 +55,6 @@ namespace News
          */
         std::string getNewsInDiscordFormat(std::string query,
                                            int count = 10,
-                                           std::string searchIn = "",
                                            std::string when = "1d",
                                            std::string language = "en",
                                            std::string country = "IN");

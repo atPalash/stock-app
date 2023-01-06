@@ -27,7 +27,7 @@ namespace News
                 auto arguments = Base::Src::parseMessage(message, "--");
                 if (arguments["command"] == "headlines")
                 {
-                    auto news = getNewsInDiscordFormat(arguments["stock"], 10, "", "30d");
+                    auto news = getNewsInDiscordFormat("intitle:"+arguments["stock"], 10, "30d");
                     return Base::Interface::Response{news, Base::Commons::None,
                                                      "", true};
                 }

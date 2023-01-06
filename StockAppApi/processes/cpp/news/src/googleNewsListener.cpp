@@ -44,7 +44,6 @@ namespace News
                                         std::cout << "new news " << stock << std::endl;
                                         latestNewsM[stock].isSentToDiscord = false;
                                         latestNewsM[stock].info = articles[0];
-
                                     }
                                     else
                                     {
@@ -70,7 +69,7 @@ namespace News
                 }
 
                 sendDiscordMessage();
-                sleep(intervalM * 60 * 60);
+                sleep(intervalM * 60);
                 std::cout << "***********" << std::endl;
             }
         }
