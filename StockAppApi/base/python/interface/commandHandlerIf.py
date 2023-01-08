@@ -4,7 +4,13 @@ class Response:
         self.errorCode = errorCode
         self.exceptionStr = exceptionStr
         self.ok = ok
-        
+
+def get_commands_as_str(commands_dict: dict)-> str:
+    commands = ""
+    for key in commands_dict.keys():
+        commands += key + ',' 
+    return commands
+
 class CommandHandlerIf:
     def execute(self, message:str, is_rest=True) -> Response:
         pass

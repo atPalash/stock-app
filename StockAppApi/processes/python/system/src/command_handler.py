@@ -1,4 +1,4 @@
-from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf, Response
+from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf, Response, get_commands_as_str
 from StockAppApi.base.python.src.message_parser import parse_message
 from StockAppApi.base.python.src.yaml_parser import read_config
 from StockAppApi.processes.python.system.src.elder_impulse import ElderImpulse
@@ -31,7 +31,4 @@ class CommandHandler(CommandHandlerIf):
             return Response("exception", 400, e.args, False)
 
     def get_command_as_str(self) -> str:
-        commands = ""
-        for key in self.commands.keys():
-            commands += key + ',' 
-        return commands
+        return get_commands_as_str(self.commands)
