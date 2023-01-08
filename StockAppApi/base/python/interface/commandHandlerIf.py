@@ -6,7 +6,7 @@ class Response:
         self.ok = ok
         
 class CommandHandlerIf:
-    def execute(self, message:str) -> Response:
+    def execute(self, message:str, is_rest=True) -> Response:
         pass
     def get_command_as_str(self) -> str:
         pass
