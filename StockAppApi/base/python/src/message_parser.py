@@ -1,6 +1,6 @@
 from pyparsing import Word, alphanums, Group, Forward, ZeroOrMore, oneOf, Keyword, Suppress, OneOrMore
 
-alphanum = Word(alphanums + '<' + '>' + '<=' + '>=' + ',')
+alphanum = Word(alphanums + '<' + '>' + '<=' + '>=' + ',' + '_')
 
 key_symbol= "--"
 key_operator = oneOf(key_symbol, caseless=True)
@@ -124,5 +124,10 @@ if __name__ == "__main__":
         --condition value<=1000 && where --indicator macd --interval 20,100 --condition slope>0 \
         || where --indicator rsi --condition value>70'
     test2 = f'select --stock all --interval day,week --condition helo>100'
+    test3 = "elder --ema_window 13 --ema_n 100 --macd_fast_period 13 macd_slow_period 26 macd_signal_period 9 --macdhist_n 20"
+    test4 ="sendMessage --channel general --message |    | stock      |   ema_day_slope |   ema_week_slope |   macd_hist_day_slope |   macd_hist_week_slope |   ema_action |   machdhist_action | trend   |\n|---:|:-----------|----------------:|-----------------:|----------------------:|-----------------------:|-------------:|-------------------:|:--------|\n|  1 | ASIANPAINT |        -3.59613 |         -7.20985 |              -1.56491 |                 -0.948 |           -2 |                 -2 | bearish |"
     # print(parse_message(test))
-    print(parse_message(test2))
+    # print(parse_message(test2))
+    # print(parse_message(test3))
+    print(parse_message(test4))
+    
