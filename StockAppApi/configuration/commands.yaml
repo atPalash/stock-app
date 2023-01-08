@@ -1,0 +1,8 @@
+process:
+  yahoofinance:
+    examples:
+      - download --stock all --interval 1d # download all selected stock day data rerturns pandas df
+      - download --stock all --interval 1wk --csv 1 # download all selected stock week data as csv in database folder
+      - download --stock all --interval 1h # download all selected stock hour data
+      - download --stock TCS --interval 1d # download TCS stock day data
+    format: download --stock ${stockname} --interval ${interval} --csv ${as_csv_int} # period is set to max
