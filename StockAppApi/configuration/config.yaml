@@ -4,6 +4,8 @@ port:
   news: 8082
   yahoofinance: 8083
   talib: 8084
+  scheduler: 8085
+  system: 8086
   
 messenger:
   webhook:
