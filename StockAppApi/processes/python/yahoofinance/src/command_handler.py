@@ -1,7 +1,7 @@
 from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf, Response
 from StockAppApi.base.python.src.message_parser import parse_message
 from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data
-
+from StockAppApi.base.python.src.yaml_parser import read_config
 
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml) -> None:
@@ -19,12 +19,12 @@ class CommandHandler(CommandHandlerIf):
 
     def execute(self, message: str) -> Response:
         try:
-            arguments = parse_message(message=message)
+            arguments = parse_message(message=message)[0] # there will be no sub-command
             if (arguments["command"] == "download"): # donot download here lets do it scheduled
                 tickers = []
                 stock_list = arguments['stock'].split(",")
                 if len(stock_list) == 1 and stock_list[0] == "all":
-                    tickers = self.selected_stocks
+                    tickers = read_config(self.selected_stocks_yaml)['stock']
                 else:
                     for stock in stock_list:
                         tickers.append(stock.strip())
@@ -33,7 +33,7 @@ class CommandHandler(CommandHandlerIf):
                 period = arguments.get('period', self.period_config[interval])
                 destination = arguments.get('destination', f'StockAppApi/database/{self.destination_config[interval]}')
                 result = download_historical_data(tickers=tickers,
-                                                  period=period,
+                                                  period="max", # when sending multiple tickers set period as max since they are grouped by ticker, otherwise result in empty dataframe
                                                   interval=interval,
                                                   as_panda_df=arguments.get('panda', True),
                                                   as_csv=arguments.get('csv', False),

@@ -17,6 +17,9 @@ def download_historical_data(tickers: list, period: int, interval: int, as_panda
         if destination != "":
             for ticker in tickers:
                 csv_name = "{}/{}".format(destination, ticker.split(".")[0])
+                if len(tickers) == 1:
+                    data.to_csv(csv_name + '.csv')
+                    break
                 data[ticker].to_csv(csv_name + '.csv')
         else:
             raise FileNotFoundError("destination folder not defined") 
@@ -26,6 +29,6 @@ def download_historical_data(tickers: list, period: int, interval: int, as_panda
     
 if __name__ == "__main__":
     try:
-        download_historical_data(["TCS.NS", "TATAMOTORS.NS"], "1y", "1d", True, True, "database/test")
+        download_historical_data(["ASIANPAINT.NS"], "10y", "1wk", True, True, "StockAppApi/database/test")
     except Exception as e:
         print(e.args)
