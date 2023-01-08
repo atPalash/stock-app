@@ -42,6 +42,29 @@ namespace DiscordConnector
             }
         }
 
+        void Messenger::sendImage(const std::string &channel, const std::string &title,
+                                  const std::string &message, const std::string &imagePath) const
+        {
+            auto itr = channelWebhookM.find(channel);
+            if (itr != channelWebhookM.end())
+            {
+                sendEmbed(channel, title, message);
+
+                dpp::message msg(channel, "");
+                msg.add_file(title, dpp::utility::read_file(imagePath));
+                dpp::embed embed = dpp::embed()
+                                       .set_color(dpp::colors::sti_blue)
+                                       .set_timestamp(time(0));
+                embed.set_image("attachment://" + title); // reference to the attached file
+                msg.add_embed(embed);
+                botM->execute_webhook_sync(itr->second, dpp::message(channel, embed));
+            }
+            else
+            {
+                throw std::invalid_argument("channel " + channel + " not found");
+            }
+        }
+
         void Messenger::sendMessage(const std::string &channel, const std::string &message) const
         {
             auto itr = channelWebhookM.find(channel);

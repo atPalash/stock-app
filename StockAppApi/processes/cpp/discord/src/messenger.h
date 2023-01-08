@@ -32,6 +32,15 @@ namespace DiscordConnector
              * @param channel name
              * @param message to send
              */
+            void sendImage(const std::string &channel, const std::string &title,
+                           const std::string &message, const std::string &imagePath) const;
+
+            /**
+             * @brief Send a message to a Discord channel.
+             *
+             * @param channel name
+             * @param message to send
+             */
             void sendMessage(const std::string &channel, const std::string &message) const;
 
             /**
