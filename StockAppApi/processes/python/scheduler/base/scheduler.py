@@ -10,8 +10,9 @@ class Scheduler(SchedulerIf):
     def run():
         pass
     
-    def stop():
-        pass
+    def stop(self):
+        for _, scheduler in self.schedulers.items():
+            scheduler.shutdown(wait=False)
     
     def notify():
         pass
