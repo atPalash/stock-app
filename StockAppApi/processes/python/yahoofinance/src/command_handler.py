@@ -15,7 +15,9 @@ class CommandHandler(CommandHandlerIf):
         #     Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
         #     Intraday data cannot extend last 60 days
         self.destination_config = {'1d' : 'day', '1h': 'hour', '1wk': 'week'}
-        self.period_config = {'1d' : '5y', '1h': '2y', '1wk': '10y'}
+        # when sending multiple tickers set period as max since they are grouped
+        # by ticker, otherwise result in empty dataframe. Setting week as max 
+        self.period_config = {'1d' : '5y', '1h': '2y', '1wk': 'max'}
 
     def execute(self, message: str) -> Response:
         try:
@@ -33,7 +35,7 @@ class CommandHandler(CommandHandlerIf):
                 period = arguments.get('period', self.period_config[interval])
                 destination = arguments.get('destination', f'StockAppApi/database/{self.destination_config[interval]}')
                 result = download_historical_data(tickers=tickers,
-                                                  period="max", # when sending multiple tickers set period as max since they are grouped by ticker, otherwise result in empty dataframe
+                                                  period=self.period_config[interval], 
                                                   interval=interval,
                                                   as_panda_df=arguments.get('panda', True),
                                                   as_csv=arguments.get('csv', False),
