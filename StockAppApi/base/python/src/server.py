@@ -15,10 +15,10 @@ class Server(ServerIf):
         def base_api():
             if request.method == 'POST':
                 try:
-                    result = self.command_handler.execute(request.data.decode())
-                    return {'code': result.errorCode, 'body': result.response}
+                    result = self.command_handler.execute(request.data.decode(), is_rest=True)
+                    return result.response, result.errorCode
                 except Exception as e:
-                    return {'code': 400, 'body': e.args}
+                    return result.exceptionStr, result.errorCode
             else:
                 # Handle GET request
                 return f'Hello, {__name__}'
