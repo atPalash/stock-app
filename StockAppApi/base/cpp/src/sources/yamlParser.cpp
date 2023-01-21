@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <unistd.h>
 
 namespace Base
 {
