@@ -1,4 +1,4 @@
-from StockAppApi.processes.python.scheduler.src.system import SystemScheduler
+from StockAppApi.processes.python.scheduler.src.elder_impulse import ElderImpulseScheduler
 from StockAppApi.processes.python.scheduler.src.yahoofinance import YahooScheduler
 from StockAppApi.processes.python.scheduler.src.command_handler import CommandHandler
 from StockAppApi.base.python.src.yaml_parser import read_config
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         indicator_config_yaml = configFolder + "indicator.yaml"   
         selected_stocks_yaml = configFolder + "selected_stocks.yaml"
         
-        system_scheduler = SystemScheduler(indicator_config_file=indicator_config_yaml, 
+        system_scheduler = ElderImpulseScheduler(indicator_config_file=indicator_config_yaml, 
                                         selected_stocks_config_file=selected_stocks_yaml, 
                                         master_url=f"http://localhost:{masterServerPort}")
         yahoo_scheduler = YahooScheduler(indicator_config_file=indicator_config_yaml, 

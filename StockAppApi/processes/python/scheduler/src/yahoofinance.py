@@ -3,7 +3,6 @@ import pytz
 from datetime import datetime
 
 from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data
-from StockAppApi.base.python.src.yaml_parser import read_config
 from StockAppApi.processes.python.scheduler.base.scheduler import Scheduler
 
 
@@ -15,10 +14,10 @@ class YahooScheduler(Scheduler):
         self.schedulers = {}
 
     def run(self):
-        for interval in read_config(self.indicator_config_file)['indicator']['data']:
+        for interval in self.indicator_config['indicator']['data']:
             scheduler = BackgroundScheduler()
             if interval == 'week':
-                scheduler.add_job(self.__periodic_download, 'cron', hour='16',
+                scheduler.add_job(self.__periodic_download, 'cron', hour='17',
                                   day_of_week='fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
                 scheduler.start()
             elif interval == 'day':
@@ -42,20 +41,17 @@ class YahooScheduler(Scheduler):
             interval (str): _description_
             add_latest (bool, optional): _description_. Defaults to False.
         """
-        destinations_ = {'1d': 'day', '1h': 'hour', '1wk': 'week'}
         intervals_ = {'day': '1d', 'hour': '1h', 'week': '1wk'}
-        periods_ = {'1d': '5y', '1h': '2y', '1wk': 'max'} # if max is not set then the empty dataframe is returned by yahoo, for dataframe of stocks of different size
-        indicator_config = read_config(
-            self.indicator_indicator_config_file)['indicator']
-        selected_stocks = read_config(self.selected_stocks_yaml)
-
+        periods_ = {'day': '5y', 'hour': '2y', 'week': '10y'}
+        
+        selected_stocks = self.selected_stocks_config
         tickers = [tick + '.NS' for tick in selected_stocks['stock']]
         yahoo_interval = intervals_[interval]
         download_historical_data(tickers=tickers,
                                  period=periods_[interval], 
                                  interval=yahoo_interval,
                                  as_csv=True,
-                                 destination=f'StockAppApi/database/{destinations_[yahoo_interval]}')
+                                 destination=self.indicator_config['indicator']['data'][interval])
 
         # Get the timezone object for the desired time zone
         tz = pytz.timezone("Asia/Kolkata")
