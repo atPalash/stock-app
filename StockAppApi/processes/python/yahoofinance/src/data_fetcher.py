@@ -25,6 +25,7 @@ def download_latest_data(tickers: list):
                         progress=False, group_by="ticker", rounding=True, 
                         actions=True, threads=10, show_errors=True)
         data = data.dropna().tail(1)
+        return data
     except Exception as e:
         raise
     

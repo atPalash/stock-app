@@ -21,7 +21,7 @@ class CommandHandler(CommandHandlerIf):
 
     def execute(self, message: str) -> Response:
         try:
-            arguments = parse_message(message=message)[0] # there will be no sub-command
+            arguments = parse_message(message=message)
             if (arguments["command"] == "download"): # donot download here lets do it scheduled
                 tickers = []
                 stock_list = arguments['stock'].split(",")
