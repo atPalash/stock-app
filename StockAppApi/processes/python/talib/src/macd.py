@@ -19,7 +19,7 @@ class Macd(Indicator):
         super().__init__(name=name, type=type, ticker=ticker, ohlc=ohlc, parameter=parameter)
         
     def _do_analysis(self, latest=True):
-        if latest:
+        if latest == 1:
             last_minute_series = download_latest_data(tickers=[f'{self.ticker}.NS'])
             self.ohlc = pandas.concat([self.ohlc, last_minute_series])
         macd, macdsignal, macdhist = talib.MACD(self.ohlc[self.parameter['ohlc']], 

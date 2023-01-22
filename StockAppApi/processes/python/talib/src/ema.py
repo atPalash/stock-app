@@ -9,8 +9,8 @@ class Ema(Indicator):
     def __init__(self, ohlc, parameter, ticker:str, name="", type="") -> None:
         super().__init__(name=name, type=type, ticker=ticker, ohlc=ohlc, parameter=parameter)
 
-    def _do_analysis(self, latest=True):
-        if latest:
+    def _do_analysis(self, latest=1):
+        if latest == 1:
             last_minute_series = download_latest_data(tickers=[f'{self.ticker}.NS'])
             self.ohlc = pandas.concat([self.ohlc, last_minute_series])
         ema = talib.EMA(self.ohlc[self.parameter['ohlc']], timeperiod=int(self.parameter['window']))

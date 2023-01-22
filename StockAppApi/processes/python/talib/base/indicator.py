@@ -12,10 +12,10 @@ class Indicator(IndicatorIf):
         self.ohlc = ohlc
         self.parameter = parameter
  
-    def _do_analysis(self, latest=True):
+    def _do_analysis(self, latest=1):
         pass
     
-    def get_result_df(self, with_latest_minute=True) -> pandas.DataFrame:
+    def get_result_df(self, with_latest_minute=1) -> pandas.DataFrame:
         """Get the result as pandas dataframe 
 
         Returns:
