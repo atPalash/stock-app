@@ -11,6 +11,7 @@ class RetVal:
         else:
             self.obj_as_string = obj_as_str
         self.errors = errors
+
 class System(SystemIf):
     def __init__(self, indicator_config_file:str, selected_stocks_config_file:str, 
                  parameter: dict, command_handler: object, name="") -> None:
@@ -37,8 +38,21 @@ class System(SystemIf):
             'n': int(parameter.get('n', '10')),
             'ohlc': parameter.get('ohlc', 'Close'),
             'panda': int(parameter.get('panda', '0')),
+            'plot': int(parameter.get('plot', '0')),
+            'save_plot': parameter.get('save_plot', ''),
             'ticker': parameter.get('ticker', 'all'),
             'window': int(parameter.get('window', '20')),
         }
         
         return parameters
+    
+    def _get_tickers(self) ->list:
+        tickers = []
+        ticker = self.parameter['ticker']
+        if ticker == "all":
+            tickers = self.selected_stocks_config['stock']
+        else:
+            for tick in ticker.split(','):
+                tickers.append(tick)
+        tickers = [ticker.replace(" ", "") for ticker in tickers]
+        return tickers
