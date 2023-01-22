@@ -14,7 +14,7 @@ class CommandHandler(CommandHandlerIf):
         
     def execute(self, message: str) -> Response:
         try:
-            command = parse_message(message=message)[0] # ignore the sub-commands
+            command = parse_message(message=message)
             self.commands[command['command']]()
             return Response("Stopped schedulers", 200, "", True)
         except Exception as e:

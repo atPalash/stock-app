@@ -17,7 +17,7 @@ class CommandHandler(CommandHandlerIf):
         
     def execute(self, message: str, is_rest=False):
         try:
-            arguments = parse_message(message=message)[0] # there will be no sub-command
+            arguments = parse_message(message=message) # there will be no sub-command
             # command the system for analysis
             system = self.commands[arguments['command']](self.indicator_config_yaml, 
                                                          self.selected_stocks_yaml, 

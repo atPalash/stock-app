@@ -6,26 +6,28 @@ from StockAppApi.processes.python.system.base.system import System, RetVal
 
 class ElderImpulse(System):
     def __init__(self, indicator_config_file, selected_stocks_config_file, parameter:dict, command_handler: object, name="Elder") -> None:
-        """The ElderImpulse system implementation. Search amonf the list of selected
-        stocks, the trends associated and the indicate what kind of trade is 
-        allowed in the current situation.
+        """The ElderImpulse system implementation. 
+        A good measure of the inertia of any trading vehicle is the slope of its fast EMA.
+        A rising EMA reflects bullish inertia, while a falling EMA reflects bearish inertia. The
+        power of any trend is reflected in the slope of MACD-Histogram. If its latest bar is
+        higher than the previous bar (like the height of the letters m–M) or less deep than the
+        previous bar (like the depth of the letters y–v), then the slope of MACD-Histogram
+        is rising, and the power is pushing up. If the latest bar of MACD-Histogram is lower
+        than the previous one (like the depth of the letters v–y or the height of the letters
+        M–m), then the slope is declining, and the power is pushing down. It 
+        wasn’t an automatic trading system—it was a censorship system! It didn’t tell
+        what to do—it told me what not to do. If either weekly or daily bar was red—no buying allowed
+        If either weekly or daily bar was green—no shorting permitted.
         
-        Here, we have a fast ema EMA13 and macdhist as the basic constituents of 
-        this indicator. When EMA13 both weekly and dailys slopes are positive
-        and MACDHIST both weekly and dailies are positive we set the trend as bullish
-        and also similarly the bearish trend is set. In short if the cumulative 
-        of slopes is +ve it is bullish, -ve it is bearish and 0 means there is not
-        much trend.
-
         Args:
             name (_type_): _description_ name of system may depend on the parameter passed
             selected_stocks_config_file (_type_): list of selected stocks
             parameter (str): message string defining the parameter for the system.
-                e.g. elder --window 13 --n 100 --macd_fast_period 13 
+                e.g. elderimpulse --window 13 --n 100 --macd_fast_period 13 
                 macd_slow_period 26 macd_signal_period 9
                 
                 A shorter version for default setup of parameter is
-                e.g. elder. This sets the window to default values.
+                e.g. elderimpulse. This sets the window to default values.
         """
         super().__init__(indicator_config_file, selected_stocks_config_file=selected_stocks_config_file, 
                          parameter=parameter, command_handler=command_handler, name=name)
@@ -35,7 +37,11 @@ class ElderImpulse(System):
         with its string representation. Check ema and macd slopes and which 
         indicate the trend for the stock. The parameter is read from the query 
         string and converted into a property dict parameter.
+
+        Returns:
+            RetVal: the impulse map {stock, [ema_]}
         """
+        
         cols= ['stock', 'ema_day_slope', 'ema_week_slope', 'macd_hist_day_slope', 
                'macd_hist_week_slope', 'ema_action', 'machdhist_action', 'trend']
         impulse_df = pandas.DataFrame(columns=cols)
@@ -43,27 +49,27 @@ class ElderImpulse(System):
         for stock in self.selected_stocks_config['stock']:
             try:
                 # get slope of last n data points of ema<window>.
-                ema_day_query = f'talibquery --ticker {stock} --interval day --do get \
-                --indicator ema --window {self.parameter["window"]} --n {self.parameter["n"]}'
+                ema_day_query = f'talibquery --ticker {stock} --interval day --do get --csv 0 \
+                --indicator ema --window {self.parameter["window"]} --n {self.parameter["n"]} --latest {self.parameter["latest"]}'
                 ema = self.command_handler.execute(ema_day_query, is_rest=False).obj['ema']
                 slope_ema_day, _, _, _, _ = linregress(numpy.arange(0, ema.shape[0], 1), ema)
                 
-                ema_week_query = f'talibquery --ticker {stock} --interval week --do get \
-                --indicator ema --window {self.parameter["window"]} --n {self.parameter["n"] * 0.2}' # a week is 5 times a day. ie. there are 5 days in a week
+                ema_week_query = f'talibquery --ticker {stock} --interval week --do get --csv 0 \
+                --indicator ema --window {self.parameter["window"]} --n {int(self.parameter["n"] * 0.2)} --latest {self.parameter["latest"]}' # a week is 5 times a day. ie. there are 5 days in a week
                 ema = self.command_handler.execute(ema_week_query, is_rest=False).obj['ema']
                 slope_ema_week, _, _, _, _ = linregress(numpy.arange(0, ema.shape[0], 1), ema)
                 
-                macdhist_day_query = f'talibquery --ticker {stock} --interval day --do \
-                get --indicator macdhist --fastperiod {self.parameter["macd_fast_period"]} \
-                --slowperiod {self.parameter["macd_slow_period"]} --signalperiod \
-                {self.parameter["macd_signal_period"]} --n {self.parameter["n"]}'
+                macdhist_day_query = f'talibquery --ticker {stock} --interval day --do get --csv 0 \
+                    --indicator macdhist --fastperiod {self.parameter["macd_fast_period"]} \
+                    --slowperiod {self.parameter["macd_slow_period"]} --signalperiod \
+                {self.parameter["macd_signal_period"]} --n 2 --latest {self.parameter["latest"]}' # get latest 2 macdhists
                 macdhist = self.command_handler.execute(macdhist_day_query, is_rest=False).obj['macdhist']
                 slope_macdhist_day, _, _, _, _ = linregress(numpy.arange(0, macdhist.shape[0], 1), macdhist) 
 
-                macdhist_week_query = f'talibquery --ticker {stock} --interval week --do \
-                get --indicator macdhist --fastperiod {self.parameter["macd_fast_period"]} \
-                --slowperiod {self.parameter["macd_slow_period"]} --signalperiod \
-                {self.parameter["macd_signal_period"]} --n {self.parameter["n"] * 0.2}'
+                macdhist_week_query = f'talibquery --ticker {stock} --interval week --do get --csv 0 \
+                    --indicator macdhist --fastperiod {self.parameter["macd_fast_period"]} \
+                    --slowperiod {self.parameter["macd_slow_period"]} --signalperiod \
+                {self.parameter["macd_signal_period"]} --n 2 --latest {self.parameter["latest"]}' # get latest 2 macdhists
                 macdhist = self.command_handler.execute(macdhist_week_query, is_rest=False).obj['macdhist']
                 slope_macdhist_week, _, _, _, _ = linregress(numpy.arange(0, macdhist.shape[0], 1), macdhist) 
                 

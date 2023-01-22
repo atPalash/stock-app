@@ -26,17 +26,17 @@ class System(SystemIf):
     def __update_parameter_or_set_to_default(self, parameter:dict) -> dict:
         parameters = {
             'condition': parameter.get('condition', ''),
-            'csv': bool(parameter.get('csv', True)),
+            'csv': int(parameter.get('csv', '0')),
             'do': parameter.get('do', 'get'),
             'indicator': parameter.get('indicator', 'ema'),
             'interval': parameter.get('interval', 'day'),
-            'latest': bool(parameter.get('latest', True)),
+            'latest': int(parameter.get('latest', '0')),
             'macd_fast_period': int(parameter.get('macd_fast_period','13')),
             'macd_slow_period': int(parameter.get("macd_slow_period", '26')),
             'macd_signal_period': int(parameter.get("macd_signal_period", '9')),
             'n': int(parameter.get('n', '10')),
             'ohlc': parameter.get('ohlc', 'Close'),
-            'panda': bool(parameter.get('panda', True)),
+            'panda': int(parameter.get('panda', '0')),
             'ticker': parameter.get('ticker', 'all'),
             'window': int(parameter.get('window', '20')),
         }
