@@ -1,5 +1,9 @@
 indicator:
   data:
-    day: "StockAppApi/database/day"
-    hour: "StockAppApi/database/hour"
-    week: "StockAppApi/database/week"
+    day: "StockAppApi/database/ohlc/day"
+    hour: "StockAppApi/database/ohlc/hour"
+    week: "StockAppApi/database/ohlc/week"
+  plot:
+    day: "StockAppApi/database/plot/day"
+    hour: "StockAppApi/database/plot/hour"
+    week: "StockAppApi/database/plot/week"
