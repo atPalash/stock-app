@@ -1,11 +1,6 @@
 build/*
 .vscode
 StockAppApi/logs/*.log
-database/day/*
-database/week/*
-database/hour/*
 StockAppApi/venv/*
-StockAppApi/database/week/*
-StockAppApi/database/day/*
-StockAppApi/database/hour/*
+StockAppApi/database/*
 *__pycache__
