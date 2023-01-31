@@ -4,6 +4,7 @@ from StockAppApi.processes.python.system.src.elder_impulse import ElderImpulse
 from StockAppApi.processes.python.system.src.talib_query import TalibQuery
 from StockAppApi.processes.python.system.src.yahoo_finance import YahooFinance
 from StockAppApi.processes.python.system.src.macd_histogram_divergence_scanner import MacdHistogramDivergenceScanner
+from StockAppApi.processes.python.system.src.canslim import Canslim
 
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml, indicator_config_yaml) -> None:
@@ -12,7 +13,8 @@ class CommandHandler(CommandHandlerIf):
             "elderimpulse" : ElderImpulse,
             "talibquery" : TalibQuery,
             "yahoofinance": YahooFinance,
-            "macdhistdivergencescan": MacdHistogramDivergenceScanner
+            "macdhistdivergencescan": MacdHistogramDivergenceScanner,
+            "canslim": Canslim
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml
