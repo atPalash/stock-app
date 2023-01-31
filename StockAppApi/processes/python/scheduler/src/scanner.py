@@ -1,13 +1,13 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import numpy
-from datetime import datetime
+import pytz
 import pandas
 import multiprocessing
 
 from StockAppApi.processes.python.scheduler.base.scheduler import Scheduler
 from StockAppApi.processes.python.system.src.command_handler import CommandHandler
 import mplfinance as mpf
-
+from PIL import Image, ImageDraw, ImageFont
 
 class Scanner(Scheduler):
     def __init__(self, indicator_config_file: str, selected_stocks_config_file: str, master_url: str) -> None:
@@ -17,60 +17,174 @@ class Scanner(Scheduler):
         self.schedulers = {}
         self.system_command_handler = CommandHandler(indicator_config_yaml=indicator_config_file,
                                                      selected_stocks_yaml=selected_stocks_config_file)
+        self.sample = {
+            'hour': 80,
+            'day': 60,
+            'week': 40,
+        }
 
     def run(self):
-        # for interval in self.indicator_config['indicator']['data']:
-        # scheduler = BackgroundScheduler()
-        # if interval == 'week':
-        #     scheduler.add_job(self.__periodic_scan, 'cron', hour='17',
-        #                       day_of_week='fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-        #     scheduler.start()
-        # elif interval == 'day':
-        #     scheduler.add_job(self.__periodic_download, 'cron', hour='16',
-        #                       day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-        #     scheduler.start()
-        # if interval == 'hour':
-        #     scheduler.add_job(self.__periodic_scan, 'cron', hour='9-16', minute='16',
-        #                       day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'))
-        #     scheduler.start()
-        # else:
-        #     print(f"Error: This {interval} is not allowed")
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(self.__hourly_scan, 'cron', hour='9-16',minute='30',
+                          day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'))
+        scheduler.start()
+        self.schedulers['hour'] = scheduler
+        # self.__hourly_scan()
+    def __hourly_scan(self):
+        elder = self.__elder_scan()
+        canslim = self.__canslim_scan()
+        macdhist_week_divergence = self.__macd_histogram_divergence_scan("week")
+        macdhist_day_divergence = self.__macd_histogram_divergence_scan("day")
+        macdhist_hour_divergence = self.__macd_histogram_divergence_scan("hour")
 
-        # self.schedulers[interval] = scheduler
-        self.__periodic_scan()
+        # plot analysed data
+        for ticker in self.selected_stocks_config['stock']:
+            try:
+                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim[ticker],
+                            macd_hist=macdhist_week_divergence[ticker], interval="week")
+                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim[ticker],
+                            macd_hist=macdhist_day_divergence[ticker], interval="day")
+                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim[ticker],
+                        macd_hist=macdhist_hour_divergence[ticker], interval="hour")
+            except Exception as e:
+                print (ticker, e.args)
+                continue
 
+    def __elder_scan(self):
+        elder_query = f"elderimpulse --stock all --window 13 --n 100 --macd_fast_period 13 --macd_slow_period 26 --macd_signal_period 9 --latest 1"
+        ret = self.system_command_handler.execute(elder_query).obj
+        return ret
+
+    def __macd_histogram_divergence_scan(self, interval):
+        query = f"macdhistdivergencescan --ticker all --interval {interval} --do get --window 20 --n {self.sample[interval]} --latest 1"
+        ret = self.system_command_handler.execute(query).obj
+        return ret
+
+    def __canslim_scan(self):
+        query = f"canslim --ticker all --do get --n 400"
+        self.canslim = self.system_command_handler.execute(query).obj
+        return self.canslim
+
+    def __get_macdhist_plot(self, macdhist_df, add_list_ref):
+        samples = macdhist_df.shape[0]
+        # find signals from divergence scan
+        bulls = [numpy.nan for _ in range(samples)]
+        bears = [numpy.nan for _ in range(samples)]
+        for i in range(samples):
+            if macdhist_df.iloc[i]['macdhist_divergence'] > 0:
+                bulls[i] = macdhist_df.iloc[i]['Close']*0.99
+            elif macdhist_df.iloc[i]['macdhist_divergence'] < 0:
+                bears[i] = macdhist_df.iloc[i]['Close']*1.01
+            
+        if numpy.any(numpy.logical_not(numpy.isnan(bulls))):
+            apd_bull = mpf.make_addplot(
+                        bulls, type='scatter', markersize=200, marker='^')
+            add_list_ref.append(apd_bull)
+        if numpy.any(numpy.logical_not(numpy.isnan(bears))):
+            apd_bear = mpf.make_addplot(
+                        bears, type='scatter', markersize=200, marker='v')
+            add_list_ref.append(apd_bear)
+        macd_hist = mpf.make_addplot(macdhist_df['macdhist'], type='bar', 
+        width=0.7, panel=1, color='red', alpha=1, secondary_y=True)
+        add_list_ref.append(macd_hist)
+        
+        return add_list_ref
+
+    def __add_info_text(self, image_path, **kwargs):
+        # Open the PNG file
+        img = Image.open(image_path)
+        # Create an ImageDraw object
+        draw = ImageDraw.Draw(img)
+
+        # Define the font and size
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", 10)
+
+        def calculate_percentage_change(df:pandas.DataFrame):
+            change_series = df.iloc[:,1:].T.pct_change(periods=-1).T.values.tolist()[0]
+            change_series.insert(0, "Change%")
+            df.loc[len(df)] = change_series
+            return df
+            
+        # Define the text and position
+        position = (10, 10)
+        text = f""
+        if "canslim" in kwargs:
+            canslim = kwargs['canslim']
+            quaterly_eps_growth = f'quaterly eps growth\n{canslim.C.pct_change(periods=-1).to_string()}\n'
+            yearly_eps_growth = f'yearly eps growth\n{canslim.A.pct_change(periods=-1).to_string()}\n'
+            relative_strength = f'relative strength\n{canslim.L.values.mean()}\n'
+            market_direction = f'market direction\n{numpy.polyfit(canslim.M.index.values, canslim.M.values, 1)[0]}\n'
+            shares_outstanding = f'shares outstanding\n{canslim.S.to_string()}\n'
+            text = text + f'--Canslim--\n' + quaterly_eps_growth + yearly_eps_growth + shares_outstanding + relative_strength + market_direction
+
+        if "elder" in kwargs:
+            elder = kwargs['elder']
+            text = text + f'--Elder impulse--\n {elder["trend"].to_string()}'
+        
+        # Draw the text on the image
+        draw.text(position, text, font=font, fill='black')
+        # Save the modified image
+        img.save(image_path)
+
+    def __plot(self, **kwargs):
+        try:
+            interval = kwargs['interval']
+            ticker = kwargs['ticker']
+            samples = kwargs['macd_hist'].shape[0] 
+            
+            # add signals from divergence scan
+            additionals_list = []
+            additionals_list = self.__get_macdhist_plot(macdhist_df=kwargs['macd_hist'], add_list_ref=additionals_list)
+            
+            ohlc = pandas.read_csv(
+                    f"{self.indicator_config['indicator']['data'][interval]}/{ticker}.csv", index_col=0, parse_dates=True).tail(samples)
+            image_path = f"{self.indicator_config['indicator']['plot'][interval]}/{ticker}.png"
+            mpf.plot(ohlc, addplot=additionals_list, volume=True, title=f"{ticker}_{interval}", type='candle',
+                        style='yahoo', savefig=image_path, figsize=(8, 6))
+
+            self.__add_info_text(image_path=image_path, canslim=kwargs['canslim'], elder=kwargs['elder'])
+        except Exception as e:
+            print(e.args)
+
+            
+'''
     def __periodic_scan(self):
         """Perform period scan. Currently scan for macd divergence and elder impulse
         plot them directly to a ohlc plot for each stock
         """
-        # elder_query = f"elderimpulse --stock all --window 13 --n 100 --macd_fast_period 13 --macd_slow_period 26 --macd_signal_period 9 --latest 1"
-        # ret_elder = self.system_command_handler.execute(elder_query)
+        elder_query = f"elderimpulse --stock all --window 13 --n 100 --macd_fast_period 13 --macd_slow_period 26 --macd_signal_period 9 --latest 1"
+        ret_elder = self.system_command_handler.execute(elder_query).obj
 
         sample = {
             'hour': 80,
             'day': 60,
             'week': 40,
         }
-        for interval, val in self.indicator_config['indicator']['data'].items():
+        for interval, _ in self.indicator_config['indicator']['data'].items():
             query = f"macdhistdivergencescan --ticker all --interval {interval} --do get --window 20 --n {sample[interval]} --latest 1"
             ret = self.system_command_handler.execute(query).obj
 
             args = []
             for ticker, df in ret.items():
-                args.append((df, sample[interval], interval, ticker))
-            # Create a pool of worker processes
-            with multiprocessing.Pool() as pool:
-                pool.starmap(self._plot_result, args)
+                args.append(
+                    (df, ret_elder, sample[interval], interval, ticker))
+                self._plot_result(
+                    df, ret_elder, sample[interval], interval, ticker)
+            # # Create a pool of worker processes
+            # with multiprocessing.Pool() as pool:
+            #     pool.starmap(self._plot_result, args)
+            print(f"updated {interval} plots")
 
-    def _plot_result(self, df:pandas.DataFrame, sample_size:int, interval:int, ticker:str):
+    def _plot_result(self, df: pandas.DataFrame, elder_df: pandas.DataFrame, sample_size: int, interval: int, ticker: str):
         if (df['macdhist_divergence'] > 0).any() or (df['macdhist_divergence'] < 0).any():
-            bulls = [numpy.nan for _ in range(sample_size)]
-            bears = [numpy.nan for _ in range(sample_size)]
-            for i in range(df.shape[0]):
-                if df.iloc[i]['macdhist_divergence'] > 0:
-                    bulls[i] = df.iloc[i]['Close']*0.99
-                elif df.iloc[i]['macdhist_divergence'] < 0:
-                    bears[i] = df.iloc[i]['Close']*1.01
+            try:
+                bulls = [numpy.nan for _ in range(sample_size)]
+                bears = [numpy.nan for _ in range(sample_size)]
+                for i in range(df.shape[0]):
+                    if df.iloc[i]['macdhist_divergence'] > 0:
+                        bulls[i] = df.iloc[i]['Close']*0.99
+                    elif df.iloc[i]['macdhist_divergence'] < 0:
+                        bears[i] = df.iloc[i]['Close']*1.01
 
                 signals_list = []
                 if numpy.any(numpy.logical_not(numpy.isnan(bulls))):
@@ -86,5 +200,10 @@ class Scanner(Scheduler):
                 macd_hist = mpf.make_addplot(
                     df['macdhist'], type='bar', width=0.7, panel=1, color='red', alpha=1, secondary_y=True)
                 signals_list.append(macd_hist)
-                mpf.plot(ohlc, addplot=signals_list, volume=True, title=f"{ticker}_{interval}_divergence", type='candle',
+
+                mpf.plot(ohlc, addplot=signals_list, volume=True, title=f"{ticker}_{interval}_{elder_df.loc[elder_df['stock']==ticker, 'trend'].values[0]}", type='candle',
                          style='yahoo', savefig=f"{self.indicator_config['indicator']['plot'][interval]}/{ticker}.png")
+            except Exception as e:
+                print(e.args)
+
+'''

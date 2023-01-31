@@ -14,9 +14,9 @@ class CommandHandler(CommandHandlerIf):
         }
 
         self.schedulers = { 
-            'elderimpulse': ElderImpulseScheduler(indicator_config_file=indicator_config_file, 
-                                        selected_stocks_config_file=selected_stocks_config_file, 
-                                        master_url=master_url),
+            # 'elderimpulse': ElderImpulseScheduler(indicator_config_file=indicator_config_file, 
+            #                             selected_stocks_config_file=selected_stocks_config_file, 
+            #                             master_url=master_url),
             'yahoo': YahooScheduler(indicator_config_file=indicator_config_file, 
                                         selected_stocks_config_file=selected_stocks_config_file, 
                                         master_url=master_url),

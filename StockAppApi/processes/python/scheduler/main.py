@@ -13,7 +13,6 @@ if __name__ == "__main__":
         indicator_config_yaml = configFolder + "indicator.yaml"   
         selected_stocks_yaml = configFolder + "selected_stocks.yaml"
 
-
         command_handler = CommandHandler(indicator_config_file=indicator_config_yaml, 
         selected_stocks_config_file=selected_stocks_yaml, master_url=f"http://localhost:{masterServerPort}")
         
