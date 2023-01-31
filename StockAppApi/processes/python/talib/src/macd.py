@@ -29,8 +29,8 @@ class Macd(Indicator):
         macd = numpy.around(macd, decimals=2)
         macdsignal = numpy.around(macdsignal, decimals=2)
         macdhist = numpy.around(macdhist, decimals=2)
-        self.ohlc['macd'] = macd
-        self.ohlc['macdsignal'] = macdsignal
-        self.ohlc['macdhist'] = macdhist
+        self.ohlc.loc[:,'macd'] = macd
+        self.ohlc.loc[:,'macdsignal'] = macdsignal
+        self.ohlc.loc[:,'macdhist'] = macdhist
         
         return macd, macdsignal, macdhist

@@ -15,5 +15,5 @@ class Ema(Indicator):
             self.ohlc = pandas.concat([self.ohlc, last_minute_series])
         ema = talib.EMA(self.ohlc[self.parameter['ohlc']], timeperiod=int(self.parameter['window']))
         ema = numpy.around(ema, decimals=2)
-        self.ohlc['ema'] = ema
+        self.ohlc.loc[:, 'ema'] = ema
         return ema
