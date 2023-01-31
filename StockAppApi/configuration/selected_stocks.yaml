@@ -1,3 +1,5 @@
+index:
+- ^NSEI
 stock:
 - ABB
 - ADANIENT
@@ -24,7 +26,7 @@ stock:
 - HATSUN
 - HCLTECH
 - HDFC
-- HDFCBANK
+- HDFCBANK 
 - HDFCLIFE
 - HEROMOTOCO
 - HINDALCO
