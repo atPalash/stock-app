@@ -45,8 +45,16 @@ class YahooFinance(System):
             ticker = self.parameter['ticker']
             if ticker == "all":
                 tickers = self.selected_stocks_config['stock']
+                for index in self.selected_stocks_config['index']:
+                    tickers.append(index)
+            elif len(ticker.split(","))>0:
+                ticks = ticker.split(",")
+                for tick in ticks:
+                    if tick in self.selected_stocks_config['index']:
+                        tickers.append(tick)
+                    else:
+                        tickers.append(tick + '.NS')
             
-            tickers = [ticker + '.NS' for ticker in tickers]
             df = download_historical_data(tickers=tickers,
                                     period=self.periods[self.parameter['interval']], 
                                     interval=self.interval[self.parameter['interval']],
