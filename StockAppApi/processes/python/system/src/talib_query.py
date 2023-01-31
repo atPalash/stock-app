@@ -3,6 +3,8 @@ import pandas
 from StockAppApi.processes.python.system.base.system import System, RetVal
 from StockAppApi.processes.python.talib.src.ema import Ema
 from StockAppApi.processes.python.talib.src.macd import Macd 
+from StockAppApi.processes.python.talib.src.rsi import Rsi 
+from StockAppApi.processes.python.talib.src.rsi_line import RsiLine
 from StockAppApi.processes.python.talib.base.indicator import Indicator
 from StockAppApi.base.python.src.yaml_parser import read_config
 
@@ -34,7 +36,9 @@ class TalibQuery(System):
             'ema': Ema,
             'macd': Macd,
             'macdhist': Macd,
-            'macdsignal': Macd
+            'macdsignal': Macd,
+            'rsi': Rsi,
+            'rsiline': RsiLine
         }
         
         self.commands = {
