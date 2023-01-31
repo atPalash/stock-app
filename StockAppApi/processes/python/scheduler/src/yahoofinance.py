@@ -2,7 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 from datetime import datetime
 
-from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data
+from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data, download_stock_stats
 from StockAppApi.processes.python.scheduler.base.scheduler import Scheduler
 
 
@@ -14,24 +14,25 @@ class YahooScheduler(Scheduler):
         self.schedulers = {}
 
     def run(self):
+        scheduler = BackgroundScheduler()
         for interval in self.indicator_config['indicator']['data']:
-            scheduler = BackgroundScheduler()
             if interval == 'week':
                 scheduler.add_job(self.__periodic_download, 'cron', hour='17',
                                   day_of_week='fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-                scheduler.start()
             elif interval == 'day':
                 scheduler.add_job(self.__periodic_download, 'cron', hour='16',
                                   day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-                scheduler.start()
             elif interval == 'hour':
                 scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='16',
                                   day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-                scheduler.start()
             else:
                 print(f"Error: This {interval} is not allowed")
-
             self.schedulers[interval] = scheduler
+        
+        # scheduler.add_job(self.__monthly_fundamental_download, 'cron', day='1', hour='1', 
+        #     timezone=pytz.timezone('Asia/Kolkata'))
+        # self.__monthly_fundamental_download()
+        scheduler.start()
 
     def __periodic_download(self, interval: str):
         """Analysis method will include all the possible combination of the indicators.
@@ -62,3 +63,8 @@ class YahooScheduler(Scheduler):
         # Print the current time in the specified time zone
         now = now.strftime("%Y-%m-%d %H:%M:%S %Z")
         print(f"[{now}] Downloaded {interval} data")
+
+    def __monthly_fundamental_download(self):
+        selected_stocks = self.selected_stocks_config
+        tickers = [tick + '.NS' for tick in selected_stocks['stock']]
+        download_stock_stats(tickers=tickers, destination=self.indicator_config['indicator']['fundamental'])
