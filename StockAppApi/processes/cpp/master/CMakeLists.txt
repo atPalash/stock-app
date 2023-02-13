@@ -25,3 +25,7 @@ target_include_directories(${PROJECT_NAME}
 
 # Add libs this target depends on
 target_link_libraries(${PROJECT_NAME} pthread Base)
+
+# Create a list of config files
+file(GLOB CONFIG_FILES "${CONFIG}/*.yaml")
+file(COPY ${CONFIG_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/configuration)
