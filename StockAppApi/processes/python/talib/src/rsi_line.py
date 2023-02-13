@@ -9,7 +9,7 @@ class RsiLine(Indicator):
         
     def _do_analysis(self, latest=True):
         #index data
-        index_ohlc = download_historical_data(tickers=self.parameter['index'], 
+        index_ohlc, err = download_historical_data(tickers=self.parameter['index'], 
         interval=self.interval[self.parameter['interval']],
         period=self.periods[self.parameter['interval']], 
         as_csv=self.parameter['csv'],
