@@ -1,4 +1,5 @@
 build/*
+dockerfiles
 .vscode
 StockAppApi/logs/*.log
 StockAppApi/venv/*
