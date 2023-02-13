@@ -11,13 +11,13 @@
 # # Complete command query string
 # cmd_with_query = Forward()
 # cmd_with_query <<= Group(alphanum + key_value)
-from pyparsing import *
-word = Word(alphas + '<' + '>' + '<=' + '>=' + ',' + '_' + '-')
-dashed = Literal("--")
-key_value = Forward()
-key_value <<= ZeroOrMore(dashed + ZeroOrMore(word))
-cmd_with_query = Forward()
-cmd_with_query <<= Group(word + key_value)
+# from pyparsing import *
+# word = Word(alphas + '<' + '>' + '<=' + '>=' + ',' + '_' + '-')
+# dashed = Literal("--")
+# key_value = Forward()
+# key_value <<= ZeroOrMore(dashed + ZeroOrMore(word))
+# cmd_with_query = Forward()
+# cmd_with_query <<= Group(word + key_value)
 
 # @DeprecationWarning
 def parse_message(message:str, parser_symbol='--') -> dict:

@@ -12,7 +12,14 @@ def get_commands_as_str(commands_dict: dict)-> str:
     return commands
 
 class CommandHandlerIf:
-    def execute(self, message:str, is_rest=True) -> Response:
+    def execute(self, message:str, is_rest=False):
+        """Execute command
+
+        Args:
+            message (str): query to execute
+            is_rest (bool, optional): Indicates rest query cannot send original object. 
+            Defaults to False.
+        """
         pass
     def get_command_as_str(self) -> str:
         pass
