@@ -1,6 +1,8 @@
 import multiprocessing
 import yfinance as yf
 import pandas
+import time
+from inspect import currentframe, getframeinfo
 
 def __download_df_from_yahoo(tickers, period, interval):
     try:
@@ -56,6 +58,8 @@ def download_historical_data(tickers: list, period: int, interval: int, as_panda
     Returns:
         _type_: _description_
     """
+    errors = ""
+    ret = None
     try:
         if as_csv:
             args = []
@@ -66,38 +70,45 @@ def download_historical_data(tickers: list, period: int, interval: int, as_panda
                 pool.starmap(__get_csv_from_yahoo, args)
 
         if as_panda_df:
-            return __download_df_from_yahoo(tickers=tickers, period=period, interval=interval)
+            ret = __download_df_from_yahoo(tickers=tickers, period=period, interval=interval)
+    except Exception as e:
+        frameinfo = getframeinfo(currentframe())
+        errors += f"{frameinfo.filename, frameinfo.lineno}:{e.args}"
+    return ret, errors
+
+def __save_fundamentals_to_csv(original_df: pandas.DataFrame, filename:str):
+    try:
+        count = 0
+        df = original_df
+        while count < 5 and df.shape[0] == 0: 
+            time.sleep(0.5)
+            df = original_df
+            count +=1
+        if df.shape[0]>0:
+            df.to_csv(f'{filename}')
     except Exception as e:
         raise
-
-def __save_fundamentals_to_csv(df: pandas.DataFrame, filename:str):
-    try:
-        # if df is not None:
-        df.reset_index(drop=False).to_csv(f'{filename}', index=False)
-    except Exception as e:
-        print(e.args)
 
 def __get_fundamentals_from_yahoo(ticker:str, destination:str)->None:
     try:
         info = yf.Ticker(ticker=ticker)
         name = ticker.split(".")[0]
-        __save_fundamentals_to_csv(df=info.quarterly_financials, filename=f'{destination}/{name}_quarterly_financials.csv')
-        __save_fundamentals_to_csv(df=info.quarterly_balancesheet, filename=f'{destination}/{name}_quarterly_balancesheet.csv')
-        __save_fundamentals_to_csv(df=info.financials, filename=f'{destination}/{name}_financials.csv')
-        # __save_fundamentals_to_csv(df=info.institutional_holders, filename=f'{destination}/{name}_institutional_holders.csv')
+        __save_fundamentals_to_csv(original_df=info.quarterly_financials, filename=f'{destination}/{name}_quarterly_financials.csv')
+        __save_fundamentals_to_csv(original_df=info.quarterly_balancesheet, filename=f'{destination}/{name}_quarterly_balancesheet.csv')
+        __save_fundamentals_to_csv(original_df=info.financials, filename=f'{destination}/{name}_financials.csv')
+        __save_fundamentals_to_csv(original_df=info.institutional_holders, filename=f'{destination}/{name}_institutional_holders.csv')
     except Exception as e:
         raise
 
 def download_stock_stats(tickers: list, destination):
-    try:
-        args = []
-        for ticker in tickers:
-            args.append((ticker, destination))
-            # Create a pool of worker processes
-            with multiprocessing.Pool() as pool:
-                pool.starmap(__get_fundamentals_from_yahoo, args)
-    except Exception as e:
-        raise
+    error = ""
+    for ticker in tickers:
+        try:
+            __get_fundamentals_from_yahoo(ticker=ticker, destination=destination)
+        except Exception as e:
+            frameinfo = getframeinfo(currentframe())
+            error += f"{ticker}->{frameinfo.filename, frameinfo.lineno}:{e.args}"
+    return error
 
 if __name__ == "__main__":
     try:
