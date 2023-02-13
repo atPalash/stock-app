@@ -1,10 +1,8 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
-from datetime import datetime
 
-from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data, download_stock_stats
 from StockAppApi.processes.python.scheduler.base.scheduler import Scheduler
-
+from StockAppApi.processes.python.system.src.command_handler import CommandHandler
 
 class YahooScheduler(Scheduler):
     def __init__(self, indicator_config_file: str, selected_stocks_config_file:str, master_url:str) -> None:
@@ -12,6 +10,9 @@ class YahooScheduler(Scheduler):
                          selected_stocks_config_file=selected_stocks_config_file, 
                          master_url=master_url)
         self.schedulers = {}
+
+        self.system_command_handler = CommandHandler(indicator_config_yaml=indicator_config_file,
+                                                     selected_stocks_yaml=selected_stocks_config_file)
 
     def run(self):
         scheduler = BackgroundScheduler()
@@ -29,9 +30,8 @@ class YahooScheduler(Scheduler):
                 print(f"Error: This {interval} is not allowed")
             self.schedulers[interval] = scheduler
         
-        # scheduler.add_job(self.__monthly_fundamental_download, 'cron', day='1', hour='1', 
-        #     timezone=pytz.timezone('Asia/Kolkata'))
-        # self.__monthly_fundamental_download()
+        scheduler.add_job(self.__monthly_fundamental_download, 'cron', day='1', hour='1', 
+            timezone=pytz.timezone('Asia/Kolkata'))
         scheduler.start()
 
     def __periodic_download(self, interval: str):
@@ -42,29 +42,19 @@ class YahooScheduler(Scheduler):
             interval (str): _description_
             add_latest (bool, optional): _description_. Defaults to False.
         """
-        intervals_ = {'day': '1d', 'hour': '1h', 'week': '1wk'}
-        periods_ = {'day': '5y', 'hour': '2y', 'week': '10y'}
+        try:
+            query = f"yahoofinance --ticker all --interval {interval} --do get --pandas 0  --csv 1"
+            ret = self.system_command_handler.execute(message=query, is_rest=False) # just download the data, only print the errors
+            if ret.errors != "":
+                print("ERROR yahoo system", ret.errors)
+        except Exception as e:
+            print("ERROR __periodic_download", e.args)
         
-        selected_stocks = self.selected_stocks_config
-        tickers = [tick + '.NS' for tick in selected_stocks['stock']]
-        yahoo_interval = intervals_[interval]
-        download_historical_data(tickers=tickers,
-                                 period=periods_[interval], 
-                                 interval=yahoo_interval,
-                                 as_csv=True,
-                                 destination=self.indicator_config['indicator']['data'][interval])
-
-        # Get the timezone object for the desired time zone
-        tz = pytz.timezone("Asia/Kolkata")
-
-        # Get the current time in the specified time zone
-        now = datetime.now(tz)
-
-        # Print the current time in the specified time zone
-        now = now.strftime("%Y-%m-%d %H:%M:%S %Z")
-        print(f"[{now}] Downloaded {interval} data")
-
     def __monthly_fundamental_download(self):
-        selected_stocks = self.selected_stocks_config
-        tickers = [tick + '.NS' for tick in selected_stocks['stock']]
-        download_stock_stats(tickers=tickers, destination=self.indicator_config['indicator']['fundamental'])
+        try:
+            query = f"yahoofinance --ticker all --do fundamentals --pandas 0  --csv 1"
+            ret = self.system_command_handler.execute(message=query, is_rest=False) # just download the data, only print the errors
+            if ret.errors != "":
+                print("ERROR yahoo fundamental download system", ret.errors)
+        except Exception as e:
+            print("ERROR __monthly_fundamental_download", e.args)
