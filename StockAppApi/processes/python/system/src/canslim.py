@@ -51,28 +51,23 @@ class Canslim(System):
                          parameter=parameter, command_handler=command_handler, name=name)
         
         self.commands = {
-            'get': self.__get
+            'get': self.__get # calls with all or list of tickers
         }
-
-    def execute(self) -> RetVal:
-        try:
-            ret = self.commands[self.parameter['do']]()
-            return RetVal(ret)
-        except Exception as e:
-            raise
     
-    def __get(self):
+    def __get(self) -> RetVal:
         canslim_dict = {}
+        errors = ""
         for ticker in self._get_tickers():
+            # Get the index market trend for canslim
+            ema_query = f'talibquery --ticker ^NSEI --interval {self.parameter["interval"]} --do get \
+                    --indicator ema --window {self.parameter["window"]} --n {self.parameter["n"]} --panda 1'
+            ema = self.command_handler.execute(ema_query, is_rest=False).obj['ema']
             try:
-                rsiline_query = f'talibquery --ticker {ticker} --interval day --do get \
-                    --indicator rsiline --window {self.parameter["window"]} --n 400 \
+                rsiline_query = f'talibquery --ticker {ticker} --interval {self.parameter["interval"]} --do get \
+                    --indicator rsiline --window {self.parameter["window"]} --n {self.parameter["n"]} \
                     --panda 1'
                 rsiline = self.command_handler.execute(rsiline_query, is_rest=False).obj['rsiline']
-                ema_query = f'talibquery --ticker ^NSEI --interval day --do get \
-                    --indicator ema --window 26 --n 100 --panda 1'
-                ema = self.command_handler.execute(ema_query, is_rest=False).obj['ema']
-                
+
                 folder_path = self.indicator_config["indicator"]["fundamental"]
                 quarterly_financials = pandas.read_csv(f'{folder_path}/{ticker}_quarterly_financials.csv', index_col=0, parse_dates=True)
                 quarterly_balancesheet = pandas.read_csv(f'{folder_path}/{ticker}_quarterly_balancesheet.csv', index_col=0, parse_dates=True)
@@ -89,8 +84,8 @@ class Canslim(System):
                     M=ema)
                 canslim_dict[ticker] = canslim
             except Exception as e:
-                print(ticker, e.args)
+                errors += f"{ticker}->{e.args}\n"
                 continue
 
-        return canslim_dict
+        return RetVal(obj=canslim_dict, obj_as_str=f"sample\n{canslim_dict[ticker].C}", errors=errors)
 

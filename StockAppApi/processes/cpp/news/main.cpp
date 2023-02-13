@@ -34,7 +34,7 @@ int main()
 {
     std::cout << "Hello News!";
 
-    std::string configFolder = "../../../configuration/";
+    std::string configFolder = "configuration/";
     YAML::Node config = Base::Src::parseYaml(configFolder + "config.yaml");
     int serverPort = config["port"]["news"].as<int>();
     int masterServerPort =  config["port"]["master"].as<int>();

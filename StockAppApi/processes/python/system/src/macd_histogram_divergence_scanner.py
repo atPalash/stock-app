@@ -48,15 +48,8 @@ class MacdHistogramDivergenceScanner(System):
                          name=name)
 
         self.commands = {
-            'get': self.__get
+            'get': self.__get # calls with all or list of tickers
         }
-
-    def execute(self) -> RetVal:
-        try:
-            ret = self.commands[self.parameter['do']]()
-            return RetVal(ret, "Check dataframe")
-        except Exception as e:
-            raise
 
     def __get(self) -> RetVal:
         errors = ""
@@ -132,6 +125,6 @@ class MacdHistogramDivergenceScanner(System):
                                     ret.loc[sub_window_macdhist_max_index, 'macdhist_divergence'] = -1     
                 divergence_df[ticker] = ret
             except Exception as e:
-                errors += e.args + '\n'
+                errors += f"{ticker}->{e.args}\n"
                 continue
-        return divergence_df
+        return RetVal(obj=divergence_df, obj_as_str=f'sample\n{divergence_df[ticker].to_string(max_rows=None, max_cols=None, index=False)}', errors=errors)

@@ -59,6 +59,7 @@ namespace News
                         }
                         catch (std::exception &e)
                         {
+                            std::cout << "new exception " << e.what() << std::endl;
                             Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
                         }
                     }

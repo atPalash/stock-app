@@ -31,8 +31,12 @@ class ElderImpulse(System):
         """
         super().__init__(indicator_config_file, selected_stocks_config_file=selected_stocks_config_file, 
                          parameter=parameter, command_handler=command_handler, name=name)
+        
+        self.commands = {
+            'get': self.__get # calls with all or list of tickers
+        }
     
-    def execute(self) -> RetVal:
+    def __get(self) -> RetVal:
         """Execute the Elder impulse system and get result as pandas dataframe
         with its string representation. Check ema and macd slopes and which 
         indicate the trend for the stock. The parameter is read from the query 
@@ -46,7 +50,7 @@ class ElderImpulse(System):
                'macd_hist_week_slope', 'ema_action', 'machdhist_action', 'trend']
         impulse_df = pandas.DataFrame(columns=cols)
         errors = ""
-        for stock in self.selected_stocks_config['stock']:
+        for stock in self._get_tickers():
             try:
                 # get slope of last n data points of ema<window>.
                 ema_day_query = f'talibquery --ticker {stock} --interval day --do get --csv 0 \
@@ -87,7 +91,7 @@ class ElderImpulse(System):
                 impulse_df = pandas.concat([impulse_df, res.to_frame().T], ignore_index=True)
 
             except Exception as e:
-                errors += e.args + "\n"
+                errors += f"{stock}->{e.args}\n"
                 continue
         return RetVal(obj=impulse_df, 
                       obj_as_str=impulse_df.to_string(max_rows=None, max_cols=None, index=False),

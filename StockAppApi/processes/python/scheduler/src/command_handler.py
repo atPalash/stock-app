@@ -1,7 +1,5 @@
 from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf, Response, get_commands_as_str
 from StockAppApi.base.python.src.message_parser import parse_message
-from StockAppApi.processes.python.scheduler.interface.scheduler_if import SchedulerIf
-from StockAppApi.processes.python.scheduler.src.elder_impulse import ElderImpulseScheduler
 from StockAppApi.processes.python.scheduler.src.yahoofinance import YahooScheduler
 from StockAppApi.processes.python.scheduler.src.scanner import Scanner
 
@@ -14,9 +12,6 @@ class CommandHandler(CommandHandlerIf):
         }
 
         self.schedulers = { 
-            # 'elderimpulse': ElderImpulseScheduler(indicator_config_file=indicator_config_file, 
-            #                             selected_stocks_config_file=selected_stocks_config_file, 
-            #                             master_url=master_url),
             'yahoo': YahooScheduler(indicator_config_file=indicator_config_file, 
                                         selected_stocks_config_file=selected_stocks_config_file, 
                                         master_url=master_url),
@@ -27,14 +22,24 @@ class CommandHandler(CommandHandlerIf):
 
         self.__start()
         
-    def execute(self, message: str) -> Response:
+    def execute(self, message: str, is_rest=False):
+        """Should 
+
+        Args:
+            message (str): _description_
+
+        Returns:
+            Response: _description_
+        """
         try:
             command = parse_message(message=message)
             self.commands[command['command']]()
-            return Response("Stopped schedulers", 200, "", True)
+            
+            if is_rest:
+                return Response("Stopped schedulers", 200, "", True)
         except Exception as e:
-            # Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
-            return Response("exception", 400, e.args, False)
+            if is_rest:
+                return Response("exception", 400, e.args, False)
 
     def get_command_as_str(self) -> str:
         return get_commands_as_str(self.commands)
