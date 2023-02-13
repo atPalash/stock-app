@@ -33,8 +33,9 @@ class CommandHandler(CommandHandlerIf):
                 return Response(ret.obj_as_string, 200, "", True)
             return ret            
         except Exception as e:
-            # Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
-            return Response("exception", 400, e.args, False)
+            if is_rest:
+                return Response("exception", 400, e.args, False)
+            return ret
 
     def get_command_as_str(self) -> str:
         """Register the commands associated with this command handler to master

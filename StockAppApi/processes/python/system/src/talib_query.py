@@ -42,34 +42,35 @@ class TalibQuery(System):
         }
         
         self.commands = {
-            'get': self.__get,
-            'where': self.__where
+            'get': self.__get, # call with single ticker
+            'where': self.__where # call with single ticker
         }
-    
-    def execute(self) -> RetVal:
-        try:
-            ret = self.commands[self.parameter['do']]()
-            return RetVal(ret, ret.to_string(max_rows=None, max_cols=None, index=False))
-        except Exception as e:
-            raise
-        
+            
     def __call_indicator(self) -> pandas.DataFrame:
         ticker_ohlc_csv_path = f"{self.indicator_config['indicator']['data'][self.parameter['interval']]}/{self.parameter['ticker']}.csv"
         ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
         indicator = self.indicators[self.parameter['indicator']](ohlc=ticker_df, parameter=self.parameter, ticker=self.parameter['ticker'])
         return indicator.get_result_df(self.parameter.get('latest', False))
             
-    def __get(self) -> pandas.DataFrame:
-        df = self.__call_indicator()
-        return df.tail(self.parameter['n'])
+    def __get(self) -> RetVal:
+        try:
+            df = self.__call_indicator()
+            return RetVal(obj=df.tail(self.parameter['n']), 
+            obj_as_str=df.tail(self.parameter['n']).to_string(max_rows=None, max_cols=None, index=False), 
+            errors="")
+        except Exception as e:
+            return RetVal(obj=None, obj_as_str="ERROR", errors=f"{self.parameter['ticker']}->{e.args}")
 
-    def __where(self) -> pandas.DataFrame:
+    def __where(self) -> RetVal:
         """Search in dataframe where the condition is valid and return (NEEDS UPDATE)
 
         Returns:
             _type_: result of query: pandas dataframe
         """
-        df = self.__call_indicator()
-        df_query = df.query(self.parameter['condition'])
-        return df_query
+        try:
+            df = self.__call_indicator()
+            df_query = df.query(self.parameter['condition'])
+            return RetVal(obj=df_query, obj_as_str="pandas dataframe", errors="")
+        except Exception as e:
+            return RetVal(obj=None, obj_as_str="ERROR", errors=f"{self.parameter['ticker']}->{e.args}")
         

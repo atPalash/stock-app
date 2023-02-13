@@ -1,16 +1,6 @@
 import pandas
-from StockAppApi.processes.python.system.interface.system_if import SystemIf
+from StockAppApi.processes.python.system.interface.system_if import SystemIf, RetVal
 from StockAppApi.base.python.src.yaml_parser import read_config
-
-class RetVal:
-    def __init__(self, obj, obj_as_str="", errors="") -> None:
-        self.obj = obj
-        self.obj_as_string = ""
-        if obj_as_str == "":
-            self.obj_as_string = str(obj)
-        else:
-            self.obj_as_string = obj_as_str
-        self.errors = errors
 
 class System(SystemIf):
     def __init__(self, indicator_config_file:str, selected_stocks_config_file:str, 
@@ -22,7 +12,11 @@ class System(SystemIf):
         self.command_handler = command_handler
         
     def execute(self) -> RetVal:
-        pass
+        try:
+            ret = self.commands[self.parameter['do']]()
+            return ret
+        except Exception as e:
+            raise
     
     def __update_parameter_or_set_to_default(self, parameter:dict) -> dict:
         parameters = {
