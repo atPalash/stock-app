@@ -21,3 +21,9 @@ done
 mkdir $DESTINATION_DIR/exec
 cp $EXECUTABLE_PATH $DESTINATION_DIR/exec
 cp -r $EXEC_DIR/configuration $DESTINATION_DIR/exec
+
+docker build -t stock-app:discord-v1 .
+
+rm -rf $DESTINATION_DIR
+
+
