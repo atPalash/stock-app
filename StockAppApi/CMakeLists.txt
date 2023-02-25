@@ -19,7 +19,6 @@ add_subdirectory(vendor/spdlog)
 add_subdirectory(vendor/yaml-cpp)
 
 add_subdirectory(base)
-add_subdirectory(processes/cpp/master)
 add_subdirectory(processes/cpp/news)
 add_subdirectory(processes/cpp/discord)
 
