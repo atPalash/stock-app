@@ -13,17 +13,25 @@ class Server(ServerIf):
         
         @self.app.route('/', methods=['GET', 'POST'])
         def base_api():
-            if request.method == 'POST':
-                try:
-                    result = self.command_handler.execute(request.data.decode(), is_rest=True)
-                    return result.response, result.errorCode
-                except Exception as e:
-                    return result.exceptionStr, result.errorCode
-            else:
-                # Handle GET request
-                return f'Hello, {__name__}'
-        
+            self.handle_request(request)
+
+    
+    def handle_request(self,req:request):
+        if request.method == 'POST':
+            try:
+                print("POSTED", request.data)
+                result = self.command_handler.execute(request.data.decode(), is_rest=True)
+                return result.response, result.errorCode
+            except Exception as e:
+                return result.exceptionStr, result.errorCode
+        else:
+            # Handle GET request
+            return f'Hello, {__name__}'
+            
     def run(self):
+        # For production server
+        # from waitress import serve
+        # serve(self.app, host='localhost', port=self.port)
         self.app.run(host='localhost', port=self.port)
 
     def register_routes(self):
