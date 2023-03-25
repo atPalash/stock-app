@@ -1,0 +1,55 @@
+.container {
+  display: flex;
+}
+
+.column {
+  flex: 1;
+  padding: 20px;
+}
+
+.left {
+  background-color: #f2f2f2;
+  flex: 1;
+}
+
+.right {
+  background-color: #fff;
+  flex: 2;
+}
+
+.gallery-container {
+  display: flex;
+  overflow-x: hidden;
+}
+
+.gallery-slide {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.tv-chart-container {
+  display: flex;
+}
+
+.gallery-slide:first-child {
+  display: block;
+}
+
+.prev-btn,
+.next-btn {
+  background-color: #f2f2f2;
+  color: #444;
+  border: none;
+  padding: 10px 15px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.prev-btn:hover,
+.next-btn:hover {
+  background-color: #ddd;
+}
+
+.next-btn {
+  margin-left: auto;
+}
