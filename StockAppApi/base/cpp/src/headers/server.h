@@ -14,6 +14,7 @@ namespace Base
         private:
             int portM;
             int baseServerPortM;
+            std::string ipAddressM;
             std::unique_ptr<Base::Interface::CommandHandlerIf> commandHandlerM;
 
         public:
@@ -24,6 +25,10 @@ namespace Base
             virtual void run() override;
             virtual void registerRoutes() override;
             virtual void unRegisterRoutes() override;
+            virtual std::string getIpAddress() override;
+        
+        private:
+            bool isRunningInContainer();
         };
     }
 }

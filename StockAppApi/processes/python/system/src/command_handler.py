@@ -5,6 +5,7 @@ from StockAppApi.processes.python.system.src.talib_query import TalibQuery
 from StockAppApi.processes.python.system.src.yahoo_finance import YahooFinance
 from StockAppApi.processes.python.system.src.macd_histogram_divergence_scanner import MacdHistogramDivergenceScanner
 from StockAppApi.processes.python.system.src.canslim import Canslim
+from StockAppApi.processes.python.system.src.webserver import Webserver
 
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml, indicator_config_yaml) -> None:
@@ -14,7 +15,8 @@ class CommandHandler(CommandHandlerIf):
             "talibquery" : TalibQuery,
             "yahoofinance": YahooFinance,
             "macdhistdivergencescan": MacdHistogramDivergenceScanner,
-            "canslim": Canslim
+            "canslim": Canslim,
+            "webserver": Webserver
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml
@@ -30,7 +32,7 @@ class CommandHandler(CommandHandlerIf):
             ret = system.execute()
             
             if is_rest:
-                return Response(ret.obj_as_string, 200, "", True)
+                return Response(ret.obj, 200, ret.obj_as_string, True)
             return ret            
         except Exception as e:
             if is_rest:

@@ -3,8 +3,8 @@
 BUILD_DIR="/home/palash/dev/stock-app/build"
 
 # Set the path to the executable, update this executable
-EXEC_DIR=$BUILD_DIR/StockAppApi/processes/cpp/news
-EXECUTABLE_PATH=$EXEC_DIR/News
+EXEC_DIR=$BUILD_DIR/StockAppApi/processes/cpp/discord
+EXECUTABLE_PATH=$EXEC_DIR/DiscordConnector
 
 # Set the destination directory in the Docker container
 DESTINATION_DIR="dockerfiles"
@@ -21,3 +21,11 @@ done
 mkdir $DESTINATION_DIR/exec
 cp $EXECUTABLE_PATH $DESTINATION_DIR/exec
 cp -r $EXEC_DIR/configuration $DESTINATION_DIR/exec
+
+docker build -t stock-app:discord-v1 .
+
+rm -rf $DESTINATION_DIR
+
+docker run --rm -it --name discord --network stock-app -p 8081:8081 stock-app:discord-v1
+
+

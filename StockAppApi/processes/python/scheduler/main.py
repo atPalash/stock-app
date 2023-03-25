@@ -1,7 +1,9 @@
+import os
+
 from StockAppApi.processes.python.scheduler.src.command_handler import CommandHandler
 from StockAppApi.base.python.src.yaml_parser import read_config
 from StockAppApi.base.python.src.server import Server
-
+ 
 if __name__ == "__main__":
         print("Hello Scheduler!")
         

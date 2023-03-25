@@ -6,6 +6,7 @@ port:
   talib: 8084
   scheduler: 8085
   system: 8086
+  webserver: 8087
   
 messenger:
   webhook:

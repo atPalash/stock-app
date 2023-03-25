@@ -11,7 +11,7 @@ class System(SystemIf):
         self.parameter = self.__update_parameter_or_set_to_default(parameter=parameter)
         self.command_handler = command_handler
         
-    def execute(self) -> RetVal:
+    def execute(self):
         try:
             ret = self.commands[self.parameter['do']]()
             return ret

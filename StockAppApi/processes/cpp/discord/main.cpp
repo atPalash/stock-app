@@ -19,7 +19,7 @@ void initListener(const std::string token, const std::string &route)
 
 int main()
 {
-    std::cout << "Hello Discord!";
+    std::cout << "Hello Discord!" << std::endl;
 
     std::string configFolder = "configuration/";
     YAML::Node config = Base::Src::parseYaml(configFolder + "config.yaml");
