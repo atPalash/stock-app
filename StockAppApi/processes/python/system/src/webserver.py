@@ -6,7 +6,10 @@ from StockAppApi.processes.python.system.base.system import System, RetVal
 class Webserver(System):
     def __init__(self, indicator_config_file: str, selected_stocks_config_file: str,
                  parameter: dict, command_handler: object, name="") -> None:
-        """Fetch the data based on requirements sent from HTML js.
+        """Fetch the data based on requirements sent from HTML js. Here the HTML
+        file request for different type of data based on the key indicator, generally
+        this server fetches talib indicator data, but in addition we can also fetch
+        other type of data based on map additional_indicators.
 
         e.g. 
         GET
@@ -36,6 +39,13 @@ class Webserver(System):
 
         self.interval = {'day': '1d', 'hour': '1h', 'week': '1wk'}
         self.periods = {'day': '5y', 'hour': '2y', 'week': '10y'}
+        
+        # 
+        self.additional_indicators = {
+            'tickers': self.__get_tickers, 
+            'ohlc': self.__get_ohlc, 
+            'macdhistdivergencescan': self.__get_macdhistdivergencescan
+        }
 
     def __get(self):
         """Get result of query received from HTML js. This 
@@ -46,18 +56,8 @@ class Webserver(System):
             err = ""
             try:
                 indicator = self.parameter["indicator"]
-                if indicator == "tickers":
-                    ret_df[ticker] = self.selected_stocks_config
-                elif indicator == "ohlc":
-                    ticker_ohlc_csv_path = f"{self.indicator_config['indicator']['data'][self.parameter['interval']]}/{self.parameter['ticker']}.csv"
-                    ret_df[ticker] = json.loads(pandas.read_csv(ticker_ohlc_csv_path, index_col=0).tail(self.parameter["n"]).to_json(orient="index"))
-                elif indicator == "macdhistdivergencescan":
-                    col_name = "macdhist_divergence"
-                    macd_query = f'macdhistdivergencescan --ticker {ticker} --interval {self.parameter["interval"]} --do get \
-                        --window {self.parameter["window"]} --n {self.parameter["n"]}'
-                    df = self.command_handler.execute(macd_query, is_rest=False).obj[ticker]
-                    df.set_index(df.iloc[:, 0], inplace=True)
-                    ret_df[ticker] = df[col_name].to_json(orient="index")
+                if self.additional_indicators.get(indicator):
+                    ret_df[ticker] = self.additional_indicators[indicator](ticker)
                 else:
                     talib_query = f'talibquery --ticker {ticker} --interval {self.parameter["interval"]} --do get --csv 0 \
                         --indicator {indicator} --window {self.parameter["window"]} --n {self.parameter["n"]}'
@@ -68,3 +68,18 @@ class Webserver(System):
                 print("ERROR webserver __get")
                 err += e.args
         return RetVal(obj=ret_df, obj_as_str="python dict with pandas dataframe json", errors=err)
+
+    def __get_tickers(self, *unused):
+        return self.selected_stocks_config
+    
+    def __get_ohlc(self, ticker):
+        ticker_ohlc_csv_path = f"{self.indicator_config['indicator']['data'][self.parameter['interval']]}/{ticker}.csv"
+        return json.loads(pandas.read_csv(ticker_ohlc_csv_path, index_col=0).tail(self.parameter["n"]).to_json(orient="index"))
+    
+    def __get_macdhistdivergencescan(self, ticker):
+        col_name = "macdhist_divergence"
+        macd_query = f'macdhistdivergencescan --ticker {ticker} --interval {self.parameter["interval"]} --do get \
+                        --window {self.parameter["window"]} --n {self.parameter["n"]}'
+        df = self.command_handler.execute(macd_query, is_rest=False).obj[ticker]
+        df.set_index(df.iloc[:, 0], inplace=True)
+        return df[col_name].to_json(orient="index")

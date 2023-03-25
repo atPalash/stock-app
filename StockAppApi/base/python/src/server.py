@@ -21,7 +21,6 @@ class Server(ServerIf):
     def handle_request(self, req: request):
         if request.method == 'POST':
             try:
-                print("POSTED", request.data)
                 result = self.command_handler.execute(
                     request.data.decode(), is_rest=True)
                 return result.response, result.errorCode
