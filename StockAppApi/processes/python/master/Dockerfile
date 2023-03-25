@@ -5,7 +5,11 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \ 
     python3.10 \
-    pip
+    pip \
+    curl \ 
+    net-tools \ 
+    iputils-ping \ 
+    iproute2 
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir flask requests pyyaml

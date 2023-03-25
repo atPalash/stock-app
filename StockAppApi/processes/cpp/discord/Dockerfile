@@ -6,7 +6,10 @@ RUN apt-get update && \
     ca-certificates \
     iputils-ping \ 
     iproute2 \ 
-    curl
+    curl \ 
+    net-tools \ 
+    iputils-ping \ 
+    iproute2 
 
 WORKDIR /src/stock-app
 COPY dockerfiles ./

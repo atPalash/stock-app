@@ -25,3 +25,5 @@ cp -r $EXEC_DIR/configuration $DESTINATION_DIR/exec
 docker build -t stock-app:news-v1 .
 
 rm -rf $DESTINATION_DIR
+
+docker run --rm -it --name news --network stock-app -p 8082:8082 stock-app:news-v1

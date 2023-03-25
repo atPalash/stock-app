@@ -26,4 +26,6 @@ docker build -t stock-app:discord-v1 .
 
 rm -rf $DESTINATION_DIR
 
+docker run --rm -it --name discord --network stock-app -p 8081:8081 stock-app:discord-v1
+
 
