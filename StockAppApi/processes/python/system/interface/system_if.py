@@ -24,7 +24,7 @@ class SystemIf:
         """
         pass
 
-    def __get() -> RetVal:
+    def __get():
         """Primary method implemented by all systems. To be called via execute.
 
         Returns:
