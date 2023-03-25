@@ -15,7 +15,7 @@ class CommandHandler(CommandHandlerIf):
                 commands = arguments['query'].split(",")
                 for query in commands:
                     query = query.replace(" ", "").replace("\t", "")
-                    self.registered_commands[query] = arguments["port"]
+                    self.registered_commands[query] = f"http://{arguments['host']}:{arguments['port']}"
                 return Response("Registered", 200, "", True)
             elif arguments['command'] == "unregister":
                 for command, port in self.registered_commands.items():
@@ -23,8 +23,8 @@ class CommandHandler(CommandHandlerIf):
                         del self.registered_commands[command]
                 return Response("Unregistered", 200, "", True)
             elif arguments['command'] in self.registered_commands:
-                url = "http://localhost:" + self.registered_commands[arguments["command"]]
-                res = requests.post(url, message)
+                url = self.registered_commands[arguments["command"]]
+                res = requests.post(url, message.encode('utf-8'))
                 return Response(res.text, 200, "", True)
             else:
                 return Response("Command not allowed", 500, "check the commands", False)         
