@@ -34,6 +34,13 @@ target_link_libraries(${PROJECT_NAME}
     pugixml
 )
 
-# Create a list of config files
-file(GLOB CONFIG_FILES "${CONFIG}/*.yaml")
-file(COPY ${CONFIG_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/configuration)
+# Set the path to the configuration directory
+set(CONFIG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../configuration)
+
+# Get a list of files in the configuration directory
+file(GLOB CONFIG_FILES ${CONFIG_DIR}/*.yaml)
+make_directory(${CMAKE_CURRENT_BINARY_DIR}/configuration)
+# Copy each configuration file to the build directory
+foreach(FILE ${CONFIG_FILES})
+    file(COPY ${FILE} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/configuration)
+endforeach()
