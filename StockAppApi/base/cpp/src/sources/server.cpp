@@ -1,5 +1,5 @@
 #include "server.h"
-
+#include <regex>
 #include "boost/format.hpp"
 #include "crow.h"
 
@@ -16,8 +16,10 @@ namespace Base
             std::unique_ptr<Base::Interface::CommandHandlerIf> commandHandler)
             : portM(port),
               baseServerPortM(baseServerPort),
+              ipAddressM(""),
               commandHandlerM(std::move(commandHandler)) // pass the ownership
         {
+            ipAddressM = getIpAddress();
         }
 
         Server::~Server()
@@ -56,10 +58,14 @@ namespace Base
             try
             {
                 std::string registrationMessage =
-                    (boost::format("register --port %1% --query %2%") % portM %
+                    (boost::format("register --host %1% --port %2% --query %3%") % ipAddressM % portM %
                      commandHandlerM->getCommandsAsStr())
                         .str();
                 std::string url{"localhost:8080"};
+                if(isRunningInContainer())
+                {
+                    url = "master:8080"; // master is 8080
+                }
                 auto res = Base::Src::post(url, registrationMessage);
 
                 Base::Src::Log::LogInfo(__FILE__, __LINE__, registrationMessage);
@@ -75,8 +81,13 @@ namespace Base
             try
             {
                 std::string registrationMessage =
-                    (boost::format("unregister --port %1%") % portM).str();
-                std::string url{"localhost:8080"}; // master is 8080
+                    (boost::format("unregister --host %1% --port %2%") % ipAddressM % portM).str();
+                
+                std::string url{"localhost:8080"};
+                if(isRunningInContainer())
+                {
+                    url = "master:8080"; // master is 8080
+                }
                 auto res = Base::Src::post(url, registrationMessage);
 
                 Base::Src::Log::LogInfo(__FILE__, __LINE__, registrationMessage);
@@ -85,6 +96,56 @@ namespace Base
             {
                 Base::Src::Log::LogCritical(__FILE__, __LINE__, e.what());
             }
+        }
+
+        std::string Server::getIpAddress()
+        {
+            if (ipAddressM == "")
+            {
+                std::regex inet_regex("inet (\\d+\\.\\d+\\.\\d+\\.\\d+)");
+                std::smatch match;
+                std::string ifconfig_output;
+
+                // Run the ifconfig command and capture its output
+                FILE *pipe = popen("ifconfig", "r");
+                if (pipe != nullptr)
+                {
+                    char buffer[128];
+                    while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+                    {
+                        ifconfig_output += buffer;
+                    }
+                    pclose(pipe);
+                }
+
+                // Search the output for the first occurrence of "inet " followed by an IP address
+                if (std::regex_search(ifconfig_output, match, inet_regex))
+                {
+                    std::cout << "Your IP address is: " << match[1] << std::endl;
+                }
+                else
+                {
+                    std::cerr << "Error: could not find IP address in ifconfig output." << std::endl;
+                }
+
+                ipAddressM = match[1];
+            }
+
+            return ipAddressM;
+        }
+
+        bool Server::isRunningInContainer()
+        {
+            std::ifstream cgroup_file("/proc/1/cgroup");
+            std::string line;
+            while (std::getline(cgroup_file, line))
+            {
+                if (line.find("docker") != std::string::npos || line.find("kube") != std::string::npos)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

@@ -26,6 +26,12 @@ namespace Base
              *
              */
             virtual void unRegisterRoutes() = 0;
+
+            /**
+             * @brief Get Ip address of the host running this server
+             *
+             */
+            virtual std::string getIpAddress() = 0;
         };
     }
 }
