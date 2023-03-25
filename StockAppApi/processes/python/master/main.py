@@ -11,25 +11,33 @@ from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf
 class ServerExt(Server):
     def __init__(self, port: int, master_server_port: int, command_handler: CommandHandlerIf) -> None:
         super().__init__(port, master_server_port, command_handler)
-        self.app = Flask(__name__)
+        self.app = Flask(__name__, static_folder="../../../static", template_folder="../../../templates")
 
         @self.app.route("/", methods=['GET', 'POST'])
         def base_api():
-            if request.method == "GET":
-                # # TODO
-                # # Get the URL to proxy from the query parameter
-                # url = 'http://localhost:8085'
-                # if not url:
-                #     return 'No URL provided'
+            return self.handle_request(request)
+        
+            # TODO check below for docker implementation
+            # if request.method == "GET":
+            #     # # TODO
+            #     # # Get the URL to proxy from the query parameter
+            #     # url = 'http://localhost:8085'
+            #     # if not url:
+            #     #     return 'No URL provided'
 
-                # # Forward the request to the child server and get the HTML response
-                # response = requests.get(url)
+            #     # # Forward the request to the child server and get the HTML response
+            #     # response = requests.get(url)
 
-                # # Return the HTML response to the client
-                # return response.text
-                return self.handle_request(request)
-            else:
-                return self.handle_request(request)
+            #     # # Return the HTML response to the client
+            #     # return response.text
+            #     return self.handle_request(request)
+            # else:
+        
+        @self.app.route("/html", methods=['GET', 'POST'])
+        def html():
+            url = 'http://localhost:8087'
+            response = requests.get(url)
+            return response.text
 
 
 if __name__ == "__main__":
