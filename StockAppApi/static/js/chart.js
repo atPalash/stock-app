@@ -1,110 +1,113 @@
-function convertToUtc(time) {
-    var timestamp = time
-    if(time.includes(":")) {
-        timestamp = timestamp.replace(" ", "T")
-        timestamp = timestamp + "+05:30"
-        timestamp = new Date(timestamp)
-        timestamp = timestamp.getTime()
-        return timestamp
+class TradingViewChart {
+    #height
+    #width
+    #currentSlideIndex;
+    #slides;
+    #interval;
+    #showEma;
+    #showMacdhistdivergencescan;
+    #tickCount;
+    #parentContainer;
+    #slideClassName;
+    #tickers;
+    constructor(height, width) {
+        this.#height = height
+        this.#width = width
+        this.#tickers = []
+        this.#currentSlideIndex = 0
+        this.#slides = []
+        this.#interval = "day"
+        this.#tickCount = 1000
+        this.#showEma = true
+        this.#showMacdhistdivergencescan = true
+        this.#parentContainer = document.querySelector('.gallery-container');
+        this.#slideClassName = "gallery-slide"
     }
-    return timestamp
-}
-function extractOhlc(data, symbol) {
-    var ohlc = []
-    for (const [timestamp, map] of Object.entries(data[symbol])) {
-        var row = {
-            'time': convertToUtc(timestamp),
-            'open': map['Open'],
-            'high': map['High'],
-            'low': map['Low'],
-            'close': map['Close'],
-        }
-        ohlc.push(row)
-    }
-    return ohlc
-}
 
-function extractIndicatorValue(data, symbol) {
-
-    var values = []
-    for (const [time, value] of Object.entries(JSON.parse(data[symbol]))) {
-        var row = {
-            'time': convertToUtc(time),
-            'value': value
-        }
-        values.push(row)
-    }
-    return values
-}
-
-function extractSignal(data, symbol) {
-    var signals = []
-    for (const [time, value] of Object.entries(JSON.parse(data[symbol]))) {
-        if (value === 1) {
-            var row = {
-                'time': convertToUtc(time),
-                'position': 'belowBar',
-                'color': 'green',
-                'shape': 'arrowUp',
-            }
-            signals.push(row)
-        }
-        else if (value === -1) {
-            var row = {
-                'time': convertToUtc(time),
-                'position': 'aboveBar',
-                'color': 'red',
-                'shape': 'arrowDown',
-            }
-            signals.push(row)
-        }
-    }
-    return signals
-}
-
-async function apiCall(query) {
-    var response = await fetch('http://localhost:8087/ohlc', {
-        method: 'POST',
-        body: JSON.stringify(query),
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    }
-    )
-    var data = await response.json()
-
-    return data
-}
-
-async function plotChart(slidesData) {
-    const galleryContainer = document.querySelector('.gallery-container');
-    var elements = document.getElementsByClassName("gallery-slide");
-    if(elements.length > 0) {
-        while (elements.length > 0) {
-            elements[0].parentNode.removeChild(elements[0]);
-        }
-
-        slides = []
-    }
+    async show() {
+        this.#initChartControls()
+        
+        // here sending a dummy ticker so that in server side we don't do repeated calls to
+        // get ticker list
+        var tickers = await this.#apiCall({ "query": `webserver --ticker TCS --do get --indicator tickers` });
+        this.#tickers = tickers['TCS']['stock']
     
-    slidesData.forEach(async (slideData, index) => {
+        this.#slides = Array(this.#tickers.length)
+        this.#slides.fill(null)
+        await this.#showSlide(this.#currentSlideIndex)
+    }
+
+    #initChartControls() {
+        const prevBtn = document.querySelector('.prev-btn');
+        prevBtn.addEventListener('click', () => {
+            if(this.#currentSlideIndex == 0) {
+                this.#currentSlideIndex = this.#slides.length - 1
+            }
+            else {
+                this.#currentSlideIndex -= 1
+            }
+            
+            this.#showSlide(this.#currentSlideIndex);
+        });
+
+        const nextBtn = document.querySelector('.next-btn');
+        nextBtn.addEventListener('click', () => {
+            if(this.#currentSlideIndex == this.#slides.length - 1) {
+                this.#currentSlideIndex = 0
+            }
+            else {
+                this.#currentSlideIndex += 1
+            }
+            
+            this.#showSlide(this.#currentSlideIndex);
+        });
+
+        const selectedInterval = document.getElementById('interval')
+        this.#interval = selectedInterval.value
+        selectedInterval.addEventListener('change', async () => {
+            this.#interval = selectedInterval.value
+            this.#showSlide(this.#currentSlideIndex, true)
+        })
+
+        // const selectedIndicator = document.getElementById('indicator')
+        // selectedIndicator.addEventListener('change', async () => {
+        //     if (selectedIndicator.value == "EMA") {
+        //         this.#showEma()
+        //     }
+        //     this.show()
+        // })
+    }
+
+    #clearAllChart() {
+        var elements = document.getElementsByClassName(this.#slideClassName);
+        if (elements.length > 0) {
+            while (elements.length > 0) {
+                elements[0].parentNode.removeChild(elements[0]);
+            }
+
+            this.#slides = Array(this.#tickers.length)
+            this.#slides.fill(null)
+        }
+    }
+
+    async #plotCandle(slideData) {
         var query_ohlc = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator ohlc --n ${slideData.n}` }
-        var resp_ohlc = await apiCall(query_ohlc);
-        resp_ohlc = extractOhlc(resp_ohlc, slideData.symbol)
+        var resp_ohlc = await this.#apiCall(query_ohlc);
+        resp_ohlc = this.#extractOhlc(resp_ohlc, slideData.symbol)
         const slide = document.createElement('div');
         slide.classList.add('gallery-slide');
         slide.innerHTML = `
-          <h3>${slideData.symbol}</h3>
-          <div class="tv-chart-container">
-            <div id="tv-chart-${index}" class="tv-chart"></div>
-          </div>
-        `;
+              <h3>${slideData.symbol}</h3>
+              <div class="tv-chart-container">
+                <div id="tv-chart-${slideData.symbol}" class="tv-chart"></div>
+              </div>
+            `;
         slide.style.display = 'none';
-        galleryContainer.appendChild(slide);
+        this.#parentContainer.appendChild(slide);
 
-        const tvChart = LightweightCharts.createChart(document.getElementById(`tv-chart-${index}`), {
-            width: 1000,
-            height: 400,
+        const tvChart = LightweightCharts.createChart(document.getElementById(`tv-chart-${slideData.symbol}`), {
+            width: this.#width,
+            height: this.#height,
         });
 
         const tvSeries = tvChart.addCandlestickSeries();
@@ -113,77 +116,126 @@ async function plotChart(slidesData) {
         //EMA
         if (slideData.ema) {
             var query_ema = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator ema --n 1000` }
-            var resp_ema = await apiCall(query_ema);
-            resp_ema = extractIndicatorValue(resp_ema, slideData.symbol)
+            var resp_ema = await this.#apiCall(query_ema);
+            resp_ema = this.#extractIndicatorValue(resp_ema, slideData.symbol)
+    
             const ema_series = tvChart.addLineSeries({ color: 'green', lineWidth: 1 });
-            const ema_data = resp_ema;
-            ema_series.setData(ema_data);
+            ema_series.setData(resp_ema);
         }
 
         //MACD Div
         if (slideData.macdhistdivergencescan) {
             var query_macd_div = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator macdhistdivergencescan --n 100 --window 20` }
-            var resp_macd_div = await apiCall(query_macd_div);
-            signals_macd_div = extractSignal(resp_macd_div, slideData.symbol)
+            var resp_macd_div = await this.#apiCall(query_macd_div);
+            var signals_macd_div = this.#extractSignal(resp_macd_div, slideData.symbol)
             tvSeries.setMarkers(signals_macd_div);
         }
 
-        slides.push(slide)
-        showSlide(0)
-    });
-}
-
-let currentSlide = 0;
-let slides = [];
-
-async function createChartControls() {
-    const prevBtn = document.querySelector('.prev-btn');
-    prevBtn.addEventListener('click', () => {
-        showSlide(currentSlide - 1);
-    });
-
-    const nextBtn = document.querySelector('.next-btn');
-    nextBtn.addEventListener('click', () => {
-        showSlide(currentSlide + 1);
-    });
-
-    const selectedInterval = document.getElementById('interval')
-    selectedInterval.addEventListener('change', async () => {
-        await createChart(selectedInterval.value)
-    })
-    const selectedIndicator = document.getElementById('indicator').value
-
-    await createChart(selectedInterval.value)
-}
-async function createChart(interval) {
-    debugger
-    showEma = true
-    showMacdhistdivergencescan = true
-    sampleCount = 1000
-    var tickers = await apiCall({ "query": `webserver --ticker TCS --do get --indicator tickers` });
-    slidesData = []
-    tickers['TCS']['stock'].forEach(element => {
-        slidesData.push({ symbol: element, interval: interval, n: sampleCount, 'ema': showEma, 'macdhistdivergencescan': showMacdhistdivergencescan })
-    });
-
-    await plotChart(slidesData);
-}
-
-function showSlide(n) {
-    // const slides = document.querySelectorAll('.gallery-slide');
-    if (n > slides.length - 1) {
-        currentSlide = 0;
-    } else if (n < 0) {
-        currentSlide = slides.length - 1;
-    } else {
-        currentSlide = n;
+        return slide
     }
-    slides.forEach(slide => {
-        slide.style.display = 'none';
-    });
-    slides[currentSlide].style.display = 'block';
+
+    async #showSlide(n, redraw=false) {
+        if(redraw) {
+            this.#clearAllChart()
+        }
+        this.#slides.forEach(slide => {
+            if(slide != null) {
+                slide.style.display = 'none';
+            }
+        });
+
+        if (this.#slides[n] == null) {
+            var slideData = {
+                symbol: this.#tickers[n], interval: this.#interval, n: this.#tickCount,
+                'ema': this.#showEma, 'macdhistdivergencescan': this.#showMacdhistdivergencescan
+            }
+            var slide = await this.#plotCandle(slideData)
+            this.#slides[n] = slide
+        }
+        
+        this.#slides[n].style.display = 'block';
+    }
+
+    #convertToUtc(time) {
+        var timestamp = time
+        if (time.includes(":")) {
+            timestamp = timestamp.replace(" ", "T")
+            timestamp = timestamp + "+05:30"
+            timestamp = new Date(timestamp)
+            timestamp = timestamp.getTime()
+            return timestamp
+        }
+        return timestamp
+    }
+    #extractOhlc(data, symbol) {
+        var ohlc = []
+        for (const [timestamp, map] of Object.entries(data[symbol])) {
+            var row = {
+                'time': this.#convertToUtc(timestamp),
+                'open': map['Open'],
+                'high': map['High'],
+                'low': map['Low'],
+                'close': map['Close'],
+            }
+            ohlc.push(row)
+        }
+        return ohlc
+    }
+
+    #extractIndicatorValue(data, symbol) {
+        var values = []
+        for (const [time, value] of Object.entries(JSON.parse(data[symbol]))) {
+            var row = {
+                'time': this.#convertToUtc(time),
+                'value': value
+            }
+            values.push(row)
+        }
+        return values
+    }
+
+    #extractSignal(data, symbol) {
+        var signals = []
+        for (const [time, value] of Object.entries(JSON.parse(data[symbol]))) {
+            if (value === 1) {
+                var row = {
+                    'time': this.#convertToUtc(time),
+                    'position': 'belowBar',
+                    'color': 'green',
+                    'shape': 'arrowUp',
+                }
+                signals.push(row)
+            }
+            else if (value === -1) {
+                var row = {
+                    'time': this.#convertToUtc(time),
+                    'position': 'aboveBar',
+                    'color': 'red',
+                    'shape': 'arrowDown',
+                }
+                signals.push(row)
+            }
+        }
+        return signals
+    }
+
+    async #apiCall(query) {
+        var response = await fetch('http://localhost:8087/ohlc', {
+            method: 'POST',
+            body: JSON.stringify(query),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }
+        )
+        var data = await response.json()
+
+        return data
+    }
+
 }
 
 async function renderChart() {
-    await createChartControls()
+    chart = new TradingViewChart(500, 1000)
+    chart.show()
 };
