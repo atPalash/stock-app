@@ -1,4 +1,6 @@
 class TradingViewChart {
+    #row
+    #col
     #height
     #width
     #currentSlideIndex;
@@ -10,7 +12,9 @@ class TradingViewChart {
     #parentContainer;
     #slideClassName;
     #tickers;
-    constructor(height, width) {
+    constructor(row, col, height, width) {
+        this.#row = row
+        this.#col = col
         this.#height = height
         this.#width = width
         this.#tickers = []
@@ -20,7 +24,7 @@ class TradingViewChart {
         this.#tickCount = 1000
         this.#showEma = true
         this.#showMacdhistdivergencescan = true
-        this.#parentContainer = document.querySelector('.gallery-container');
+        this.#parentContainer = document.getElementById(`gallery-container-${this.#row}-${this.#col}`);
         this.#slideClassName = "gallery-slide"
     }
 
@@ -38,7 +42,7 @@ class TradingViewChart {
     }
 
     #initChartControls() {
-        const prevBtn = document.querySelector('.prev-btn');
+        const prevBtn = document.getElementById(`prev-btn-${this.#row}-${this.#col}`);
         prevBtn.addEventListener('click', () => {
             if(this.#currentSlideIndex == 0) {
                 this.#currentSlideIndex = this.#slides.length - 1
@@ -50,7 +54,7 @@ class TradingViewChart {
             this.#showSlide(this.#currentSlideIndex);
         });
 
-        const nextBtn = document.querySelector('.next-btn');
+        const nextBtn = document.getElementById(`next-btn-${this.#row}-${this.#col}`);
         nextBtn.addEventListener('click', () => {
             if(this.#currentSlideIndex == this.#slides.length - 1) {
                 this.#currentSlideIndex = 0
@@ -62,7 +66,7 @@ class TradingViewChart {
             this.#showSlide(this.#currentSlideIndex);
         });
 
-        const selectedInterval = document.getElementById('interval')
+        const selectedInterval = document.getElementById(`interval-${this.#row}-${this.#col}`)
         this.#interval = selectedInterval.value
         selectedInterval.addEventListener('change', async () => {
             this.#interval = selectedInterval.value
@@ -78,16 +82,16 @@ class TradingViewChart {
         // })
     }
 
-    #clearAllChart() {
+    #clearAllSlides() {
         var elements = document.getElementsByClassName(this.#slideClassName);
-        if (elements.length > 0) {
-            while (elements.length > 0) {
-                elements[0].parentNode.removeChild(elements[0]);
-            }
+        elements = [...elements]
+        elements = elements.filter(element => element.id == `${this.#slideClassName}-${this.#row}-${this.#col}`)
+        elements.forEach(element => {
+            element.parentNode.removeChild(element);
+        });
 
-            this.#slides = Array(this.#tickers.length)
-            this.#slides.fill(null)
-        }
+        this.#slides = Array(this.#tickers.length)
+        this.#slides.fill(null)
     }
 
     async #plotCandle(slideData) {
@@ -95,17 +99,18 @@ class TradingViewChart {
         var resp_ohlc = await this.#apiCall(query_ohlc);
         resp_ohlc = this.#extractOhlc(resp_ohlc, slideData.symbol)
         const slide = document.createElement('div');
-        slide.classList.add('gallery-slide');
+        slide.classList.add(`${this.#slideClassName}`);
+        slide.setAttribute("id", `${this.#slideClassName}-${this.#row}-${this.#col}`)
         slide.innerHTML = `
               <h3>${slideData.symbol}</h3>
-              <div class="tv-chart-container">
-                <div id="tv-chart-${slideData.symbol}" class="tv-chart"></div>
+              <div class="tv-chart-container" id="tv-chart-container-${this.#row}-${this.#col}">
+                <div id="tv-chart-${slideData.symbol}-${this.#row}-${this.#col}" class="tv-chart"></div>
               </div>
             `;
         slide.style.display = 'none';
         this.#parentContainer.appendChild(slide);
 
-        const tvChart = LightweightCharts.createChart(document.getElementById(`tv-chart-${slideData.symbol}`), {
+        const tvChart = LightweightCharts.createChart(document.getElementById(`tv-chart-${slideData.symbol}-${this.#row}-${this.#col}`), {
             width: this.#width,
             height: this.#height,
         });
@@ -136,7 +141,7 @@ class TradingViewChart {
 
     async #showSlide(n, redraw=false) {
         if(redraw) {
-            this.#clearAllChart()
+            this.#clearAllSlides()
         }
         this.#slides.forEach(slide => {
             if(slide != null) {
@@ -235,7 +240,7 @@ class TradingViewChart {
 
 }
 
-async function renderChart() {
-    chart = new TradingViewChart(500, 1000)
+async function renderChart(row, col, height, width) {
+    chart = new TradingViewChart(row, col, height, width)
     chart.show()
 };

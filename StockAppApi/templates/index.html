@@ -15,26 +15,7 @@
         <li>Headline 3</li>
       </ul>
     </div>
-    <div class="column right">
-      <h2>Gallery</h2>
-      <div class="navigation" id="topnav">
-        <select id="interval">
-          <option value="hour">Hour</option>
-          <option value="day" selected>Day</option>
-          <option value="week">Week</option>
-        </select>
-        <select id="indicator">
-          <option value="ema">EMA</option>
-          <option value="rsi" selected>RSI</option>
-        </select>
-      </div>
-      <div class="gallery-container">
-      </div>
-      <div class="arrow-container">
-        <button class="prev-btn">&#10094;</button>
-        <button class="next-btn">&#10095;</button>
-      </div>
-    </div>
+    <div class="column right" id="column-right"></div>
   </div>
   <script src="https://unpkg.com/lightweight-charts@latest/dist/lightweight-charts.standalone.production.js"></script>
   <script src="{{ url_for('static', filename='js/chart.js') }}"></script>

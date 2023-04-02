@@ -14,9 +14,24 @@
 
 .right {
   background-color: #fff;
-  flex: 2;
+  flex: 6;
+  /* padding: auto; */
+  /* white-space: nowrap; */
 }
 
+.chart-row {
+  display: flex; 
+  flex-wrap: nowrap;
+  border: 2px solid green;
+}
+.chart-tv-with-controls {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  margin-right: 10px;
+  border: 2px solid red;
+}
+/*
 .gallery-container {
   display: flex;
   overflow-x: hidden;
@@ -52,4 +67,4 @@
 
 .next-btn {
   margin-left: auto;
-}
+} */
