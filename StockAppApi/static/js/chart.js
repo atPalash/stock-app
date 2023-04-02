@@ -33,8 +33,8 @@ class TradingViewChart {
         
         // here sending a dummy ticker so that in server side we don't do repeated calls to
         // get ticker list
-        var tickers = await this.#apiCall({ "query": `webserver --ticker TCS --do get --indicator tickers` });
-        this.#tickers = tickers['TCS']['stock']
+        var tickers = await this.#apiCall({ "query": `webserver --ticker all --do get --indicator tickers` });
+        this.#tickers = tickers['tickers']
     
         this.#slides = Array(this.#tickers.length)
         this.#slides.fill(null)
@@ -237,7 +237,6 @@ class TradingViewChart {
 
         return data
     }
-
 }
 
 async function renderChart(row, col, height, width) {

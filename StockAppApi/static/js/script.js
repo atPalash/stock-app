@@ -24,7 +24,6 @@ class PageRight {
 
         const bottomNavAddChartBtn = document.getElementById(`bottom-nav-add-chart-btn-${row}-${col}`)
         bottomNavAddChartBtn.addEventListener('click', () => {
-            debugger
             var arr = bottomNavAddChartBtn.id.split("-")
             var rowToAdd = parseInt(arr[arr.length-2]) + 1
             var colToAdd = 0
