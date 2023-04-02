@@ -42,13 +42,21 @@ class System(SystemIf):
         
         return parameters
     
-    def _get_tickers(self) ->list:
+    def __get_list_of_tickers(self, type:str) -> list:
         tickers = []
         ticker = self.parameter['ticker']
+        all_tickers = self.selected_stocks_config[type]
         if ticker == "all":
-            tickers = self.selected_stocks_config['stock']
+            tickers = all_tickers
         else:
             for tick in ticker.split(','):
-                tickers.append(tick)
+                if tick in all_tickers:
+                    tickers.append(tick)
         tickers = [ticker.replace(" ", "") for ticker in tickers]
         return tickers
+
+    def _get_tickers(self) ->list:
+        return self.__get_list_of_tickers('stock')
+    
+    def _get_indices(self) -> list:
+        return self.__get_list_of_tickers('index')

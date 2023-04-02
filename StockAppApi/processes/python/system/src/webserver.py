@@ -50,27 +50,31 @@ class Webserver(System):
     def __get(self):
         """Get result of query received from HTML js. This 
         """
-        tickers = self._get_tickers()
+        tickers = self._get_tickers() + self._get_indices()
         ret_df = {}
-        for ticker in tickers:
-            err = ""
-            try:
-                indicator = self.parameter["indicator"]
-                if self.additional_indicators.get(indicator):
-                    ret_df[ticker] = self.additional_indicators[indicator](ticker)
-                else:
-                    talib_query = f'talibquery --ticker {ticker} --interval {self.parameter["interval"]} --do get --csv 0 \
-                        --indicator {indicator} --window {self.parameter["window"]} --n {self.parameter["n"]}'
-                    df = self.command_handler.execute(talib_query, is_rest=False).obj
-                    df.set_index(df.iloc[:, 0], inplace=True)
-                    ret_df[ticker] = df[indicator].to_json(orient="index")
-            except Exception as e:
-                print("ERROR webserver __get")
-                err += e.args
+        indicator = self.parameter["indicator"]
+        err = ""
+        if indicator == 'tickers':
+            # return the indicator list 
+            ret_df[indicator] = self.__get_tickers()
+        else:
+            for ticker in tickers:
+                try:
+                    if self.additional_indicators.get(indicator):
+                        ret_df[ticker] = self.additional_indicators[indicator](ticker)
+                    else:
+                        talib_query = f'talibquery --ticker {ticker} --interval {self.parameter["interval"]} --do get --csv 0 \
+                            --indicator {indicator} --window {self.parameter["window"]} --n {self.parameter["n"]}'
+                        df = self.command_handler.execute(talib_query, is_rest=False).obj
+                        df.set_index(df.iloc[:, 0], inplace=True)
+                        ret_df[ticker] = df[indicator].to_json(orient="index")
+                except Exception as e:
+                    print("ERROR webserver __get")
+                    err += e.args
         return RetVal(obj=ret_df, obj_as_str="python dict with pandas dataframe json", errors=err)
 
     def __get_tickers(self, *unused):
-        return self.selected_stocks_config
+        return self._get_indices() + self._get_tickers()
     
     def __get_ohlc(self, ticker):
         ticker_ohlc_csv_path = f"{self.indicator_config['indicator']['data'][self.parameter['interval']]}/{ticker}.csv"

@@ -54,7 +54,7 @@ class MacdHistogramDivergenceScanner(System):
     def __get(self) -> RetVal:
         errors = ""
         divergence_df = {}
-        for ticker in self._get_tickers():
+        for ticker in self._get_tickers() + self._get_indices():
             try:
                 macdhist_query = f'talibquery --ticker {ticker} --interval {self.parameter["interval"]} --do get \
                     --indicator macdhist --fastperiod {self.parameter["macd_fast_period"]} \

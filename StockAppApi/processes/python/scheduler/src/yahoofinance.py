@@ -55,6 +55,6 @@ class YahooScheduler(Scheduler):
             query = f"yahoofinance --ticker all --do fundamentals --pandas 0  --csv 1"
             ret = self.system_command_handler.execute(message=query, is_rest=False) # just download the data, only print the errors
             if ret.errors != "":
-                print("ERROR yahoo fundamental download system", ret.errors)
+                print("ERROR yahoo fundamental download system", ret.errors) # TODO
         except Exception as e:
             print("ERROR __monthly_fundamental_download", e.args)
