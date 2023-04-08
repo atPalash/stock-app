@@ -3,86 +3,59 @@ class TradingViewChart {
     #col
     #height
     #width
-    #currentSlideIndex;
     #slides;
-    #interval;
-    #showEma;
-    #showMacdhistdivergencescan;
-    #tickCount;
     #parentContainer;
     #slideClassName;
-    #tickers;
-    constructor(row, col, height, width) {
+    #controls;
+    constructor(row, col, height, width, controls) {
         this.#row = row
         this.#col = col
         this.#height = height
         this.#width = width
-        this.#tickers = []
-        this.#currentSlideIndex = 0
+
         this.#slides = []
-        this.#interval = "day"
-        this.#tickCount = 1000
-        this.#showEma = true
-        this.#showMacdhistdivergencescan = true
         this.#parentContainer = document.getElementById(`gallery-container-${this.#row}-${this.#col}`);
         this.#slideClassName = "gallery-slide"
+        this.#controls = controls
     }
 
-    async show() {
-        this.#initChartControls()
-        
+    setControls(controls) {
+        this.#controls = controls
+    }
+
+    async show(redraw=false) {
         // here sending a dummy ticker so that in server side we don't do repeated calls to
         // get ticker list
-        var tickers = await this.#apiCall({ "query": `webserver --ticker all --do get --indicator tickers` });
-        this.#tickers = tickers['tickers']
-    
-        this.#slides = Array(this.#tickers.length)
+        // var tickers = await apiCall({ "query": `webserver --ticker all --do get --indicator tickers` });
+        this.#slides = Array(this.#controls["tickers"].length)
         this.#slides.fill(null)
-        await this.#showSlide(this.#currentSlideIndex)
+        await this.showSlide(this.#controls["currentSlideIndex"], redraw)
     }
 
-    #initChartControls() {
-        const prevBtn = document.getElementById(`prev-btn-${this.#row}-${this.#col}`);
-        prevBtn.addEventListener('click', () => {
-            if(this.#currentSlideIndex == 0) {
-                this.#currentSlideIndex = this.#slides.length - 1
+    async showSlide(redraw=false) {
+        var currentSlideIndex = this.#controls["currentSlideIndex"]
+        if(redraw) {
+            this.clearAllSlides()
+        }
+        this.#slides.forEach(slide => {
+            if(slide != null) {
+                slide.style.display = 'none';
             }
-            else {
-                this.#currentSlideIndex -= 1
-            }
-            
-            this.#showSlide(this.#currentSlideIndex);
         });
 
-        const nextBtn = document.getElementById(`next-btn-${this.#row}-${this.#col}`);
-        nextBtn.addEventListener('click', () => {
-            if(this.#currentSlideIndex == this.#slides.length - 1) {
-                this.#currentSlideIndex = 0
+        if (this.#slides[currentSlideIndex] == null) {
+            var slideData = {
+                symbol: this.#controls["tickers"][currentSlideIndex], interval: this.#controls["interval"], n: this.#controls["tickcount"],
+                'indicators': this.#controls['indicators'], 'scanners': this.#controls["scanners"]
             }
-            else {
-                this.#currentSlideIndex += 1
-            }
-            
-            this.#showSlide(this.#currentSlideIndex);
-        });
-
-        const selectedInterval = document.getElementById(`interval-${this.#row}-${this.#col}`)
-        this.#interval = selectedInterval.value
-        selectedInterval.addEventListener('change', async () => {
-            this.#interval = selectedInterval.value
-            this.#showSlide(this.#currentSlideIndex, true)
-        })
-
-        // const selectedIndicator = document.getElementById('indicator')
-        // selectedIndicator.addEventListener('change', async () => {
-        //     if (selectedIndicator.value == "EMA") {
-        //         this.#showEma()
-        //     }
-        //     this.show()
-        // })
+            var slide = await this.#plotCandle(slideData)
+            this.#slides[currentSlideIndex] = slide
+        }
+        
+        this.#slides[currentSlideIndex].style.display = 'block';
     }
 
-    #clearAllSlides() {
+    clearAllSlides() {
         var elements = document.getElementsByClassName(this.#slideClassName);
         elements = [...elements]
         elements = elements.filter(element => element.id == `${this.#slideClassName}-${this.#row}-${this.#col}`)
@@ -90,19 +63,18 @@ class TradingViewChart {
             element.parentNode.removeChild(element);
         });
 
-        this.#slides = Array(this.#tickers.length)
+        this.#slides = Array(this.#controls["tickers"].length)
         this.#slides.fill(null)
     }
 
     async #plotCandle(slideData) {
         var query_ohlc = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator ohlc --n ${slideData.n}` }
-        var resp_ohlc = await this.#apiCall(query_ohlc);
+        var resp_ohlc = await apiCall(query_ohlc);
         resp_ohlc = this.#extractOhlc(resp_ohlc, slideData.symbol)
         const slide = document.createElement('div');
         slide.classList.add(`${this.#slideClassName}`);
         slide.setAttribute("id", `${this.#slideClassName}-${this.#row}-${this.#col}`)
         slide.innerHTML = `
-              <h3>${slideData.symbol}</h3>
               <div class="tv-chart-container" id="tv-chart-container-${this.#row}-${this.#col}">
                 <div id="tv-chart-${slideData.symbol}-${this.#row}-${this.#col}" class="tv-chart"></div>
               </div>
@@ -118,65 +90,53 @@ class TradingViewChart {
         const tvSeries = tvChart.addCandlestickSeries();
         tvSeries.setData(resp_ohlc);
 
-        //EMA
-        if (slideData.ema) {
-            var query_ema = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator ema --n 1000` }
-            var resp_ema = await this.#apiCall(query_ema);
-            resp_ema = this.#extractIndicatorValue(resp_ema, slideData.symbol)
-    
-            const ema_series = tvChart.addLineSeries({ color: 'green', lineWidth: 1 });
-            ema_series.setData(resp_ema);
+        // go through each desired indicator and plot them
+        for (let key in this.#controls["indicators"]) {
+            var indicator = this.#controls["indicators"][key]
+            switch(indicator['type']) {
+                case 'ema':
+                    var query = { "query": `webserver --ticker ${slideData.symbol} \
+                    --interval ${this.#controls["interval"]} --do get --indicator ema \
+                    --window ${indicator["window"]} --n ${slideData.n}`}
+                    var resp = await apiCall(query);
+                    var series = this.#extractIndicatorValue(resp, slideData.symbol)
+                    const chartSeries = tvChart.addLineSeries({ color: indicator['color'], lineWidth: 1 });
+                    chartSeries.setData(series);
+                    break;
+                default:
+                    console.log("Indicator not avaialable")
+            }
         }
 
-        //MACD Div
-        if (slideData.macdhistdivergencescan) {
-            var query_macd_div = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator macdhistdivergencescan --n 100 --window 20` }
-            var resp_macd_div = await this.#apiCall(query_macd_div);
-            var signals_macd_div = this.#extractSignal(resp_macd_div, slideData.symbol)
-            tvSeries.setMarkers(signals_macd_div);
+        // go throught each desired scanner and plot signals
+        var markers = []
+        for (let key in this.#controls["scanners"]) {
+            var scanner = this.#controls["scanners"][key]
+            switch(scanner['type']) {
+                case 'macd_divergence':
+                    var query_macd_div = { "query": `webserver --ticker ${slideData.symbol} \
+                    --interval ${this.#controls["interval"]} --do get --indicator macdhistdivergencescan \
+                    --n ${scanner["n"]} --window ${scanner["window"]}` }
+                    var resp_macd_div = await apiCall(query_macd_div);
+                    var signals_macd_div = this.#extractSignal(resp_macd_div, slideData.symbol, 
+                        {"buyColor": scanner["buyColor"], "sellColor": scanner["sellColor"]})
+                    
+                    markers.push(...signals_macd_div)
+                    tvSeries.setMarkers(markers);
+                    break;
+                default:
+                    console.log("Scanner not avaialable")
+            }
         }
 
         return slide
     }
 
-    async #showSlide(n, redraw=false) {
-        if(redraw) {
-            this.#clearAllSlides()
-        }
-        this.#slides.forEach(slide => {
-            if(slide != null) {
-                slide.style.display = 'none';
-            }
-        });
-
-        if (this.#slides[n] == null) {
-            var slideData = {
-                symbol: this.#tickers[n], interval: this.#interval, n: this.#tickCount,
-                'ema': this.#showEma, 'macdhistdivergencescan': this.#showMacdhistdivergencescan
-            }
-            var slide = await this.#plotCandle(slideData)
-            this.#slides[n] = slide
-        }
-        
-        this.#slides[n].style.display = 'block';
-    }
-
-    #convertToUtc(time) {
-        var timestamp = time
-        if (time.includes(":")) {
-            timestamp = timestamp.replace(" ", "T")
-            timestamp = timestamp + "+05:30"
-            timestamp = new Date(timestamp)
-            timestamp = timestamp.getTime()
-            return timestamp
-        }
-        return timestamp
-    }
     #extractOhlc(data, symbol) {
         var ohlc = []
         for (const [timestamp, map] of Object.entries(data[symbol])) {
             var row = {
-                'time': this.#convertToUtc(timestamp),
+                'time': convertToUtc(timestamp),
                 'open': map['Open'],
                 'high': map['High'],
                 'low': map['Low'],
@@ -191,7 +151,7 @@ class TradingViewChart {
         var values = []
         for (const [time, value] of Object.entries(JSON.parse(data[symbol]))) {
             var row = {
-                'time': this.#convertToUtc(time),
+                'time': convertToUtc(time),
                 'value': value
             }
             values.push(row)
@@ -199,23 +159,23 @@ class TradingViewChart {
         return values
     }
 
-    #extractSignal(data, symbol) {
+    #extractSignal(data, symbol, options) {
         var signals = []
         for (const [time, value] of Object.entries(JSON.parse(data[symbol]))) {
             if (value === 1) {
                 var row = {
-                    'time': this.#convertToUtc(time),
+                    'time': convertToUtc(time),
                     'position': 'belowBar',
-                    'color': 'green',
+                    'color': options["buyColor"],
                     'shape': 'arrowUp',
                 }
                 signals.push(row)
             }
             else if (value === -1) {
                 var row = {
-                    'time': this.#convertToUtc(time),
+                    'time': convertToUtc(time),
                     'position': 'aboveBar',
-                    'color': 'red',
+                    'color': options["sellColor"],
                     'shape': 'arrowDown',
                 }
                 signals.push(row)
@@ -223,23 +183,20 @@ class TradingViewChart {
         }
         return signals
     }
-
-    async #apiCall(query) {
-        var response = await fetch('http://localhost:8087/ohlc', {
-            method: 'POST',
-            body: JSON.stringify(query),
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        }
-        )
-        var data = await response.json()
-
-        return data
-    }
 }
 
-async function renderChart(row, col, height, width) {
-    chart = new TradingViewChart(row, col, height, width)
-    chart.show()
+var chart = null
+async function renderChart(row, col, height, width, controls, redraw=false) {
+    if(chart != null) {
+        chart = null
+    }
+    chart = new TradingViewChart(row, col, height, width, controls)
+    chart.show(redraw)
 };
+
+async function showChart(controls, redraw=false) {
+    if(chart != null) {
+        chart.setControls(controls)
+        chart.showSlide(redraw)
+    }
+}
