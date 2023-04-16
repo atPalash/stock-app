@@ -23,3 +23,48 @@ function convertToUtc(time) {
     }
     return timestamp
 }
+
+function addInnerHtmlToDiv(parentId, options) {
+    var parent = document.getElementById(parentId)
+    var childDiv = document.createElement("div")
+
+    for (var key in options["div"]) {
+        var val = options["div"][key]
+        switch (key) {
+            case "id":
+                childDiv.id = val
+                break
+            case "style":
+                childDiv.style = val
+                break
+            case "class":
+                childDiv.classList.add(val)
+                break
+            case "innerHTML":
+                childDiv.innerHTML = val
+                break
+        }
+    }
+    parent.appendChild(childDiv)
+
+    for (var evnt in options["events"]) {
+        var listenerElement = document.getElementById(evnt)
+        var val = options["events"][evnt]
+        listenerElement.addEventListener(val["type"], val["callback"]);
+    }
+}
+
+function parseJSON(jsonString) {
+    var thisJson = {}
+    try {
+        var jObj = JSON.parse(jsonString)
+        for(var key in jObj){
+            thisJson[key] = parseJSON(jObj[key])
+        };
+    } catch (error) {
+        for(var key in jsonString){
+            thisJson[key] = parseJSON(jObj[key])
+        };
+    }
+    return thisJson;
+  }

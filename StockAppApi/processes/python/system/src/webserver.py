@@ -1,3 +1,4 @@
+import numpy
 import pandas
 import json
 from StockAppApi.processes.python.system.base.system import System, RetVal
@@ -44,7 +45,9 @@ class Webserver(System):
         self.additional_indicators = {
             'tickers': self.__get_tickers, 
             'ohlc': self.__get_ohlc, 
-            'macdhistdivergencescan': self.__get_macdhistdivergencescan
+            'macdhistdivergencescan': self.__get_macdhistdivergencescan,
+            'elderimpulse': self.__get_elderimpulse,
+            'canslim': self.__get_canslim,
         }
 
     def __get(self):
@@ -87,3 +90,23 @@ class Webserver(System):
         df = self.command_handler.execute(macd_query, is_rest=False).obj[ticker]
         df.set_index(df.iloc[:, 0], inplace=True)
         return df[col_name].to_json(orient="index")
+
+    def __get_elderimpulse(self, ticker):
+        query = f'elderimpulse --ticker {ticker} --window {self.parameter["window"]} --do get --n {self.parameter["n"]} --macd_fast_period {self.parameter["macd_fast_period"]} --macd_slow_period {self.parameter["macd_slow_period"]} --macd_signal_period {self.parameter["macd_signal_period"]}'
+        df = self.command_handler.execute(query, is_rest=False).obj
+        return df.iloc[df[df['stock']==ticker].index[0]].to_json()
+    
+    def __get_canslim(self, ticker):
+        query = f'canslim --ticker {ticker} --interval {self.parameter["interval"]} --window {self.parameter["window"]} --do get --n {self.parameter["n"]}'
+        df = self.command_handler.execute(query, is_rest=False).obj
+        canslim = df[ticker]
+        text = ""
+        ret = {}
+        if canslim is not None:
+            ret["quaterly eps growth"] = canslim.C.pct_change(periods=-1).to_dict()
+            ret["yearly eps growth"] = canslim.A.pct_change(periods=-1).to_dict()
+            ret["relative strength"] = canslim.L.values.mean()
+            ret["market direction"] = numpy.polyfit(canslim.M.index.values, canslim.M.values, 1)[0]
+            ret["shares outstanding"] = canslim.S.to_dict()
+
+        return json.dumps({"canslim": ret})

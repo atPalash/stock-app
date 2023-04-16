@@ -1,22 +1,25 @@
-.container {
+/* .row-container {
   display: flex;
 }
-
+.ticker-navigation-container {
+  display: flex;
+  border: 2px solid red;
+}
 .column {
-  flex: 1;
-  padding: 20px;
+  display: flex;
+  margin-top: 20px;
 }
 
-.left {
+.column-left {
   background-color: #f2f2f2;
+  display: inline-block;
   flex: 1;
 }
 
-.right {
+.column-right {
   background-color: #fff;
-  flex: 6;
-  /* padding: auto; */
-  /* white-space: nowrap; */
+  display: inline-block;
+  flex: 5;
 }
 
 .chart-row {
@@ -88,4 +91,4 @@
 
 .next-btn {
   margin-left: auto;
-} */
+} */ 

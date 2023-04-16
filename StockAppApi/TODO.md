@@ -5,8 +5,9 @@
 - [x] Implement indicator settings
 - [x] Implement scanner settings
 - [ ] Implement fundamentals data
-- [ ] Grock to request localhost server from remote
+- [x] Ngrock to request localhost server from remote
 - [ ] Research how to get insider buy/sold
-- [ ] Update js fields
 - [ ] Fetch latest headlines
+- [ ] Delete capability in multi-timeframe
+- [ ] BUG Why refresh when pressed enter
 

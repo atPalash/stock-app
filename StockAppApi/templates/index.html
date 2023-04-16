@@ -1,25 +1,19 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>Headlines and TradingView Chart</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-  <div class="container">
-    <div class="column left">
-      <h2>Headlines</h2>
-      <ul>
-        <li>Headline 1</li>
-        <li>Headline 2</li>
-        <li>Headline 3</li>
-      </ul>
-    </div>
-    <div class="column right" id="column-right"></div>
-  </div>
-  <script src="https://unpkg.com/lightweight-charts@latest/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="{{ url_for('static', filename='js/utility.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Headlines and TradingView Chart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/style.css') }}" />
+  </head>
+  <body>
+    <div id="row"></div>
+    <script src="https://unpkg.com/lightweight-charts@latest/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="{{ url_for('static', filename = 'js/utility.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/topNavigation.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/container.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/chart.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/columnLeft.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/columnRight.js') }}"></script>
+    <script src="{{ url_for('static', filename = 'js/script.js') }}"></script>
+  </body>
 </html>
