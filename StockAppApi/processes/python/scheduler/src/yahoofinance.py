@@ -17,6 +17,7 @@ class YahooScheduler(Scheduler):
     def run(self):
         scheduler = BackgroundScheduler()
         for interval in self.indicator_config['indicator']['data']:
+            self.__periodic_download(interval=interval)
             if interval == 'week':
                 scheduler.add_job(self.__periodic_download, 'cron', hour='17',
                                   day_of_week='fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
