@@ -77,10 +77,10 @@ class ColumnRight {
             [`interval-${row}-${col}-change`]: {
                 "target": `interval-${row}-${col}`,
                 "type": "change",
-                "callback": (ev) => {
+                "callback": async (ev) => {
                     if (ev.target.id == `interval-${row}-${col}`) {           
                         this.#controls["interval"] = ev.target.value
-                        this.#updateTvChart(ev.target.parentElement, this.#controls["ticker"], this.#controls["ticker"], col)
+                        await this.#updateTvChart(ev.target.parentElement, this.#controls["ticker"], this.#controls["ticker"], col)
                     }
                 }
             },
@@ -111,21 +111,18 @@ class ColumnRight {
         addInnerHtmlToDiv(parentId, options);
         
         // Next add the tv chart
-        var tvChart = await new TradingViewChart(650, 1500).plotCandle({
-            symbol: this.#controls["tickers"][this.#controls["currentSlideIndex"]], 
-            interval: document.getElementById(`interval-${row}-${col}`).value, 
+        var tvChart = new TradingViewChart(650, 1500)
+        var divTvChart = await tvChart.plotCandle({
+            symbol: this.#controls["tickers"][this.#controls["currentSlideIndex"]],
+            interval: document.getElementById(`interval-${row}-${col}`).value,
             n: 1000,
-            'indicators': this.#charts[divId]["indicators"], 
+            'indicators': this.#charts[divId]["indicators"],
             'scanners': this.#charts[divId]["scanners"]
         })
-        document.getElementById(divId).appendChild(tvChart)
-        this.#charts[divId][tvChart.id] = tvChart
+        document.getElementById(divId).appendChild(divTvChart)
+        this.#charts[divId][divTvChart.id] = divTvChart
+        this.#charts[divId]["tvChart"] = tvChart
         this.#resizeChart()
-        // Listen to which chart is selected
-        // const selectedChart = document.getElementById(`${divId}`)
-        // selectedChart.addEventListener("click", function() {
-        //     this.classList.toggle("selected");
-        // });
     }
 
     #removeElements(row, col) {
@@ -142,7 +139,7 @@ class ColumnRight {
                 chartContainer.appendChild(this.#charts[chart][currentTicker])
             }
             else {
-                this.#updateTvChart(chartContainer, previuosTicker, currentTicker, col)
+                await this.#updateTvChart(chartContainer, previuosTicker, currentTicker, col)
             }
             col += 1
         }
@@ -150,26 +147,29 @@ class ColumnRight {
 
     async #updateTvChart(chartContainer, tickerToRemove, currentTicker, col) {
         chartContainer.removeChild(this.#charts[chartContainer.id][tickerToRemove])
-        var tvChart = await new TradingViewChart(650, 1500).plotCandle({
+        var tvChart = new TradingViewChart(650, 1500)
+        var divTvChart = await tvChart.plotCandle({
             symbol: currentTicker, 
             interval: document.getElementById(`interval-${this.#row}-${col}`).value, 
             n: 1000,
             'indicators': this.#charts[chartContainer.id]["indicators"], 
             'scanners': this.#charts[chartContainer.id]["scanners"]
         })
-
-        document.getElementById(chartContainer.id).appendChild(tvChart)
-        this.#charts[chartContainer.id][currentTicker] = tvChart
+        document.getElementById(chartContainer.id).appendChild(divTvChart)
+        this.#charts[chartContainer.id][currentTicker] = divTvChart
+        this.#charts[chartContainer.id]["tvChart"] = tvChart
         this.#resizeChart()
     }
 
     #resizeChart() {
-        var avaialableWidth = screen.availWidth / Object.keys(this.#charts).length
-        var chartNum = 0
+        var avaialableWidth = window.innerWidth / Object.keys(this.#charts).length
+        var avaialableHeight = window.innerHeight - 100
+        var chartNum = 0 
         for (var chart in this.#charts) {
             // There is only 1 tv-chart displayed
             var parent = document.getElementById(chart)
             parent.getElementsByClassName("tv-chart")[0].style.width = `${avaialableWidth}px`
+            this.#charts[chart]["tvChart"].setHeightWidth(avaialableHeight,avaialableWidth)
 
             var left = 30 + chartNum*avaialableWidth;
             // There can be multiple scanners
@@ -266,7 +266,7 @@ class ColumnRight {
                 [`scanner-button-${scannerId}-click`]: {
                     "target": `scanner-button-${scannerId}`,
                     "type": "click",
-                    "callback": (ev) => {
+                    "callback": async (ev) => {
                         if (ev.target.id == `scanner-button-${scannerId}`) {
                             const popup = document.getElementById(`popup-${scannerId}`);
                             scannersMap[`scanner-div-${scannerId}`]["window"] = parseInt(document.getElementById(`rolling-window-${scannerId}`).value)
@@ -276,8 +276,8 @@ class ColumnRight {
                             if (popup.style.display == 'block') {
                                 popup.style.display = 'none'
                                 if (updatechart) {
-                                    this.#updateTvChart(ev.target.parentElement.parentElement, 
-                                        this.#controls["ticker"], this.#controls["ticker"], col) // we update the chart removing the same ticker and updating
+                                    await this.#updateTvChart(ev.target.parentElement.parentElement, 
+                                    this.#controls["ticker"], this.#controls["ticker"], col) // we update the chart removing the same ticker and updating
                                 }
                             } else {
                                 popup.style.display = 'block'
@@ -343,7 +343,7 @@ class ColumnRight {
                 [`indicator-button-${indicatorId}-click`]: {
                     "target": `indicator-button-${indicatorId}`,
                     "type": "click",
-                    "callback": (ev) => {
+                    "callback": async (ev) => {
                         if (ev.target.id == `indicator-button-${indicatorId}`) {
                             const popup = document.getElementById(`popup-${indicatorId}`);
                             indicatorsMap[`indicator-div-${indicatorId}`]["window"] = parseInt(document.getElementById(`rolling-window-${indicatorId}`).value)
@@ -351,8 +351,8 @@ class ColumnRight {
                             if (popup.style.display == 'block') {
                                 popup.style.display = 'none'
                                 if (updatechart) {
-                                    this.#updateTvChart(ev.target.parentElement.parentElement, 
-                                        this.#controls["ticker"], this.#controls["ticker"], col) // we update the chart removing the same ticker and updating
+                                    await this.#updateTvChart(ev.target.parentElement.parentElement, 
+                                    this.#controls["ticker"], this.#controls["ticker"], col) // we update the chart removing the same ticker and updating
                                     updatechart = false
                                 }
                             } else {

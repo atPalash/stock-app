@@ -10,5 +10,7 @@
 - [ ] Fetch latest headlines
 - [ ] Delete capability in multi-timeframe
 - [x] BUG Why refresh when pressed enter
-- [ ] BUG why color change and updates are not happening with click
+- [x] BUG why color change and updates are not happening with click
+- [ ] Show info on the indicator / scanner 
+- [ ] Read from a common config file to set default indicator and configs
 

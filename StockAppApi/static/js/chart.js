@@ -1,12 +1,16 @@
 class TradingViewChart {
     #height
     #width
-
+    #chart
     constructor(height, width) {
         this.#height = height
         this.#width = width
+        this.#chart = null
     }
 
+    setHeightWidth(height, width) {
+        this.#chart.applyOptions({ height: height, width: width });
+    }
     async plotCandle(slideData) {
         var query_ohlc = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator ohlc --n ${slideData.n}` }
         var resp_ohlc = await apiCall(query_ohlc);
@@ -17,12 +21,11 @@ class TradingViewChart {
         slide.style.display = 'block';
         slide.style.height = `${this.#height}px`
         slide.style.width = `${this.#width}px`
-        // document.getElementById(this.#parentId).appendChild(slide);
 
         const tvChart = LightweightCharts.createChart(slide, {
-            autoSize: true
-            // width: this.#width,
-            // height: this.#height,
+            // autoSize: true
+            height: this.#height,
+            width: this.#width
         });
 
         const tvSeries = tvChart.addCandlestickSeries();
@@ -66,7 +69,7 @@ class TradingViewChart {
                     console.log("Scanner not avaialable")
             }
         }
-
+        this.#chart = tvChart
         return slide
     }
 
