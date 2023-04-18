@@ -35,7 +35,8 @@ class TopNavigation {
                 `
             },
             "events": {
-                [`prev-btn-${this.#row}`]: {
+                [`prev-btn-${this.#row}-click`]: {
+                    "target": `prev-btn-${this.#row}`,
                     "type": "click",
                     "callback": (ev) => {
                         if (ev.target.id == `prev-btn-${this.#row}`) {
@@ -49,7 +50,8 @@ class TopNavigation {
                         this.#notifySelectionChanged(`ticker-select-${this.#row}`, this.#controls["currentSlideIndex"])
                     }
                 },
-                [`next-btn-${this.#row}`]: {
+                [`next-btn-${this.#row}-click`]: {
+                    "target": `next-btn-${this.#row}`,
                     "type": "click",
                     "callback": (ev) => {
                         if (ev.target.id == `next-btn-${this.#row}`) {
@@ -63,23 +65,8 @@ class TopNavigation {
                         }
                     }
                 },
-                // [`add-btn-${this.#row}`]: {
-                //     "type": "click",
-                //     "callback": (ev) => {
-                //         if (ev.target.id == `add-btn-${this.#row}`) {
-                //             this.#notifyClicked(ev.target.id)
-                //         }
-                //     }
-                // },
-                // [`del-btn-${this.#row}`]: {
-                //     "type": "click",
-                //     "callback": (ev) => {
-                //         if (ev.target.id == `del-btn-${this.#row}`) {
-                //             this.#notifyClicked(ev.target.id)
-                //         }
-                //     }
-                // },
-                [`ticker-select-${this.#row}`]: {
+                [`ticker-select-${this.#row}-input`]: {
+                    "target": `ticker-select-${this.#row}`,
                     "type": "input",
                     "callback": (ev) => {
                         if (ev.target.id == `ticker-select-${this.#row}`) {

@@ -74,7 +74,8 @@ class ColumnRight {
         }
 
         options["events"] = {
-            [`interval-${row}-${col}`]: {
+            [`interval-${row}-${col}-change`]: {
+                "target": `interval-${row}-${col}`,
                 "type": "change",
                 "callback": (ev) => {
                     if (ev.target.id == `interval-${row}-${col}`) {           
@@ -83,7 +84,8 @@ class ColumnRight {
                     }
                 }
             },
-            [`scanner-${row}-${col}`]: {
+            [`scanner-${row}-${col}-click`]: {
+                "target": `scanner-${row}-${col}`,
                 "type": "click",
                 "callback": (ev) => {
                     if (ev.target.id == `scanner-${row}-${col}` &&
@@ -93,7 +95,8 @@ class ColumnRight {
                     document.getElementById(`scanner-${row}-${col}`).selectedIndex = 0
                 }
             },
-            [`indicator-${row}-${col}`]: {
+            [`indicator-${row}-${col}-input`]: {
+                "target": `indicator-${row}-${col}`,
                 "type": "input",
                 "callback": (ev) => {
                     if (ev.target.id == `indicator-${row}-${col}` &&
@@ -260,11 +263,16 @@ class ColumnRight {
                 `
             },
             "events": {
-                [`scanner-button-${scannerId}`]: {
+                [`scanner-button-${scannerId}-click`]: {
+                    "target": `scanner-button-${scannerId}`,
                     "type": "click",
                     "callback": (ev) => {
                         if (ev.target.id == `scanner-button-${scannerId}`) {
                             const popup = document.getElementById(`popup-${scannerId}`);
+                            scannersMap[`scanner-div-${scannerId}`]["window"] = parseInt(document.getElementById(`rolling-window-${scannerId}`).value)
+                            scannersMap[`scanner-div-${scannerId}`]["n"] = parseInt(document.getElementById(`full-window-${scannerId}`).value)
+                            scannersMap[`scanner-div-${scannerId}`]["buyColor"] = document.getElementById(`buy-color-${scannerId}`).value
+                            scannersMap[`scanner-div-${scannerId}`]["sellColor"] = document.getElementById(`sell-color-${scannerId}`).value
                             if (popup.style.display == 'block') {
                                 popup.style.display = 'none'
                                 if (updatechart) {
@@ -277,17 +285,20 @@ class ColumnRight {
                         }
                     }
                 },
-                [`popup-form-${scannerId}`]: {
+                [`popup-form-${scannerId}-input`]: {
+                    "target": `popup-form-${scannerId}`,
                     "type": "input",
                     "callback": (ev) => {
                         if (ev.currentTarget.id == `popup-form-${scannerId}`) {
-                            scannersMap[`scanner-div-${scannerId}`]["window"] = parseInt(document.getElementById(`rolling-window-${scannerId}`).value)
-                            scannersMap[`scanner-div-${scannerId}`]["n"] = parseInt(document.getElementById(`full-window-${scannerId}`).value)
-                            scannersMap[`scanner-div-${scannerId}`]["buyColor"] = document.getElementById(`buy-color-${scannerId}`).value
-                            scannersMap[`scanner-div-${scannerId}`]["sellColor"] = document.getElementById(`sell-color-${scannerId}`).value
-
                             updatechart = true
                         }
+                    }
+                },
+                [`popup-form-${scannerId}-submit`]: {
+                    "target": `popup-form-${scannerId}`,
+                    "type": "submit",
+                    "callback": (ev) => {
+                        ev.preventDefault();
                     }
                 }
             }
@@ -329,11 +340,14 @@ class ColumnRight {
                 `
             },
             "events": {
-                [`indicator-button-${indicatorId}`]: {
+                [`indicator-button-${indicatorId}-click`]: {
+                    "target": `indicator-button-${indicatorId}`,
                     "type": "click",
                     "callback": (ev) => {
                         if (ev.target.id == `indicator-button-${indicatorId}`) {
                             const popup = document.getElementById(`popup-${indicatorId}`);
+                            indicatorsMap[`indicator-div-${indicatorId}`]["window"] = parseInt(document.getElementById(`rolling-window-${indicatorId}`).value)
+                            indicatorsMap[`indicator-div-${indicatorId}`]["color"] = document.getElementById(`color-${indicatorId}`).value
                             if (popup.style.display == 'block') {
                                 popup.style.display = 'none'
                                 if (updatechart) {
@@ -347,15 +361,20 @@ class ColumnRight {
                         }
                     }
                 },
-                [`popup-form-${indicatorId}`]: {
+                [`popup-form-${indicatorId}-input`]: {
+                    "target": `popup-form-${indicatorId}`,
                     "type": "input",
                     "callback": (ev) => {
                         if (ev.currentTarget.id == `popup-form-${indicatorId}`) {
-                            indicatorsMap[`indicator-div-${indicatorId}`]["window"] = parseInt(document.getElementById(`rolling-window-${indicatorId}`).value)
-                            indicatorsMap[`indicator-div-${indicatorId}`]["color"] = document.getElementById(`color-${indicatorId}`).value
-
                             updatechart = true
                         }
+                    }
+                },
+                [`popup-form-${indicatorId}-submit`]: {
+                    "target": `popup-form-${indicatorId}`,
+                    "type": "submit",
+                    "callback": (ev) => {
+                        ev.preventDefault();
                     }
                 }
             }

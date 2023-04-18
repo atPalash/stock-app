@@ -48,8 +48,8 @@ function addInnerHtmlToDiv(parentId, options) {
     parent.appendChild(childDiv)
 
     for (var evnt in options["events"]) {
-        var listenerElement = document.getElementById(evnt)
         var val = options["events"][evnt]
+        var listenerElement = document.getElementById(val["target"])
         listenerElement.addEventListener(val["type"], val["callback"]);
     }
 }

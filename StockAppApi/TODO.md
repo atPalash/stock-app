@@ -9,5 +9,6 @@
 - [ ] Research how to get insider buy/sold
 - [ ] Fetch latest headlines
 - [ ] Delete capability in multi-timeframe
-- [ ] BUG Why refresh when pressed enter
+- [x] BUG Why refresh when pressed enter
+- [ ] BUG why color change and updates are not happening with click
 
