@@ -44,6 +44,25 @@ class TradingViewChart {
                     const chartSeries = tvChart.addLineSeries({ color: indicator['color'], lineWidth: 1 });
                     chartSeries.setData(series);
                     break;
+                case 'volume':
+                    var series = resp_ohlc.map(item => {
+                        return { time: item.time, value: item.volume, color: item.open > item.close ? 'green' : 'red' };
+                    });
+                    const volumeSeries = tvChart.addHistogramSeries({
+                        color: '#26a69a',
+                        priceFormat: {
+                            type: 'volume',
+                        },
+                        priceScaleId: ''
+                    });
+                    volumeSeries.priceScale().applyOptions({
+                        // set the positioning of the volume series
+                        scaleMargins: {
+                            top: 0.8, // highest point of the series will be 70% away from the top
+                            bottom: 0,
+                        },
+                    });
+                    volumeSeries.setData(series)
                 default:
                     console.log("Indicator not avaialable")
             }
@@ -82,6 +101,7 @@ class TradingViewChart {
                 'high': map['High'],
                 'low': map['Low'],
                 'close': map['Close'],
+                'volume': map['Volume']
             }
             ohlc.push(row)
         }

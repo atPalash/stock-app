@@ -13,4 +13,5 @@
 - [x] BUG why color change and updates are not happening with click
 - [ ] Show info on the indicator / scanner 
 - [ ] Read from a common config file to set default indicator and configs
+- [x] Add volume 
 

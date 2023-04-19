@@ -17,19 +17,13 @@ class ColumnRight {
         this.#controls["currentSlideIndex"] = 0
         this.#parentId = `column-${num}`;
         this.#scanners = {}
-        this.#indicators = {}
+        this.#indicators = {
+            "ema": this.#addEmaIndicator,
+            "volume": this.#addVolumeIndicator
+        }
         this.#charts = {}
         this.#addCharts(this.#row, this.#col, this.#parentId)
         this.#initListeners();
-    }
-
-    #getControls(row, col) {
-        this.#controls['tickcount'] = 1000
-        this.#controls['interval'] = document.getElementById(`interval-${row}-${col}`).value
-        this.#controls['scanners'] = this.#scanners
-        this.#controls['indicators'] = this.#indicators
-
-        return this.#controls
     }
 
     async #addCharts(row, col, parentId) {
@@ -48,9 +42,9 @@ class ColumnRight {
             <option value="week">Week</option>
         </select>
         <select id="indicator-${row}-${col}">
-            <option value="None">None</option>
+            <option value="None" selected>None</option>
             <option value="ema">EMA</option>
-            <option value="rsi" selected>RSI</option>
+            <option value="volume">Volume</option>
         </select>
         <select id="scanner-${row}-${col}">
             <option value="None">None</option>
@@ -199,13 +193,7 @@ class ColumnRight {
     }
 
     #addIndicator(row, col, event) {
-        switch (event.target.value) {
-            case "ema":
-                this.#addEmaIndicator(row, col)
-                break
-            default:
-                console.log("Indicator not found")
-        }
+        this.#indicators[event.target.value](row, col)
     }
 
     #initListeners() {
@@ -314,7 +302,7 @@ class ColumnRight {
         }
     }
 
-    #addEmaIndicator(row, col) {
+    #addEmaIndicator = (row, col) => {
         var updatechart = true
         var indicatorId = `${row}-${col}-${Date.now()}`
         var indicatorsMap = this.#charts[`chart-container-${row}-${col}`]["indicators"]
@@ -385,6 +373,31 @@ class ColumnRight {
             "window": parseInt(document.getElementById(`rolling-window-${indicatorId}`).value),
             "type": "ema",
             "color": document.getElementById(`color-${indicatorId}`).value
+        }
+    }
+
+    #addVolumeIndicator = (row, col) => {
+        var updatechart = true
+        var indicatorId = `${row}-${col}-${Date.now()}`
+        var indicatorsMap = this.#charts[`chart-container-${row}-${col}`]["indicators"]
+        // var id = `scanner-div-${scannerId}`
+        var top = 60 + (Object.keys(this.#charts[`chart-container-${row}-${col}`][`scanners`]).length + 
+        Object.keys(this.#charts[`chart-container-${row}-${col}`][`indicators`]).length) * 30;
+        var left = 30 + col * screen.availWidth / Object.keys(this.#charts).length
+        var options = {
+            "div": {
+                "style": `z-index: 99; position: absolute; top:${top}px; left:${left}px`,
+                "class": "indicator-btn",
+                "id": `indicator-div-${indicatorId}`,
+                "innerHTML": `
+                <button id=indicator-button-${indicatorId}>+</button>
+                `
+            }
+        }
+        addInnerHtmlToDiv(`chart-container-${row}-${col}`, options)
+
+        indicatorsMap[`indicator-div-${indicatorId}`] = {
+            "type": "volume",
         }
     }
 }
