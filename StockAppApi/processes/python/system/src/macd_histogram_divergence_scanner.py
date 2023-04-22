@@ -64,13 +64,8 @@ class MacdHistogramDivergenceScanner(System):
 
                 ret['macdhist_divergence'] = 0
                 # here taking close as the price
-                # search end of window divergence by lowering the window size
-                for i in range(ret.index.min(), ret.index.max() - int(self.parameter['window'] * 0.5), 1):
-                    last_index = i+self.parameter['window']
-                    if i + self.parameter['window'] >= ret.index.max():
-                        last_index = ret.index.max()
-                    
-                    window = ret.loc[i:last_index]
+                for i in range(ret.index.min(), ret.index.max() - self.parameter['window'] + 1, 1):
+                    window = ret.loc[i:i+self.parameter['window']]
                     window_macdhist = window['macdhist']
                     window_macdhist_min = window_macdhist.min()
                     window_macdhist_max = window_macdhist.max()
