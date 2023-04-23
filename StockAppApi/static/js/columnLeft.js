@@ -51,17 +51,16 @@ class ColumnLeft {
         var query = { "query": `webserver --ticker ${ticker} \
         --do get --indicator elderimpulse --n 100 --window 13 --n 100 \
         --macd_fast_period 13 --macd_slow_period 26 --macd_signal_period 9` }
-        var resp = await apiCall(query);
+        var resp = await apiPost("ohlc",query);
         resp = JSON.parse(resp[ticker])["trend"]
         // this.#allTickersOtherStockData[ticker] = {"Elder impulse" : resp}
         return resp
     }
 
     async #canslim(ticker) {
-        debugger
         var query = { "query": `webserver --ticker ${ticker} \
         --do get --indicator canslim --n 400 --window 13 --n 100 ` }
-        var resp = await apiCall(query);
+        var resp = await apiPost("ohlc",query);
         resp = resp[ticker]
         // this.#allTickersOtherStockData[ticker] = {"Elder impulse" : resp}
         return resp

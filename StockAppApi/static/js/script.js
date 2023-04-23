@@ -28,7 +28,7 @@ class Row {
 }
 
 async function render() {
-    var tickers = await apiCall({ "query": `webserver --ticker all --do get --indicator tickers` });
+    var tickers = await apiPost("ohlc",{ "query": `webserver --ticker all --do get --indicator tickers` });
     tickers = tickers["tickers"]
     var row = new Row(0)
 

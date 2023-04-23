@@ -2,18 +2,22 @@ class TradingViewChart {
     #height
     #width
     #chart
+    #slide
     constructor(height, width) {
         this.#height = height
         this.#width = width
         this.#chart = null
+        this.#slide = null
     }
 
     setHeightWidth(height, width) {
+        this.#slide.style.width = `${width}px`
+        this.#slide.style.height = `${height}px`
         this.#chart.applyOptions({ height: height, width: width });
     }
     async plotCandle(slideData) {
         var query_ohlc = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator ohlc --n ${slideData.n}` }
-        var resp_ohlc = await apiCall(query_ohlc);
+        var resp_ohlc = await apiPost("ohlc",query_ohlc);
         resp_ohlc = this.#extractOhlc(resp_ohlc, slideData.symbol)
         const slide = document.createElement('div');
         slide.classList.add(`tv-chart`);
@@ -39,7 +43,7 @@ class TradingViewChart {
                     var query = { "query": `webserver --ticker ${slideData.symbol} \
                     --interval ${slideData.interval} --do get --indicator ema \
                     --window ${indicator["window"]} --n ${slideData.n}`}
-                    var resp = await apiCall(query);
+                    var resp = await apiPost("ohlc",query);
                     var series = this.#extractIndicatorValue(resp, slideData.symbol)
                     const chartSeries = tvChart.addLineSeries({ color: indicator['color'], lineWidth: 1 });
                     chartSeries.setData(series);
@@ -63,6 +67,7 @@ class TradingViewChart {
                         },
                     });
                     volumeSeries.setData(series)
+                    break
                 default:
                     console.log("Indicator not avaialable")
             }
@@ -77,7 +82,7 @@ class TradingViewChart {
                     var query_macd_div = { "query": `webserver --ticker ${slideData.symbol} \
                     --interval ${slideData.interval} --do get --indicator macdhistdivergencescan \
                     --n ${scanner["n"]} --window ${scanner["window"]}` }
-                    var resp_macd_div = await apiCall(query_macd_div);
+                    var resp_macd_div = await apiPost("ohlc",query_macd_div);
                     var signals_macd_div = this.#extractSignal(resp_macd_div, slideData.symbol, 
                         {"buyColor": scanner["buyColor"], "sellColor": scanner["sellColor"]})
                     
@@ -89,6 +94,7 @@ class TradingViewChart {
             }
         }
         this.#chart = tvChart
+        this.#slide = slide
         return slide
     }
 

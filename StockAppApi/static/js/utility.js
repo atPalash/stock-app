@@ -1,7 +1,20 @@
-async function apiCall(query) {
-    var response = await fetch('http://localhost:8087/ohlc', {
+async function apiPost(endPoint, query) {
+    var response = await fetch(`http://localhost:8087/${endPoint}`, {
         method: 'POST',
         body: JSON.stringify(query),
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }
+    )
+    var data = await response.json()
+
+    return data
+}
+
+async function apiGet(endPoint) {
+    var response = await fetch(`http://localhost:8087/${endPoint}`, {
+        method: 'GET',
         headers: {
             'Content-Type': 'application/json'
         }

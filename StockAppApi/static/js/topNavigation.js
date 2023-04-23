@@ -32,6 +32,7 @@ class TopNavigation {
                 <select id="ticker-select-${this.#row}"></select>
                 <button class="btn" id="add-btn-${this.#row}">+</button>
                 <button class="btn" id="del-btn-${this.#row}">x</button>
+                <button class="btn" id="save-btn-${this.#row}">&#x1F4BE</button>
                 `
             },
             "events": {
