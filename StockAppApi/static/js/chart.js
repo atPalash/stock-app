@@ -50,7 +50,7 @@ class TradingViewChart {
                     break;
                 case 'volume':
                     var series = resp_ohlc.map(item => {
-                        return { time: item.time, value: item.volume, color: item.open > item.close ? 'green' : 'red' };
+                        return { time: item.time, value: item.volume, color: item.open > item.close ? 'red' : 'green' };
                     });
                     const volumeSeries = tvChart.addHistogramSeries({
                         color: '#26a69a',

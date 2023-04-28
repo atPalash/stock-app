@@ -1,80 +1,55 @@
 class ColumnLeft {
     #controls
     #row
+    #col
     #parentId
-    #allTickersOtherStockData
-    #otherStockData
-    constructor(num, tickers) {
+    #height
+    #width
+    // #tvCharts 
+    constructor(num, tickers, height, width) {
         this.#row = num;
+        this.#col = 0;
+        this.#height = height
+        this.#width = width
         this.#controls = {}
         this.#controls["tickers"] = tickers;
         this.#controls["currentSlideIndex"] = 0
-        this.#parentId = `column-${num}`;
-        this.#allTickersOtherStockData = {}
-        this.#otherStockData = {
-            "Elder impulse": this.#elderImpulse,
-            // "Canslim": this.#canslim
-        }
-        this.#addElements()
+        this.#parentId = `column-${num}`; // change
     }
 
-    async #addElements() {
-        // var style = `background-color: #f2f2f2;
-        // display: inline-block;
-        // float:left;`
+    async init() {
+        await this.#addMacdHistogramScannerDiv(this.#row, this.#col, this.#parentId)
+        // this.#initListeners();
+    }
+
+    async #addMacdHistogramScannerDiv(row, col, parentId) {
+        var divId = `macd-hist-scanner-${row}-${col}`
         var options = {
             "div": {
-                // "style": style,
-                "class": "column-left",
-                "id": `column-left-${this.#row}`
+                "style": `width: ${this.#width}px;`,
+                "id": `column-left-${this.#row}`,
+                "innerHTML": `
+                <div id=${divId}>
+                <p style="margin-top: 0; margin-bottom: 0;">Macd Divergence</p>
+                </div>
+                `
             }
         }
+        addInnerHtmlToDiv(parentId, options)
 
-        addInnerHtmlToDiv(`${this.#parentId}`, options);
-
-        this.#initListeners();
-        this.#showOtherStockData(this.#controls["tickers"][this.#controls["currentSlideIndex"]])
+        // n > rolling window for macd calculations to happen
+        var tickers = await apiPost("ohlc", {
+            "query": `webserver --ticker all --do get \ 
+        --indicator macddivergencelist --interval day --window 20 --n 21`});
+        addListToDiv(divId, { 'list': tickers, 'id': `${divId}-list` })
     }
 
-    #initListeners() {
-        const selectedTicker = document.getElementById(`ticker-select-${this.#row}`)
-        selectedTicker.addEventListener('change', (event) => {
-            this.#controls["currentSlideIndex"] = event.target.selectedIndex
-            this.#showOtherStockData(this.#controls["tickers"][this.#controls["currentSlideIndex"]])
-        })
-    }
-
-    async #elderImpulse(ticker) {
-        // if(ticker in this.#allTickersOtherStockData) {
-        //     return this.#allTickersOtherStockData[ticker]
-        // }
-        var query = { "query": `webserver --ticker ${ticker} \
-        --do get --indicator elderimpulse --n 100 --window 13 --n 100 \
-        --macd_fast_period 13 --macd_slow_period 26 --macd_signal_period 9` }
-        var resp = await apiPost("ohlc",query);
-        resp = JSON.parse(resp[ticker])["trend"]
-        // this.#allTickersOtherStockData[ticker] = {"Elder impulse" : resp}
-        return resp
-    }
-
-    async #canslim(ticker) {
-        var query = { "query": `webserver --ticker ${ticker} \
-        --do get --indicator canslim --n 400 --window 13 --n 100 ` }
-        var resp = await apiPost("ohlc",query);
-        resp = resp[ticker]
-        // this.#allTickersOtherStockData[ticker] = {"Elder impulse" : resp}
-        return resp
-    }
-
-    async #showOtherStockData(ticker) {
-        // var parentDiv = document.getElementById(`column-left-${this.#row}`)
-        // parentDiv.innerHTML = ""
-            
-        // for(var key in this.#otherStockData) {
-        //     var data = await this.#otherStockData[key](ticker)   
-        // }
-        // parentDiv.appendChild(text)
-        console.log("hello");
+    #removeDiv(row, col) {
+        // var chartId = `chart-container-${row}-${col}`
+        // var chart = document.getElementById(chartId)
+        // chart.remove()
+        // delete this.#charts[chartId]
+        // this.#resizeChartsInColumn()
     }
 }
 

@@ -11,6 +11,7 @@ class TopNavigation {
         this.#parentId = `row-container-${num}`;
 
         this.#addElements()
+        this.#initListeners()
     }
 
     #notifySelectionChanged(id, index) {
@@ -85,6 +86,21 @@ class TopNavigation {
         for(var ticker of this.#controls["tickers"]) {
             selectedTicker.add(new Option(ticker, ticker))
         }
+    }
+
+    #initListeners() {
+        document.addEventListener('load', (event) => {
+            switch(event.detail.state) {
+                case "loading":
+                    toggleDivChild(`ticker-navigation-container-${this.#row}`, false)
+                    break
+                case "loaded":
+                    toggleDivChild(`ticker-navigation-container-${this.#row}`, true)
+                    break
+                default:
+                    console.log("Should not happen")
+            }
+        });
     }
 }
 

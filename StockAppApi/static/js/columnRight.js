@@ -5,13 +5,17 @@ class ColumnRight {
     #parentId
     #scanners
     #indicators
+    #height
+    #width
     // multiple charts ie horizontal cols in a parent for multi-timeframe each 
     // col will contain multiple tvChart which will be displayed on the selected ticker
     #charts
     // #tvCharts 
-    constructor(num, tickers, chartMap = {}) {
+    constructor(num, tickers, chartMap = {}, height, width) {
         this.#row = num;
         this.#col = 0;
+        this.#height = height
+        this.#width = width
         this.#controls = {}
         this.#controls["tickers"] = tickers;
         this.#controls["currentSlideIndex"] = 0
@@ -30,6 +34,7 @@ class ColumnRight {
         await this.#addCharts(this.#row, this.#col, this.#parentId)
         this.#initListeners();
     }
+
     async #addCharts(row, col, parentId) {
         var divId = `chart-container-${row}-${col}`
         this.#charts[divId] = {}
@@ -135,6 +140,7 @@ class ColumnRight {
 
     async #showRow(previuosTicker, currentTicker) {
         var col = 0
+        notifyLoad({"state": "loading"})
         for (var chart in this.#charts) {
             var chartContainer = this.#charts[chart][previuosTicker].parentElement
             if (currentTicker in this.#charts[chart]) {
@@ -146,6 +152,7 @@ class ColumnRight {
             }
             col += 1
         }
+        notifyLoad({"state": "loaded"})
     }
 
     async #updateTvChart(chartContainer, tickerToRemove, currentTicker, col) {
@@ -166,17 +173,18 @@ class ColumnRight {
     }
 
     #resizeChartsInColumn() {
-        var avaialableWidth = window.innerWidth / Object.keys(this.#charts).length
-        var avaialableHeight = window.innerHeight - 100
+        var avaialableWidth = this.#width / Object.keys(this.#charts).length
+        var avaialableHeight = this.#height - 100
         var chartNum = 0
         for (var chart in this.#charts) {
             // There is only 1 tv-chart displayed
             var parent = document.getElementById(chart)
+            parent.style.position = "relative"
             parent.style.width = `${avaialableWidth}px`
             parent.style.height = `${avaialableHeight}px`
             this.#charts[chart]["tvChart"].setHeightWidth(avaialableHeight, avaialableWidth)
 
-            var left = 30 + chartNum * avaialableWidth;
+            var left = 30;
             // There can be multiple scanners
             var buttons = parent.getElementsByClassName("scanner-btn")
             for (var i = 0; i < buttons.length; i++) {
@@ -193,7 +201,7 @@ class ColumnRight {
         }
     }
 
-    setInterval(row, col, config={}) {
+    setInterval(row, col, config = {}) {
         var selectedInterval = document.getElementById(`interval-${row}-${col}`)
         var index = Array.from(selectedInterval.options).findIndex(option => option.value === config["interval"])
         selectedInterval.selectedIndex = index
@@ -213,15 +221,15 @@ class ColumnRight {
         const selectedTicker = document.getElementById(`ticker-select-${this.#row}`)
         this.#controls["currentSlideIndex"] = selectedTicker.selectedIndex
         this.#controls["ticker"] = selectedTicker.value
-        selectedTicker.addEventListener('change', (event) => {
+        selectedTicker.addEventListener('change', async (event) => {
             this.#controls["currentSlideIndex"] = event.target.selectedIndex
-            this.#showRow(this.#controls["ticker"], event.target.value)
+            await this.#showRow(this.#controls["ticker"], event.target.value)
             this.#controls["ticker"] = event.target.value
         })
 
         const addColumn = document.getElementById(`add-btn-${this.#row}`)
-        addColumn.addEventListener('click', (event) => {
-            this.insertNextChart(event)
+        addColumn.addEventListener('click', async (event) => {
+            await this.insertNextChart(event)
         })
 
         const delColum = document.getElementById(`del-btn-${this.#row}`)
@@ -230,8 +238,8 @@ class ColumnRight {
         })
 
         const saveConfig = document.getElementById(`save-btn-${this.#row}`)
-        saveConfig.addEventListener('click', (event) => {
-            apiPost("config", this.#charts)
+        saveConfig.addEventListener('click', async (event) => {
+            await apiPost("config", this.#charts)
         })
     }
 
@@ -252,7 +260,7 @@ class ColumnRight {
         var scannersMap = this.#charts[`chart-container-${row}-${col}`]["scanners"]
         var scannerId = `macd-divergence-scanner-${row}-${col}-#${Object.keys(scannersMap).length}`
         var top = 60 + (Object.keys(scannersMap).length + Object.keys(this.#charts[`chart-container-${row}-${col}`][`indicators`]).length) * 30;
-        var left = 30 + col * screen.availWidth / Object.keys(this.#charts).length
+        var left = 30
         var options = {
             "div": {
                 "style": `z-index: 99; position: absolute; top:${top}px; left:${left}px`,
@@ -330,11 +338,11 @@ class ColumnRight {
         var updatechart = true
         var indicatorsMap = this.#charts[`chart-container-${row}-${col}`]["indicators"]
         var indicatorId = `ema-indicator-${row}-${col}-#${Object.keys(indicatorsMap).length}`
-        
+
         // var id = `scanner-div-${scannerId}`
         var top = 60 + (Object.keys(this.#charts[`chart-container-${row}-${col}`][`scanners`]).length +
             Object.keys(indicatorsMap).length) * 30;
-        var left = 30 + col * screen.availWidth / Object.keys(this.#charts).length
+        var left = 30
         var options = {
             "div": {
                 "style": `z-index: 99; position: absolute; top:${top}px; left:${left}px`,
@@ -408,7 +416,7 @@ class ColumnRight {
         // var id = `scanner-div-${scannerId}`
         var top = 60 + (Object.keys(this.#charts[`chart-container-${row}-${col}`][`scanners`]).length +
             Object.keys(this.#charts[`chart-container-${row}-${col}`][`indicators`]).length) * 30;
-        var left = 30 + col * screen.availWidth / Object.keys(this.#charts).length
+        var left = 30
         var options = {
             "div": {
                 "style": `z-index: 99; position: absolute; top:${top}px; left:${left}px`,

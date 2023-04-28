@@ -67,17 +67,53 @@ function addInnerHtmlToDiv(parentId, options) {
     }
 }
 
+function addListToDiv(divId, options) {
+    // Create the unordered list element
+    const ul = document.createElement('ul');
+    if ('id' in options) {
+        ul.setAttribute('id', options['id'])
+    }
+
+    // Create and append the list items to the unordered list
+    for (var key in options['list']) {
+        if (options['list'][key]) {
+            const li = document.createElement('li');
+            li.textContent = key;
+            ul.appendChild(li);
+        }
+    }
+
+    // Append the unordered list to the body of the page
+    document.getElementById(divId).appendChild(ul);
+}
+
+function notifyLoad(data = {}) {
+    const loadEvent = new CustomEvent('load', { detail: data });
+    document.dispatchEvent(loadEvent);
+}
+
+function toggleDivChild(divId, enabled) {
+    const myDiv = document.getElementById(divId);
+    const children = myDiv.querySelectorAll('*');
+
+    children.forEach(child => {
+        if (child.tagName === 'INPUT' || child.tagName === 'TEXTAREA' || child.tagName === 'SELECT' || child.tagName === 'BUTTON') {
+            child.disabled = !enabled;
+        }
+    });
+}
+
 function parseJSON(jsonString) {
     var thisJson = {}
     try {
         var jObj = JSON.parse(jsonString)
-        for(var key in jObj){
+        for (var key in jObj) {
             thisJson[key] = parseJSON(jObj[key])
         };
     } catch (error) {
-        for(var key in jsonString){
+        for (var key in jsonString) {
             thisJson[key] = parseJSON(jObj[key])
         };
     }
     return thisJson;
-  }
+}
