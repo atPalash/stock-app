@@ -72,13 +72,16 @@ function addListToDiv(divId, options) {
     const ul = document.createElement('ul');
     if ('id' in options) {
         ul.setAttribute('id', options['id'])
+        ul.setAttribute('style', "margin-top: 0; margin-bottom: 0;")
     }
 
     // Create and append the list items to the unordered list
-    for (var key in options['list']) {
-        if (options['list'][key]) {
+    var optionsList = options['list']
+    for (var key in optionsList) {
+        if (optionsList[key] != 0) {
             const li = document.createElement('li');
             li.textContent = key;
+            li.style.color = optionsList[key] == 1 ? 'green' : 'red'
             ul.appendChild(li);
         }
     }

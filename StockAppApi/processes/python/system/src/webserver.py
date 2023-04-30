@@ -100,7 +100,19 @@ class Webserver(System):
                         --window {self.parameter["window"]} --n {self.parameter["n"]}'
         df = self.command_handler.execute(
             macd_query, is_rest=False).obj[ticker]
-        return bool((df[col_name] != 0).any())
+        
+        divergence_type = 0
+        for i in df[col_name].iloc[::-1].index:
+            val = df.loc[i][col_name]
+            if val == 1:
+                divergence_type = 1
+                break
+            elif val == -1:
+                divergence_type = -1
+                break
+            else:
+                divergence_type = 0
+        return divergence_type
 
     def __get_elderimpulse(self, ticker):
         query = f'elderimpulse --ticker {ticker} --window {self.parameter["window"]} --do get --n {self.parameter["n"]} --macd_fast_period {self.parameter["macd_fast_period"]} --macd_slow_period {self.parameter["macd_slow_period"]} --macd_signal_period {self.parameter["macd_signal_period"]}'
