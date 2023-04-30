@@ -2,7 +2,7 @@ class Container {
     #controls
     #row
     #parentId
-
+    #config
     constructor(num, tickers) {
         this.#row = num;
         this.#controls = {}
@@ -10,9 +10,10 @@ class Container {
 
         this.#parentId = `row-container-${num}`;
 
+        this.#initListeners()
         this.#addElements()
-
         this.#loadUserConfig()
+        this.#config = {}
     }
 
     #addElements() {
@@ -28,43 +29,23 @@ class Container {
     }
 
     async #loadUserConfig() {
-        var config = await apiGet("config")
-        config = JSON.parse(config)
-        notifyLoad({'state': "loading"})
-        for (var chart in config) {
-            var col = parseInt(chart.split("-")[3])
-            var row = parseInt(chart.split("-")[2])
-            if (col == 0) {
-                this.columnLeft = new ColumnLeft(row, this.#controls["tickers"], screen.availHeight * 0.95, screen.availWidth * 0.1)
-                await this.columnLeft.init()
-
-                this.columnRight = new ColumnRight(row, this.#controls["tickers"], {}, screen.availHeight * 0.95, screen.availWidth * 0.9)
-                await this.columnRight.init()
-            } else {
-                await this.columnRight.insertNextChart({})
-            }
-        }
-
-        this.#loadMeta(config)
-        notifyLoad({'state': "loaded"})
+        var res = await apiGet("config")
+        this.#config = JSON.parse(res)
+        notifyLoad({ 'state': "loading" })
+        this.columnLeft = new ColumnLeft(0, this.#controls["tickers"], screen.availHeight * 0.95, screen.availWidth * 0.1)
+        this.columnLeft.init(this.#config['column-left'])
+        this.columnRight = new ColumnRight(0, this.#controls["tickers"], screen.availHeight * 0.95, screen.availWidth * 0.9)
+        await this.columnRight.init(this.#config['column-right'])
+        notifyLoad({ 'state': "loaded" })
     }
 
-    #loadMeta(config) {
-        for (var chart in config) {
-            var col = parseInt(chart.split("-")[3])
-            var row = parseInt(chart.split("-")[2])
-
-            this.columnRight.setInterval(row, col, config[`chart-container-${row}-${col}`])
-            var indicators = config[chart]["indicators"]
-            for (var indicator in indicators) {
-                this.columnRight.addIndicator(row, col, { "target": { "value": indicators[indicator]["type"] } }, indicators[indicator])
-            }
-
-            var scanners = config[chart]["scanners"]
-            for (var scanner in scanners) {
-                this.columnRight.addScanner(row, col, { "target": { "value": scanners[scanner]["type"] } }, scanners[scanner])
-            }
-        }
+    #initListeners() {
+        const saveConfig = document.getElementById(`save-btn-${this.#row}`)
+        saveConfig.addEventListener('click', async (event) => {
+            this.#config["column-left"] = this.columnLeft.getConfig()
+            this.#config["column-right"] = this.columnRight.getConfig()
+            await apiPost("config", { 'column-left': this.#config["column-left"] , 'column-right': this.#config["column-right"]})
+        })
     }
 }
 

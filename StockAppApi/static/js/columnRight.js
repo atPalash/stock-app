@@ -9,9 +9,9 @@ class ColumnRight {
     #width
     // multiple charts ie horizontal cols in a parent for multi-timeframe each 
     // col will contain multiple tvChart which will be displayed on the selected ticker
-    #charts
+    #config
     // #tvCharts 
-    constructor(num, tickers, chartMap = {}, height, width) {
+    constructor(num, tickers, height, width) {
         this.#row = num;
         this.#col = 0;
         this.#height = height
@@ -27,19 +27,56 @@ class ColumnRight {
             "ema": this.#addEmaIndicator,
             "volume": this.#addVolumeIndicator
         }
-        this.#charts = chartMap
+        this.#config = {}
     }
 
-    async init() {
-        await this.#addCharts(this.#row, this.#col, this.#parentId)
-        this.#initListeners();
+    init = async (userConfig) => {
+        var initListener = false
+        for (var chart in userConfig) {
+            var config = Object.assign({}, userConfig[chart])
+            var col = parseInt(chart.split("-")[3])
+            var row = parseInt(chart.split("-")[2])
+            
+            // Add first chart and initialise listeners
+            if(!initListener) {
+                await this.#addCharts(row, col, this.#parentId, config)
+                this.#initListeners();
+                initListener = true
+                this.#col = col
+                
+            } else {
+                // Insert next chart to column
+                await this.#insertNextChart(false)
+            }
+            
+            // Set Interval
+            this.#setInterval(row, col, config)
+            
+            // Add indicators
+            var indicators = config["indicators"]
+            for (var indicator in indicators) {
+                this.#addIndicator(row, col, { "target": { "value": indicators[indicator]["type"] } }, indicators[indicator])
+            }
+
+            // Add scanners
+            var scanners = config["scanners"]
+            for (var scanner in scanners) {
+                this.#addScanner(row, col, { "target": { "value": scanners[scanner]["type"] } }, scanners[scanner])
+            }
+        }
     }
 
-    async #addCharts(row, col, parentId) {
+    getConfig() {
+        return this.#config
+    }
+
+    // Add default chart
+    async #addCharts(row, col, parentId, config={}) {
         var divId = `chart-container-${row}-${col}`
-        this.#charts[divId] = {}
-        this.#charts[divId]["scanners"] = {}
-        this.#charts[divId]["indicators"] = {}
+        this.#config[divId] = {}
+        this.#config[divId]["scanners"] = {}
+        this.#config[divId]["indicators"] = {}
+        
         // First add the controls to chart
         var options = {}
         // For next element /charts check if there already exists an element/chart
@@ -83,7 +120,7 @@ class ColumnRight {
                 "callback": async (ev) => {
                     if (ev.target.id == `interval-${row}-${col}`) {
                         this.#controls["interval"] = ev.target.value
-                        this.#charts[divId]["interval"] = ev.target.value
+                        this.#config[divId]["interval"] = ev.target.value
                         await this.#updateTvChart(ev.target.parentElement, this.#controls["ticker"], this.#controls["ticker"], col)
                     }
                 }
@@ -94,7 +131,7 @@ class ColumnRight {
                 "callback": (ev) => {
                     if (ev.target.id == `scanner-${row}-${col}` &&
                         ev.target.value != 'None') {
-                        this.addScanner(row, col, ev)
+                        this.#addScanner(row, col, ev)
                     }
                     document.getElementById(`scanner-${row}-${col}`).selectedIndex = 0
                 }
@@ -105,7 +142,7 @@ class ColumnRight {
                 "callback": (ev) => {
                     if (ev.target.id == `indicator-${row}-${col}` &&
                         ev.target.value != 'None') {
-                        this.addIndicator(row, col, ev)
+                        this.#addIndicator(row, col, ev)
                     }
                     document.getElementById(`indicator-${row}-${col}`).selectedIndex = 0
                 }
@@ -113,76 +150,65 @@ class ColumnRight {
         }
 
         addInnerHtmlToDiv(parentId, options);
-
         // Next add the tv chart
         var tvChart = new TradingViewChart(650, 1500)
         var divTvChart = await tvChart.plotCandle({
             symbol: this.#controls["tickers"][this.#controls["currentSlideIndex"]],
             interval: document.getElementById(`interval-${row}-${col}`).value,
             n: 1000,
-            'indicators': this.#charts[divId]["indicators"],
-            'scanners': this.#charts[divId]["scanners"]
+            'indicators': {},
+            'scanners': {}
         })
         document.getElementById(divId).appendChild(divTvChart)
-        this.#charts[divId][divTvChart.id] = divTvChart
-        this.#charts[divId]["tvChart"] = tvChart
-
-        this.#resizeChartsInColumn()
-    }
-
-    #removeChart(row, col) {
-        var chartId = `chart-container-${row}-${col}`
-        var chart = document.getElementById(chartId)
-        chart.remove()
-        delete this.#charts[chartId]
-        this.#resizeChartsInColumn()
+        this.#config[divId][divTvChart.id] = divTvChart
+        this.#config[divId]["tvChart"] = tvChart
     }
 
     async #showRow(previuosTicker, currentTicker) {
         var col = 0
         notifyLoad({"state": "loading"})
-        for (var chart in this.#charts) {
-            var chartContainer = this.#charts[chart][previuosTicker].parentElement
-            if (currentTicker in this.#charts[chart]) {
-                chartContainer.removeChild(this.#charts[chart][previuosTicker])
-                chartContainer.appendChild(this.#charts[chart][currentTicker])
+        for (var chart in this.#config) {
+            var chartContainer = this.#config[chart][previuosTicker].parentElement
+            if (currentTicker in this.#config[chart]) {
+                chartContainer.removeChild(this.#config[chart][previuosTicker])
+                chartContainer.appendChild(this.#config[chart][currentTicker])
             }
             else {
                 await this.#updateTvChart(chartContainer, previuosTicker, currentTicker, col)
             }
             col += 1
         }
+        
         notifyLoad({"state": "loaded"})
     }
 
     async #updateTvChart(chartContainer, tickerToRemove, currentTicker, col) {
-        chartContainer.removeChild(this.#charts[chartContainer.id][tickerToRemove])
+        chartContainer.removeChild(this.#config[chartContainer.id][tickerToRemove])
         var tvChart = new TradingViewChart(650, 1500)
         var divTvChart = await tvChart.plotCandle({
             symbol: currentTicker,
             interval: document.getElementById(`interval-${this.#row}-${col}`).value,
             n: 1000,
-            'indicators': this.#charts[chartContainer.id]["indicators"],
-            'scanners': this.#charts[chartContainer.id]["scanners"]
+            'indicators': this.#config[chartContainer.id]["indicators"],
+            'scanners': this.#config[chartContainer.id]["scanners"]
         })
         document.getElementById(chartContainer.id).appendChild(divTvChart)
-        this.#charts[chartContainer.id][currentTicker] = divTvChart
-        this.#charts[chartContainer.id]["tvChart"] = tvChart
-
+        this.#config[chartContainer.id][currentTicker] = divTvChart
+        this.#config[chartContainer.id]["tvChart"] = tvChart
         this.#resizeChartsInColumn()
     }
 
     #resizeChartsInColumn() {
-        var avaialableWidth = this.#width / Object.keys(this.#charts).length
+        var avaialableWidth = this.#width / Object.keys(this.#config).length
         var avaialableHeight = this.#height - 100
         var chartNum = 0
-        for (var chart in this.#charts) {
+        for (var chart in this.#config) {
             // There is only 1 tv-chart displayed
             var parent = document.getElementById(chart)
             parent.style.position = "relative"
             parent.style.width = `${avaialableWidth}px`
             parent.style.height = `${avaialableHeight}px`
-            this.#charts[chart]["tvChart"].setHeightWidth(avaialableHeight, avaialableWidth)
+            this.#config[chart]["tvChart"].setHeightWidth(avaialableHeight, avaialableWidth)
 
             var left = 30;
             // There can be multiple scanners
@@ -201,7 +227,7 @@ class ColumnRight {
         }
     }
 
-    setInterval(row, col, config = {}) {
+    #setInterval(row, col, config = {}) {
         var selectedInterval = document.getElementById(`interval-${row}-${col}`)
         var index = Array.from(selectedInterval.options).findIndex(option => option.value === config["interval"])
         selectedInterval.selectedIndex = index
@@ -209,11 +235,11 @@ class ColumnRight {
         selectedInterval.dispatchEvent(event);
     }
 
-    addScanner(row, col, type, config = {}) {
+    #addScanner(row, col, type, config = {}) {
         this.#scanners[type.target.value](row, col, config)
     }
 
-    addIndicator(row, col, type, config = {}) {
+    #addIndicator(row, col, type, config = {}) {
         this.#indicators[type.target.value](row, col, config)
     }
 
@@ -229,37 +255,41 @@ class ColumnRight {
 
         const addColumn = document.getElementById(`add-btn-${this.#row}`)
         addColumn.addEventListener('click', async (event) => {
-            await this.insertNextChart(event)
+            await this.#insertNextChart(event)
         })
 
         const delColum = document.getElementById(`del-btn-${this.#row}`)
         delColum.addEventListener('click', (event) => {
-            this.removeNextChart(event)
-        })
-
-        const saveConfig = document.getElementById(`save-btn-${this.#row}`)
-        saveConfig.addEventListener('click', async (event) => {
-            await apiPost("config", this.#charts)
+            this.#removeNextChart(event)
         })
     }
 
-    insertNextChart = async (ev) => {
+    #insertNextChart = async (resizeChart=true) => {
         this.#col += 1
         await this.#addCharts(this.#row, this.#col, `column-right-${this.#row}`)
+        if(resizeChart) {
+            this.#resizeChartsInColumn()
+        }
     }
 
-    removeNextChart = (ev) => {
+    #removeNextChart = (resizeChart=true) => {
         if (this.#col > 0) {
-            this.#removeChart(this.#row, this.#col)
+            var chartId = `chart-container-${this.#row}-${this.#col}`
+            var chart = document.getElementById(chartId)
+            chart.remove()
+            delete this.#config[chartId]
             this.#col -= 1
+            if(resizeChart) {
+                this.#resizeChartsInColumn()
+            }
         }
     }
 
     #addMacdDivergenceScanner = (row, col, config = {}) => {
-        var updatechart = true
-        var scannersMap = this.#charts[`chart-container-${row}-${col}`]["scanners"]
+        var updatechart = false
+        var scannersMap = this.#config[`chart-container-${row}-${col}`]["scanners"]
         var scannerId = `macd-divergence-scanner-${row}-${col}-#${Object.keys(scannersMap).length}`
-        var top = 60 + (Object.keys(scannersMap).length + Object.keys(this.#charts[`chart-container-${row}-${col}`][`indicators`]).length) * 30;
+        var top = 30 + (Object.keys(scannersMap).length + Object.keys(this.#config[`chart-container-${row}-${col}`][`indicators`]).length) * 30;
         var left = 30
         var options = {
             "div": {
@@ -325,7 +355,7 @@ class ColumnRight {
         }
         addInnerHtmlToDiv(`chart-container-${row}-${col}`, options)
 
-        this.#charts[`chart-container-${row}-${col}`]["scanners"][`div-${scannerId}`] = {
+        this.#config[`chart-container-${row}-${col}`]["scanners"][`div-${scannerId}`] = {
             "window": parseInt(document.getElementById(`rolling-window-${scannerId}`).value),
             "n": parseInt(document.getElementById(`full-window-${scannerId}`).value),
             "type": "macd_divergence",
@@ -335,12 +365,12 @@ class ColumnRight {
     }
 
     #addEmaIndicator = (row, col, config = {}) => {
-        var updatechart = true
-        var indicatorsMap = this.#charts[`chart-container-${row}-${col}`]["indicators"]
+        var updatechart = false
+        var indicatorsMap = this.#config[`chart-container-${row}-${col}`]["indicators"]
         var indicatorId = `ema-indicator-${row}-${col}-#${Object.keys(indicatorsMap).length}`
 
         // var id = `scanner-div-${scannerId}`
-        var top = 60 + (Object.keys(this.#charts[`chart-container-${row}-${col}`][`scanners`]).length +
+        var top = 30 + (Object.keys(this.#config[`chart-container-${row}-${col}`][`scanners`]).length +
             Object.keys(indicatorsMap).length) * 30;
         var left = 30
         var options = {
@@ -402,7 +432,7 @@ class ColumnRight {
         }
         addInnerHtmlToDiv(`chart-container-${row}-${col}`, options)
 
-        this.#charts[`chart-container-${row}-${col}`]["indicators"][`div-${indicatorId}`] = {
+        this.#config[`chart-container-${row}-${col}`]["indicators"][`div-${indicatorId}`] = {
             "window": parseInt(document.getElementById(`rolling-window-${indicatorId}`).value),
             "type": "ema",
             "color": document.getElementById(`color-${indicatorId}`).value
@@ -410,12 +440,12 @@ class ColumnRight {
     }
 
     #addVolumeIndicator = (row, col, config = {}) => {
-        var updatechart = true
-        var indicatorsMap = this.#charts[`chart-container-${row}-${col}`]["indicators"]
+        var updatechart = false
+        var indicatorsMap = this.#config[`chart-container-${row}-${col}`]["indicators"]
         var indicatorId = `volume-indicator${row}-${col}-#${Object.keys(indicatorsMap).length}`
         // var id = `scanner-div-${scannerId}`
-        var top = 60 + (Object.keys(this.#charts[`chart-container-${row}-${col}`][`scanners`]).length +
-            Object.keys(this.#charts[`chart-container-${row}-${col}`][`indicators`]).length) * 30;
+        var top = 30 + (Object.keys(this.#config[`chart-container-${row}-${col}`][`scanners`]).length +
+            Object.keys(this.#config[`chart-container-${row}-${col}`][`indicators`]).length) * 30;
         var left = 30
         var options = {
             "div": {
@@ -429,7 +459,7 @@ class ColumnRight {
         }
         addInnerHtmlToDiv(`chart-container-${row}-${col}`, options)
 
-        this.#charts[`chart-container-${row}-${col}`]["indicators"][`div-${indicatorId}`] = {
+        this.#config[`chart-container-${row}-${col}`]["indicators"][`div-${indicatorId}`] = {
             "type": "volume",
         }
     }
