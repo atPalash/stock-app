@@ -1,12 +1,19 @@
 # TODO
-- [ ] Implement left column
-- [ ] Implement scanner top movers based on n days
+- [ ] show Macd hist
 - [ ] Implement fundamentals data
 - [ ] Fetch latest headlines
 - [ ] Research how to get insider buy/sold
 - [ ] Delete capability in multi-timeframe
 - [ ] Show info on the indicator / scanner
+# BUG
+- The config is empty when saved from non-debug browser
+ 
+# Aborted
+- [x] VCP pattern -> check BB contraction
 # Done
+- [x] Stage2Scanner from Mark Minervini
+- [x] Implement left column
+- [x] Implement scanner top movers based on n days
 - [x] Update system webserver
 - [x] Get data for indices
 - [x] Implement search stock capability with right left arrows

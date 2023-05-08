@@ -32,10 +32,13 @@ class Container {
         var res = await apiGet("config")
         this.#config = JSON.parse(res)
         notifyLoad({ 'state': "loading" })
+        
         this.columnLeft = new ColumnLeft(0, this.#controls["tickers"], screen.availHeight * 0.95, screen.availWidth * 0.1)
         this.columnLeft.init(this.#config['column-left'])
+
         this.columnRight = new ColumnRight(0, this.#controls["tickers"], screen.availHeight * 0.95, screen.availWidth * 0.9)
         await this.columnRight.init(this.#config['column-right'])
+
         notifyLoad({ 'state': "loaded" })
     }
 

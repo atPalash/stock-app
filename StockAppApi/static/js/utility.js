@@ -67,27 +67,21 @@ function addInnerHtmlToDiv(parentId, options) {
     }
 }
 
-function addListToDiv(divId, options) {
+function addListToDiv(parentId, list) {
     // Create the unordered list element
     const ul = document.createElement('ul');
-    if ('id' in options) {
-        ul.setAttribute('id', options['id'])
-        ul.setAttribute('style', "margin-top: 0; margin-bottom: 0;")
-    }
+    ul.setAttribute('id', `${parentId}-list`)
+    ul.setAttribute('style', "margin-top: 0; margin-bottom: 0;")
 
-    // Create and append the list items to the unordered list
-    var optionsList = options['list']
-    for (var key in optionsList) {
-        if (optionsList[key] != 0) {
-            const li = document.createElement('li');
-            li.textContent = key;
-            li.style.color = optionsList[key] == 1 ? 'green' : 'red'
-            ul.appendChild(li);
-        }
-    }
+    list.forEach(element => {
+        const li = document.createElement('li');
+        li.textContent = element.text;
+        li.style.color = element.color
+        ul.appendChild(li);
+    })
 
     // Append the unordered list to the body of the page
-    document.getElementById(divId).appendChild(ul);
+    document.getElementById(parentId).appendChild(ul);
 }
 
 function notifyLoad(data = {}) {

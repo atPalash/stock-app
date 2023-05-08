@@ -20,19 +20,25 @@ class ColumnLeft {
     }
 
     init = async (userConfig) => {
-        this.#addMacdHistogramScannerDiv(this.#row, this.#col, this.#parentId, 
-            userConfig[`macd-hist-scanner-${this.#row}-${this.#col}`]["macd-hist-scanner"])
+        // Add the 1st scanner to parent
+        var macdHistScannerId = "macd-hist-scanner"
+        this.#addMacdHistogramScannerDiv(macdHistScannerId, this.#row, this.#col, this.#parentId, 
+            userConfig[`${macdHistScannerId}-${this.#row}-${this.#col}`][macdHistScannerId])
+        // Add next ones to the existing div
+        var stage2ScannerId = "stage2-scanner"
+        this.#addStage2ScannerDiv(stage2ScannerId, this.#row, this.#col, `column-left-${this.#row}`, 
+            userConfig[`${stage2ScannerId}-${this.#row}-${this.#col}`][stage2ScannerId])
     }
 
     getConfig() {
         return this.#config
     }
     
-    #addMacdHistogramScannerDiv = (row, col, parentId, config = {}) => {
+    #addMacdHistogramScannerDiv = (id, row, col, parentId, config = {}) => {
         var updatechart = false
-        var divId = `macd-hist-scanner-${row}-${col}`
+        var divId = `${id}-${row}-${col}`
         this.#config[divId] = {}
-        this.#config[divId]["macd-hist-scanner"] = {}
+        this.#config[divId][id] = {}
         var options = {
             "div": {
                 "style": `width: ${this.#width}px;`,
@@ -70,7 +76,7 @@ class ColumnLeft {
                             if (popup.style.display == 'block') {
                                 popup.style.display = 'none'
                                 if (updatechart) {
-                                    await this.#updateMacdDivergenceList(divId, this.#config[divId]["macd-hist-scanner"])
+                                    await this.#updateMacdDivergenceList(id, divId, this.#config[divId][id])
                                 }
                             } else {
                                 popup.style.display = 'block'
@@ -84,9 +90,9 @@ class ColumnLeft {
                     "callback": (ev) => {
                         if (ev.currentTarget.id == `popup-form-${divId}`) {
                             updatechart = true
-                            this.#config[divId]["macd-hist-scanner"]["window"] = parseInt(document.getElementById(`rolling-window-${divId}`).value)
-                            this.#config[divId]["macd-hist-scanner"]["n"] = parseInt(document.getElementById(`full-window-${divId}`).value)
-                            this.#config[divId]["macd-hist-scanner"]["interval"] = document.getElementById(`interval-${divId}`).value
+                            this.#config[divId][id]["window"] = parseInt(document.getElementById(`rolling-window-${divId}`).value)
+                            this.#config[divId][id]["n"] = parseInt(document.getElementById(`full-window-${divId}`).value)
+                            this.#config[divId][id]["interval"] = document.getElementById(`interval-${divId}`).value
                         }
                     }
                 },
@@ -101,21 +107,143 @@ class ColumnLeft {
         }
         addInnerHtmlToDiv(parentId, options)
         document.getElementById(`interval-${divId}`).value = config.interval
-        this.#updateMacdDivergenceList(divId, config)
+        this.#updateMacdDivergenceList(id, divId, config)
     }
 
-    async #updateMacdDivergenceList(divId, config) {
-        var tickers = await apiPost("ohlc", {
+    async #updateMacdDivergenceList(id, divId, config) {
+        var tickers = await apiPost(`${id}`, {
             "query": `webserver --ticker all --do get \ 
         --indicator macddivergencelist --interval ${config.interval} --window ${config.window} \
         --n ${config.n}`
         });
-    
+        
+        var macdHistTickers = []
+        for(var ticker in tickers) {
+            var signal = tickers[ticker]
+            if(signal == 1) {
+                macdHistTickers.push({
+                    "text": ticker,
+                    "color": "green"
+                })
+            } else if(signal == -1) {
+                macdHistTickers.push({
+                    "text": ticker,
+                    "color": "red"
+                })
+            }
+        }
+
         var list = document.getElementById(`${divId}-list`) 
         if( list!= null) {
             list.remove()
         }
-        addListToDiv(divId, { 'list': tickers, 'id': `${divId}-list` })
+        
+        addListToDiv(divId, macdHistTickers)
+    }
+
+    #addStage2ScannerDiv = (id, row, col, parentId, config = {}) => {
+        var updatechart = false
+        var divId = `${id}-${row}-${col}`
+        
+        this.#config[divId] = {}
+        this.#config[divId][id] = {}
+        var options = {
+            "div": {
+                "style": `width: ${this.#width}px;`,
+                "id": `column-left-${this.#row}`,
+                "innerHTML": `
+                <div id=${divId}>
+                <div id=${divId}-controls style="display: flex;">
+                <p style="margin-top: 0; margin-bottom: 0;">Stage2</p>
+                <button id=button-${divId} style="margin-left: 10px">&#9881</button>
+                <div class=btn-popup id=popup-${divId} style="display: none; z-index: 99; background-color: darkgoldenrod; position: absolute; left:160px">
+                    <form class=popup-form id=popup-form-${divId} >
+                    <label for=type-${divId}>Type</label>
+                    <select id="type-${divId}">
+                    <option value="ma" selected>Ma</option>
+                    <option value="ema">Ema</option>
+                    </select><br>
+                    <label for=interval-${divId}>Interval</label>
+                    <select id="interval-${divId}">
+                    <option value="hour">Hour</option>
+                    <option value="day" selected>Day</option>
+                    <option value="week">Week</option>
+                    </select><br>
+                    <label for=full-window-${divId}>Full window</label>
+                    <input type=number id=full-window-${divId} value=${config.n || 30} step=1><br>
+                    </form>
+                </div>
+                </div>
+                </div>
+                `
+            },
+            "events": {
+                [`button-${divId}-click`]: {
+                    "target": `button-${divId}`,
+                    "type": "click",
+                    "callback": async (ev) => {
+                        if (ev.target.id == `button-${divId}`) {
+                            const popup = document.getElementById(`popup-${divId}`);
+                            if (popup.style.display == 'block') {
+                                popup.style.display = 'none'
+                                if (updatechart) {
+                                    await this.#updateStage2ScannerList(id, divId, this.#config[divId][id])
+                                }
+                            } else {
+                                popup.style.display = 'block'
+                            }
+                        }
+                    }
+                },
+                [`popup-form-${divId}-input`]: {
+                    "target": `popup-form-${divId}`,
+                    "type": "input",
+                    "callback": (ev) => {
+                        if (ev.currentTarget.id == `popup-form-${divId}`) {
+                            updatechart = true
+                            this.#config[divId][id]["type"] = document.getElementById(`type-${divId}`).value
+                            this.#config[divId][id]["interval"] = document.getElementById(`interval-${divId}`).value
+                            this.#config[divId][id]["n"] = parseInt(document.getElementById(`full-window-${divId}`).value)
+                        }
+                    }
+                },
+                [`popup-form-${divId}-submit`]: {
+                    "target": `popup-form-${divId}`,
+                    "type": "submit",
+                    "callback": (ev) => {
+                        ev.preventDefault();
+                    }
+                }
+            }
+        }
+        addInnerHtmlToDiv(parentId, options)
+        document.getElementById(`interval-${divId}`).value = config.interval
+        this.#updateStage2ScannerList(id, divId, config)
+    }
+
+    async #updateStage2ScannerList(id, divId, config) {
+        var tickers = await apiPost(`${id}`, {
+            "query": `webserver --ticker all --do get --indicator stage2scanner 
+            --interval ${config.interval} --n ${config.n} --stage2scannertype ${config.type}`
+        });
+        
+        var stage2tickers = []
+        for(var k in tickers) {
+            var temp = JSON.parse(tickers[k])
+            if(temp.valid) {
+                stage2tickers.push({
+                    "text": temp.stock,
+                    "color": "black"
+                })
+            }
+        }
+
+        var list = document.getElementById(`${divId}-list`) 
+        if( list!= null) {
+            list.remove()
+        }
+
+        addListToDiv(divId, stage2tickers)
     }
 }
 
