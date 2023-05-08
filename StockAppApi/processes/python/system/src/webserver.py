@@ -48,6 +48,7 @@ class Webserver(System):
             'elderimpulse': self.__get_elderimpulse,
             'canslim': self.__get_canslim,
             'macddivergencelist': self.__get_macddivergencelist,
+            'stage2scanner': self.__getstage2scan
         }
 
     def __get(self):
@@ -136,3 +137,10 @@ class Webserver(System):
             ret["shares outstanding"] = canslim.S.to_dict()
 
         return json.dumps({"canslim": ret})
+    
+    def __getstage2scan(self, ticker):
+        query = f'stage2scan --ticker {ticker} --interval {self.parameter["interval"]} \
+            --window {self.parameter["window"]} --do get --n {self.parameter["n"]} \
+            --stage2scannertype {self.parameter["stage2scannertype"]}'
+        df = self.command_handler.execute(query, is_rest=False).obj
+        return df.iloc[df[df['stock'] == ticker].index[0]].to_json()

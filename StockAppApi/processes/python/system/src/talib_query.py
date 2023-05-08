@@ -5,6 +5,7 @@ from StockAppApi.processes.python.talib.src.ema import Ema
 from StockAppApi.processes.python.talib.src.macd import Macd 
 from StockAppApi.processes.python.talib.src.rsi import Rsi 
 from StockAppApi.processes.python.talib.src.rsi_line import RsiLine
+from StockAppApi.processes.python.talib.src.ma import Ma
 from StockAppApi.processes.python.talib.base.indicator import Indicator
 from StockAppApi.base.python.src.yaml_parser import read_config
 
@@ -38,7 +39,8 @@ class TalibQuery(System):
             'macdhist': Macd,
             'macdsignal': Macd,
             'rsi': Rsi,
-            'rsiline': RsiLine
+            'rsiline': RsiLine,
+            'ma': Ma
         }
         
         self.commands = {

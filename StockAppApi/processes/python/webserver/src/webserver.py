@@ -23,6 +23,14 @@ class Webserver(Server):
         def ohlc_api():
             return self.handle_request(req=request)
         
+        @self.app.route("/macd-hist-scanner", methods=['POST'])
+        def macd_hist_scanner_api():
+            return self.handle_request(req=request)
+        
+        @self.app.route("/stage2-scanner", methods=['POST'])
+        def stage2_scanner_api():
+            return self.handle_request(req=request)
+        
         @self.app.route("/config", methods=['GET', 'POST'])
         def config():
             return self.config(req=request)

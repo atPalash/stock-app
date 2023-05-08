@@ -38,6 +38,7 @@ class System(SystemIf):
             'save_plot': parameter.get('save_plot', ''),
             'ticker': parameter.get('ticker', 'all'),
             'window': int(parameter.get('window', '20')),
+            'stage2scannertype': parameter.get('stage2scannertype', 'ma')
         }
         
         return parameters
