@@ -67,7 +67,7 @@ function addInnerHtmlToDiv(parentId, options) {
     }
 }
 
-function addListToDiv(parentId, list) {
+function addListToDiv(parentId, list, eventHandler=null) {
     // Create the unordered list element
     const ul = document.createElement('ul');
     ul.setAttribute('id', `${parentId}-list`)
@@ -82,6 +82,14 @@ function addListToDiv(parentId, list) {
 
     // Append the unordered list to the body of the page
     document.getElementById(parentId).appendChild(ul);
+    ul.addEventListener('mouseover', function(event) {
+        if (event.target.matches('li')) {
+          event.target.style.cursor = 'pointer';
+        }
+      });
+    if(eventHandler!=null) {
+        ul.addEventListener("click", (event) => eventHandler(event))
+    }
 }
 
 function notifyLoad(data = {}) {
@@ -113,4 +121,11 @@ function parseJSON(jsonString) {
         };
     }
     return thisJson;
+}
+
+function changeSelection(id, index) {
+    var select = document.getElementById(id)
+    select.selectedIndex = index
+    var event = new Event('change');
+    select.dispatchEvent(event);
 }

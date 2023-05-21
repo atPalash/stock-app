@@ -14,13 +14,6 @@ class TopNavigation {
         this.#initListeners()
     }
 
-    #notifySelectionChanged(id, index) {
-        var select = document.getElementById(id)
-        select.selectedIndex = index
-        var event = new Event('change');
-        select.dispatchEvent(event);
-    }
-
     #addElements() {
         var options = {
             "div": {
@@ -49,7 +42,7 @@ class TopNavigation {
                                 this.#controls["currentSlideIndex"] -= 1
                             }
                         }
-                        this.#notifySelectionChanged(`ticker-select-${this.#row}`, this.#controls["currentSlideIndex"])
+                        changeSelection(`ticker-select-${this.#row}`, this.#controls["currentSlideIndex"])
                     }
                 },
                 [`next-btn-${this.#row}-click`]: {
@@ -63,7 +56,7 @@ class TopNavigation {
                             else {
                                 this.#controls["currentSlideIndex"] += + 1
                             }
-                            this.#notifySelectionChanged(`ticker-select-${this.#row}`, this.#controls["currentSlideIndex"])
+                            changeSelection(`ticker-select-${this.#row}`, this.#controls["currentSlideIndex"])
                         }
                     }
                 },

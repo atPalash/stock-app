@@ -22,18 +22,18 @@ class ColumnLeft {
     init = async (userConfig) => {
         // Add the 1st scanner to parent
         var macdHistScannerId = "macd-hist-scanner"
-        this.#addMacdHistogramScannerDiv(macdHistScannerId, this.#row, this.#col, this.#parentId, 
+        this.#addMacdHistogramScannerDiv(macdHistScannerId, this.#row, this.#col, this.#parentId,
             userConfig[`${macdHistScannerId}-${this.#row}-${this.#col}`][macdHistScannerId])
         // Add next ones to the existing div
         var stage2ScannerId = "stage2-scanner"
-        this.#addStage2ScannerDiv(stage2ScannerId, this.#row, this.#col, `column-left-${this.#row}`, 
+        this.#addStage2ScannerDiv(stage2ScannerId, this.#row, this.#col, `column-left-${this.#row}`,
             userConfig[`${stage2ScannerId}-${this.#row}-${this.#col}`][stage2ScannerId])
     }
 
     getConfig() {
         return this.#config
     }
-    
+
     #addMacdHistogramScannerDiv = (id, row, col, parentId, config = {}) => {
         var updatechart = false
         var divId = `${id}-${row}-${col}`
@@ -116,16 +116,16 @@ class ColumnLeft {
         --indicator macddivergencelist --interval ${config.interval} --window ${config.window} \
         --n ${config.n}`
         });
-        
+
         var macdHistTickers = []
-        for(var ticker in tickers) {
+        for (var ticker in tickers) {
             var signal = tickers[ticker]
-            if(signal == 1) {
+            if (signal == 1) {
                 macdHistTickers.push({
                     "text": ticker,
                     "color": "green"
                 })
-            } else if(signal == -1) {
+            } else if (signal == -1) {
                 macdHistTickers.push({
                     "text": ticker,
                     "color": "red"
@@ -133,18 +133,18 @@ class ColumnLeft {
             }
         }
 
-        var list = document.getElementById(`${divId}-list`) 
-        if( list!= null) {
+        var list = document.getElementById(`${divId}-list`)
+        if (list != null) {
             list.remove()
         }
-        
-        addListToDiv(divId, macdHistTickers)
+
+        addListToDiv(divId, macdHistTickers, this.#clickToSelectTicker)
     }
 
     #addStage2ScannerDiv = (id, row, col, parentId, config = {}) => {
         var updatechart = false
         var divId = `${id}-${row}-${col}`
-        
+
         this.#config[divId] = {}
         this.#config[divId][id] = {}
         var options = {
@@ -226,11 +226,11 @@ class ColumnLeft {
             "query": `webserver --ticker all --do get --indicator stage2scanner 
             --interval ${config.interval} --n ${config.n} --stage2scannertype ${config.type}`
         });
-        
+
         var stage2tickers = []
-        for(var k in tickers) {
+        for (var k in tickers) {
             var temp = JSON.parse(tickers[k])
-            if(temp.valid) {
+            if (temp.valid) {
                 stage2tickers.push({
                     "text": temp.stock,
                     "color": "black"
@@ -238,12 +238,26 @@ class ColumnLeft {
             }
         }
 
-        var list = document.getElementById(`${divId}-list`) 
-        if( list!= null) {
+        var list = document.getElementById(`${divId}-list`)
+        if (list != null) {
             list.remove()
         }
 
-        addListToDiv(divId, stage2tickers)
+        addListToDiv(divId, stage2tickers, this.#clickToSelectTicker)
+    }
+
+    #clickToSelectTicker = (evt) => {
+        var id = `ticker-select-0`
+        var index = Array.from(document.getElementById(id).children).findIndex(function (ele) {
+            if (ele.innerText == evt.target.innerText) {
+                return true;
+            }
+        })
+        if (index == -1) {
+            console.error("Should not happen")
+            return
+        }
+        changeSelection(id, index)
     }
 }
 

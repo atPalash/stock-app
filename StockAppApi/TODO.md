@@ -11,6 +11,7 @@
 # Aborted
 - [x] VCP pattern -> check BB contraction
 # Done
+- [x] Click to select ticker from MACD Div list or Stage2
 - [x] Stage2Scanner from Mark Minervini
 - [x] Implement left column
 - [x] Implement scanner top movers based on n days
