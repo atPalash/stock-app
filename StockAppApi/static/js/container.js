@@ -29,10 +29,16 @@ class Container {
     }
 
     async #loadUserConfig() {
-        var res = await apiGet("config")
-        this.#config = JSON.parse(res)
+        debugger
+        var configData = JSON.parse(localStorage.getItem('userConfig'));
+        if (configData) {
+            this.#config = configData
+        } else {
+            var res = await apiGet("config")
+            this.#config = JSON.parse(res)
+        }
         notifyLoad({ 'state': "loading" })
-        
+
         this.columnLeft = new ColumnLeft(0, this.#controls["tickers"], screen.availHeight * 0.95, screen.availWidth * 0.1)
         this.columnLeft.init(this.#config['column-left'])
 
@@ -45,9 +51,13 @@ class Container {
     #initListeners() {
         const saveConfig = document.getElementById(`save-btn-${this.#row}`)
         saveConfig.addEventListener('click', async (event) => {
+            debugger
             this.#config["column-left"] = this.columnLeft.getConfig()
             this.#config["column-right"] = this.columnRight.getConfig()
-            await apiPost("config", { 'column-left': this.#config["column-left"] , 'column-right': this.#config["column-right"]})
+
+            var configData = { 'column-left': this.#config["column-left"], 'column-right': this.#config["column-right"] }
+            localStorage.setItem('userConfig', JSON.stringify(configData));
+            // await apiPost("config", configData)
         })
     }
 }

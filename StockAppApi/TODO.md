@@ -1,4 +1,7 @@
 # TODO
+- [ ] Implement bdd query
+- [ ] Scan for pivot points
+- [ ] Implement config in client side else default config 
 - [ ] show Macd hist
 - [ ] Implement fundamentals data
 - [ ] Fetch latest headlines
