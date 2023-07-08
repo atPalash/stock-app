@@ -59,3 +59,13 @@ class YahooScheduler(Scheduler):
                 print("ERROR yahoo fundamental download system", ret.errors) # TODO
         except Exception as e:
             print("ERROR __monthly_fundamental_download", e.args)
+
+
+if __name__ == "__main__":
+    from StockAppApi.base.python.src.yaml_parser import read_config
+    configFolder = "StockAppApi/configuration/"
+    config = read_config(configFolder + "config.yaml")
+    indicator_config_yaml = configFolder + "indicator.yaml"   
+    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
+    scheduler.run()
