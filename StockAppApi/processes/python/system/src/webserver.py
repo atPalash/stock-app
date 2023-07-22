@@ -48,7 +48,8 @@ class Webserver(System):
             'elderimpulse': self.__get_elderimpulse,
             'canslim': self.__get_canslim,
             'macddivergencelist': self.__get_macddivergencelist,
-            'stage2scanner': self.__getstage2scan
+            'stage2scanner': self.__getstage2scan,
+            'gherkin': self.__getGherkinQuery,
         }
 
     def __get(self):
@@ -61,6 +62,9 @@ class Webserver(System):
         if indicator == 'tickers':
             # return the indicator list
             ret_df[indicator] = self.__get_tickers()
+        elif indicator == 'gherkin':
+            gherkin_query = f'gherkinquery --gherkin {self.parameter["gherkin"]}'
+            ret = self.command_handler.execute(gherkin_query, is_rest=False).obj
         else:
             for ticker in tickers:
                 try:
@@ -144,3 +148,7 @@ class Webserver(System):
             --stage2scannertype {self.parameter["stage2scannertype"]}'
         df = self.command_handler.execute(query, is_rest=False).obj
         return df.iloc[df[df['stock'] == ticker].index[0]].to_json()
+    
+    def __getGherkinQuery(self, gherkin_string: str):
+        check = self.command_handler.execute(gherkin_string).obj
+        return json.dumps({})

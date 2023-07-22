@@ -23,6 +23,7 @@ class System(SystemIf):
             'condition': parameter.get('condition', ''),
             'csv': int(parameter.get('csv', '0')),
             'do': parameter.get('do', 'get'),
+            'gherkin': parameter.get('gherkin', ''),
             'indicator': parameter.get('indicator', 'ema'),
             'interval': parameter.get('interval', 'day'),
             'index': parameter.get('index', '^NSEI'),
