@@ -15,3 +15,4 @@ class Ema(Indicator):
         ema = numpy.around(ema, decimals=2)
         self.ohlc.loc[:, 'ema'] = ema
         return ema
+    
