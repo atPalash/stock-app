@@ -1,3 +1,5 @@
+import pandas
+
 from StockAppApi.processes.python.system.base.system import System, RetVal
 from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data, download_stock_stats
 
@@ -77,6 +79,13 @@ class YahooFinance(System):
     
     def debug_get(self):
         return self.__get().obj
+    
+    def get_df(interval:str, ticker:str):
+        try:
+            return pandas.read_csv(f"{interval}/{ticker}.csv")
+        except Exception as e:
+            raise
+        
     
 if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
