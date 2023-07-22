@@ -29,14 +29,15 @@ class Container {
     }
 
     async #loadUserConfig() {
-        debugger
-        var configData = JSON.parse(localStorage.getItem('userConfig'));
-        if (configData) {
-            this.#config = configData
-        } else {
-            var res = await apiGet("config")
-            this.#config = JSON.parse(res)
-        }
+        
+        // var configData = JSON.parse(localStorage.getItem('userConfig'));
+        // if (configData) {
+        //     this.#config = configData
+        // } else {
+
+        // }
+        var res = await apiGet("config")
+        this.#config = JSON.parse(res)
         notifyLoad({ 'state': "loading" })
 
         this.columnLeft = new ColumnLeft(0, this.#controls["tickers"], screen.availHeight * 0.95, screen.availWidth * 0.1)
@@ -51,7 +52,6 @@ class Container {
     #initListeners() {
         const saveConfig = document.getElementById(`save-btn-${this.#row}`)
         saveConfig.addEventListener('click', async (event) => {
-            debugger
             this.#config["column-left"] = this.columnLeft.getConfig()
             this.#config["column-right"] = this.columnRight.getConfig()
 

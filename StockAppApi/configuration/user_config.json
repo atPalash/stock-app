@@ -13,7 +13,10 @@
                 "interval": "day",
                 "n": 90
             }
-        }
+        },
+        "gherkin-query-0-0": {
+            "query": ""
+        } 
     },
     "column-right": {
         "chart-container-0-0": {

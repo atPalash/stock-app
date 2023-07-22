@@ -20,10 +20,15 @@ class ColumnLeft {
     }
 
     init = async (userConfig) => {
+        // // Add the 1st scanner to parent
+        // var macdHistScannerId = "macd-hist-scanner"
+        // this.#addMacdHistogramScannerDiv(macdHistScannerId, this.#row, this.#col, this.#parentId,
+        //     userConfig[`${macdHistScannerId}-${this.#row}-${this.#col}`][macdHistScannerId])
         // Add the 1st scanner to parent
-        var macdHistScannerId = "macd-hist-scanner"
-        this.#addMacdHistogramScannerDiv(macdHistScannerId, this.#row, this.#col, this.#parentId,
-            userConfig[`${macdHistScannerId}-${this.#row}-${this.#col}`][macdHistScannerId])
+        var gherkinQueryId = "gherkin-query"
+        this.#addGherkinQueryDiv(gherkinQueryId, this.#row, this.#col, this.#parentId,
+            userConfig[`${gherkinQueryId}-${this.#row}-${this.#col}`][gherkinQueryId])
+
         // Add next ones to the existing div
         var stage2ScannerId = "stage2-scanner"
         this.#addStage2ScannerDiv(stage2ScannerId, this.#row, this.#col, `column-left-${this.#row}`,
@@ -32,6 +37,64 @@ class ColumnLeft {
 
     getConfig() {
         return this.#config
+    }
+    
+    #addGherkinQueryDiv = (id, row, col, parentId, config = {}) => {
+        var divId = `${id}-${row}-${col}`
+
+        this.#config[divId] = {}
+        this.#config[divId][id] = {}
+        var currentGherkin = ""
+        var options = {
+            "div": {
+                "style": `width: ${this.#width}px;`,
+                "id": `column-left-${this.#row}`,
+                "innerHTML": `
+                <div id=${divId}>
+                <div id=${divId}-controls style="display: flex;">
+                <p style="margin-top: 0; margin-bottom: 0;">Gherkin Query</p>
+                <button id=button-${divId} style="margin-left: 10px">&#9881</button>
+                <div class=btn-popup id=popup-${divId} style="display: none; z-index: 999; background-color: darkgoldenrod; position: relative;">
+                    <textarea id=input-${divId} type="text" placeholder="Enter your gherkin query here" 
+                    style="position: absolute; top: 0; left: 100%; margin-left: 10px; height: 50vh; 
+                    width: 30vw; overflow: scroll;"></textarea>
+                </div>
+                </div>
+                </div>
+                `
+            },
+            "events": {
+                [`button-${divId}-click`]: {
+                    "target": `button-${divId}`,
+                    "type": "click",
+                    "callback": async (ev) => {
+                        if (ev.target.id == `button-${divId}`) {
+                            const popup = document.getElementById(`popup-${divId}`);
+                            const query = document.getElementById(`input-${divId}`).value
+                            if (popup.style.display == 'block') {
+                                popup.style.display = 'none'
+                                if (query !== currentGherkin) {
+                                    await this.#updateGherkinQueryList(id, divId, this.#config[divId][id], query)
+                                    currentGherkin = query
+                                }
+                            } else {
+                                popup.style.display = 'block'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        addInnerHtmlToDiv(parentId, options)
+        this.#updateGherkinQueryList(id, divId, config)
+    }
+
+    async #updateGherkinQueryList(id, divId, config, query) {
+        if(query != "") {
+            var tickers = await apiPost(`${id}`, {
+                "query": `webserver --gherkin ${query} --indicator gherkin`
+            });
+        }
     }
 
     #addMacdHistogramScannerDiv = (id, row, col, parentId, config = {}) => {
