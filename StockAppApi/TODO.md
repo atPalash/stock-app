@@ -1,5 +1,5 @@
 # TODO
-- [ ] Implement bdd query
+- [ ] Optimize bdd query 
 - [ ] Scan for pivot points
 - [ ] Implement config in client side else default config 
 - [ ] show Macd hist
@@ -14,6 +14,7 @@
 # Aborted
 - [x] VCP pattern -> check BB contraction
 # Done
+- [x] Implement bdd query
 - [x] Click to select ticker from MACD Div list or Stage2
 - [x] Stage2Scanner from Mark Minervini
 - [x] Implement left column

@@ -64,7 +64,7 @@ class Webserver(System):
             ret_df[indicator] = self.__get_tickers()
         elif indicator == 'gherkin':
             gherkin_query = f'gherkinquery --gherkin {self.parameter["gherkin"]}'
-            ret = self.command_handler.execute(gherkin_query, is_rest=False).obj
+            ret_df['gherkin'] = self.command_handler.execute(gherkin_query, is_rest=False).obj
         else:
             for ticker in tickers:
                 try:

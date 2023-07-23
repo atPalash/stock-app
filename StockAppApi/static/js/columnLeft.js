@@ -90,10 +90,49 @@ class ColumnLeft {
     }
 
     async #updateGherkinQueryList(id, divId, config, query) {
-        if(query != "") {
-            var tickers = await apiPost(`${id}`, {
+        var conjunction_keyword = ['And ', '* ']
+        if(query != "" && query != undefined) {
+            
+            var gherkin_response = await apiPost(`${id}`, {
                 "query": `webserver --gherkin ${query} --indicator gherkin`
             });
+            debugger
+            var then_steps_tickers = []
+            for(var scenario in gherkin_response['gherkin']) {
+                var current_keyword = ""
+                var steps = gherkin_response['gherkin'][scenario]
+                steps.forEach(step => {
+                    if(step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
+                        step['result']['tickers'].forEach(ticker => {
+                            if (!then_steps_tickers.includes(ticker)) {
+                                then_steps_tickers.push(
+                                    {
+                                        "text": ticker,
+                                        "color": "black"
+                                    }
+                                )
+                            }
+                        })
+                        current_keyword = 'Then '
+                    }
+                });
+            }
+            then_steps_tickers.sort(function(a,b){
+                if(a.text < b.text) {
+                    return -1
+                }
+                if(a.text > b.text) {
+                    return 1
+                }
+                return 0
+            })
+    
+            var list = document.getElementById(`${divId}-list`)
+            if (list != null) {
+                list.remove()
+            }
+    
+            addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker)
         }
     }
 
