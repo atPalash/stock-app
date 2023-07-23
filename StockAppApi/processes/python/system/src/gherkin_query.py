@@ -280,7 +280,7 @@ class GherkinQuery(System):
                         step_result['errors'] = errors
                         raise Exception(errors)
                 scenario_results[scenario] = step_results
-            return RetVal(obj=json.dumps(scenario_results),
+            return RetVal(obj=scenario_results,
                           obj_as_str="a dict of when given then result")
         except Exception as e:
             return RetVal(obj=None, obj_as_str="ERROR", errors=f"{self.parameter['ticker']}->{e.args}")
