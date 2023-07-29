@@ -6,6 +6,8 @@ class System(SystemIf):
     def __init__(self, indicator_config_file:str, selected_stocks_config_file:str, 
                  parameter: dict, command_handler: object, name="") -> None:
         self.name = name
+        self.selected_stocks_config_file = selected_stocks_config_file
+        self.indicator_config_file = indicator_config_file
         self.selected_stocks_config = read_config(selected_stocks_config_file)
         self.indicator_config = read_config(indicator_config_file)
         self.parameter = self.__update_parameter_or_set_to_default(parameter=parameter)
