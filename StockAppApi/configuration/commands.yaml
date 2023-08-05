@@ -6,3 +6,31 @@ process:
       - download --stock all --interval 1h # download all selected stock hour data
       - download --stock TCS --interval 1d # download TCS stock day data
     format: download --stock ${stockname} --interval ${interval} --csv ${as_csv_int} # period is set to max
+gherkin:
+  stage2:
+    'Feature: Stage2 stocks
+    I want to query to get a list of stage 2 stocks
+    Scenario: list stocks in stage 2 uptrend
+    Given nifty 50 stocks
+    When day close ma 150 < close
+    * day close ma 200 < close
+    * day close ma 150 > day close ma 200
+    * day close ma 50 in uptrend for 90 days
+    * 1.25 of 52 week low < close
+    * 0.75 of 52 week high < close
+    * day close ma 50 < close
+    Then get list of all match'
+  macd_divergence:
+    'Feature: Stocks with MACD divergence
+    I want to query to get a list of macd divergence stocks      
+    Scenario: list stocks in stage 2 uptrend
+    Given nifty 50 stocks
+    When day close ma 150 < close
+    * day close ma 200 < close
+    * day close ma 150 > day close ma 200
+    * day close ma 50 in uptrend for 90 days
+    * 1.25 of 52 week low < close
+    * 0.75 of 52 week high < close
+    * day close ma 50 < close
+    Then get list of all match'
+

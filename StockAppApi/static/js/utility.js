@@ -129,3 +129,8 @@ function changeSelection(id, index) {
     var event = new Event('change');
     select.dispatchEvent(event);
 }
+
+function getUnicodeIcon(uniStr) {
+    var decimalValue = parseInt(uniStr.substr(3), 16);
+    return String.fromCharCode(decimalValue);
+}

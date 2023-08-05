@@ -24,42 +24,36 @@ class ColumnLeft {
         // var macdHistScannerId = "macd-hist-scanner"
         // this.#addMacdHistogramScannerDiv(macdHistScannerId, this.#row, this.#col, this.#parentId,
         //     userConfig[`${macdHistScannerId}-${this.#row}-${this.#col}`][macdHistScannerId])
-        // Add the 1st scanner to parent
-        var gherkinQueryId = "gherkin-query"
-        this.#addGherkinQueryDiv(gherkinQueryId, this.#row, this.#col, this.#parentId,
-            userConfig[`${gherkinQueryId}-${this.#row}-${this.#col}`][gherkinQueryId])
+        // Add a button to add queries
+        this.#addQueryButton("gherkin-query-add", this.#row, this.#col, this.#parentId, userConfig)
+        // // Add the 1st scanner to parent
+        // var gherkinQueryId = "gherkin-query"
+        // this.#addGherkinQueryDiv(gherkinQueryId, this.#row, this.#col, this.#parentId,
+        //     userConfig[`${gherkinQueryId}-${this.#row}-${this.#col}`][gherkinQueryId])
 
-        // Add next ones to the existing div
-        var stage2ScannerId = "stage2-scanner"
-        this.#addStage2ScannerDiv(stage2ScannerId, this.#row, this.#col, `column-left-${this.#row}`,
-            userConfig[`${stage2ScannerId}-${this.#row}-${this.#col}`][stage2ScannerId])
+        // // Add next ones to the existing div
+        // var stage2ScannerId = "stage2-scanner"
+        // this.#addStage2ScannerDiv(stage2ScannerId, this.#row, this.#col, `column-left-${this.#row}`,
+        //     userConfig[`${stage2ScannerId}-${this.#row}-${this.#col}`][stage2ScannerId])
     }
 
     getConfig() {
         return this.#config
     }
-    
-    #addGherkinQueryDiv = (id, row, col, parentId, config = {}) => {
+
+    #addQueryButton = (id, row, col, parentId, config = {}) => {
         var divId = `${id}-${row}-${col}`
 
         this.#config[divId] = {}
         this.#config[divId][id] = {}
-        var currentGherkin = ""
+        var queryCount = 0
         var options = {
             "div": {
                 "style": `width: ${this.#width}px;`,
                 "id": `column-left-${this.#row}`,
                 "innerHTML": `
                 <div id=${divId}>
-                <div id=${divId}-controls style="display: flex;">
-                <p style="margin-top: 0; margin-bottom: 0;">Gherkin Query</p>
-                <button id=button-${divId} style="margin-left: 10px">&#9881</button>
-                <div class=btn-popup id=popup-${divId} style="display: none; z-index: 999; background-color: darkgoldenrod; position: relative;">
-                    <textarea id=input-${divId} type="text" placeholder="Enter your gherkin query here" 
-                    style="position: absolute; top: 0; left: 100%; margin-left: 10px; height: 50vh; 
-                    width: 30vw; overflow: scroll;"></textarea>
-                </div>
-                </div>
+                <button id=button-${divId} style="margin-left: 10px">Add query</button>
                 </div>
                 `
             },
@@ -69,12 +63,55 @@ class ColumnLeft {
                     "type": "click",
                     "callback": async (ev) => {
                         if (ev.target.id == `button-${divId}`) {
+                            var gherkinQueryId = `gherkin-query-${queryCount}`
+                            var config = {} 
+                            this.#addGherkinQueryDiv(gherkinQueryId, this.#row, this.#col, `column-left-${this.#row}`,
+                            config)
+
+                            queryCount += 1
+                        }
+                    }
+                }
+            }
+        }
+        addInnerHtmlToDiv(parentId, options)
+        // this.#updateGherkinQueryList(id, divId, config)
+    }
+
+    #addGherkinQueryDiv = (id, row, col, parentId, config = {}) => {
+        var divId = `${id}-${row}-${col}`
+
+        this.#config[divId] = {}
+        this.#config[divId][id] = {}
+        var currentGherkin = ""
+        var options = {
+            "div": {
+                "style": `width: ${this.#width}px;`,
+                "id": `${divId}`,
+                "innerHTML": `
+                <p id=label-${divId} style="margin-top: 0; margin-bottom: 0;">Gherkin Query</p>
+                <button id=button-query-${divId} style="margin-left: 10px">&#9881</button>
+                <button id=button-dropdown-${divId} style="margin-left: 10px">&#x25BE</button>
+                <button id=button-delete-${divId} style="margin-left: 10px">&#x2421</button>
+                <div class=btn-popup id=popup-${divId} style="display: none; z-index: 999; background-color: darkgoldenrod; position: relative;">
+                    <textarea id=input-${divId} type="text" placeholder="Enter your gherkin query here" 
+                    style="position: absolute; top: 0; left: 100%; margin-left: 10px; height: 50vh; 
+                    width: 30vw; overflow: scroll;"></textarea>
+                </div>
+                `
+            },
+            "events": {
+                [`button-query-${divId}-click`]: {
+                    "target": `button-query-${divId}`,
+                    "type": "click",
+                    "callback": async (ev) => {
+                        if (ev.target.id == `button-query-${divId}`) {
                             const popup = document.getElementById(`popup-${divId}`);
                             const query = document.getElementById(`input-${divId}`).value
                             if (popup.style.display == 'block') {
                                 popup.style.display = 'none'
                                 if (query !== currentGherkin) {
-                                    await this.#updateGherkinQueryList(id, divId, this.#config[divId][id], query)
+                                    await this.#updateGherkinQueryList(divId, this.#config[divId][id], query)
                                     currentGherkin = query
                                 }
                             } else {
@@ -82,27 +119,58 @@ class ColumnLeft {
                             }
                         }
                     }
+                },
+                [`button-dropdown-${divId}`]: {
+                    "target": `button-dropdown-${divId}`,
+                    "type": "click",
+                    "callback": (ev) => {
+                        if (ev.currentTarget.id == `button-dropdown-${divId}`) {
+                            var list = document.getElementById(`${divId}-list`);
+                            if (list != null) {
+                                if (list.style.display === "none") {
+                                    list.style.display = "block";
+                                    ev.currentTarget.innerText = getUnicodeIcon("&#x25B4");
+                                } else {
+                                    list.style.display = "none";
+                                    ev.currentTarget.innerText = getUnicodeIcon("&#x25BE");
+                                }
+                            }
+                        }
+                    }
+                },
+                [`button-delete-${divId}`]: {
+                    "target": `button-delete-${divId}`,
+                    "type": "click",
+                    "callback": (ev) => {
+                        if (ev.currentTarget.id == `button-delete-${divId}`) {
+                            var div = document.getElementById(`${divId}`);
+                            div.remove()
+                        }
+                    }
                 }
             }
         }
         addInnerHtmlToDiv(parentId, options)
-        this.#updateGherkinQueryList(id, divId, config)
+        // this.#updateGherkinQueryList(divId, config, "")
     }
 
-    async #updateGherkinQueryList(id, divId, config, query) {
+    async #updateGherkinQueryList(divId, config, query) {
         var conjunction_keyword = ['And ', '* ']
-        if(query != "" && query != undefined) {
-            
-            var gherkin_response = await apiPost(`${id}`, {
+        if (query != "" && query != undefined) {
+
+            var gherkin_response = await apiPost(`gherkin-query`, {
                 "query": `webserver --gherkin ${query} --indicator gherkin`
             });
-            debugger
+            
+            // User must define one feature per query
+            var feature = Object.keys(gherkin_response["gherkin"])[0]
+            document.getElementById(`label-${divId}`).innerText = feature
             var then_steps_tickers = []
-            for(var scenario in gherkin_response['gherkin']) {
+            for (var scenario in gherkin_response['gherkin'][feature]) {
                 var current_keyword = ""
-                var steps = gherkin_response['gherkin'][scenario]
+                var steps = gherkin_response['gherkin'][feature][scenario]
                 steps.forEach(step => {
-                    if(step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
+                    if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
                         step['result']['tickers'].forEach(ticker => {
                             if (!then_steps_tickers.includes(ticker)) {
                                 then_steps_tickers.push(
@@ -117,21 +185,21 @@ class ColumnLeft {
                     }
                 });
             }
-            then_steps_tickers.sort(function(a,b){
-                if(a.text < b.text) {
+            then_steps_tickers.sort(function (a, b) {
+                if (a.text < b.text) {
                     return -1
                 }
-                if(a.text > b.text) {
+                if (a.text > b.text) {
                     return 1
                 }
                 return 0
             })
-    
+
             var list = document.getElementById(`${divId}-list`)
             if (list != null) {
                 list.remove()
             }
-    
+
             addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker)
         }
     }
@@ -258,6 +326,7 @@ class ColumnLeft {
                 <div id=${divId}-controls style="display: flex;">
                 <p style="margin-top: 0; margin-bottom: 0;">Stage2</p>
                 <button id=button-${divId} style="margin-left: 10px">&#9881</button>
+                <button id=button-dropdown-${divId} style="margin-left: 10px">&#x25BE</button>
                 <div class=btn-popup id=popup-${divId} style="display: none; z-index: 99; background-color: darkgoldenrod; position: absolute; left:160px">
                     <form class=popup-form id=popup-form-${divId} >
                     <label for=type-${divId}>Type</label>
@@ -315,6 +384,24 @@ class ColumnLeft {
                     "callback": (ev) => {
                         ev.preventDefault();
                     }
+                },
+                [`button-dropdown-${divId}`]: {
+                    "target": `button-dropdown-${divId}`,
+                    "type": "click",
+                    "callback": (ev) => {
+                        if (ev.currentTarget.id == `button-dropdown-${divId}`) {
+                            var list = document.getElementById(`${divId}-list`);
+                            if (list != null) {
+                                if (list.style.display === "none") {
+                                    list.style.display = "block";
+                                    ev.currentTarget.innerText = getUnicodeIcon("&#x25B4");
+                                } else {
+                                    list.style.display = "none";
+                                    ev.currentTarget.innerText = getUnicodeIcon("&#x25BE");
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -361,5 +448,7 @@ class ColumnLeft {
         }
         changeSelection(id, index)
     }
+
+
 }
 
