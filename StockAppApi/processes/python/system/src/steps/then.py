@@ -4,17 +4,20 @@ from StockAppApi.utility.python.bdd.steps import then
 def get_list(selector, steps):
     try:
         ret = []
+        when_step_tickers = []
         for step in steps:
             if step['type'] == "When " or step["parent"] == "when":
-                if len(ret) == 0:
-                    ret = step['result']
-                else:
-                    if selector == 'all':
-                        ret = list(set(ret) & set(step['result']))
-                    elif selector == 'any':
-                        ret = list(set(ret + step['result']))
-                    else:
-                        raise Exception("Not valid selection")
+                step_tickers = []
+                for stp in step['result']:
+                    step_tickers.append(stp['ticker'])
+                when_step_tickers.append(step_tickers)
+        
+        if selector == 'all':
+            ret = list(set.intersection(*map(set, when_step_tickers)))
+        elif selector == 'any':
+            ret = list(set.union(*map(set, when_step_tickers)))
+        else:
+            raise Exception("Not valid selection")
 
         return {
             "selection": selector,
@@ -25,3 +28,17 @@ def get_list(selector, steps):
             "selection": selector,
             "exception": e.args
         }
+
+@then
+def color_tickers(selector, steps):
+    try:
+        return {
+            "selection": selector,
+            "tickers": []
+        }
+    except Exception as e:
+        return {
+            "selection": selector,
+            "exception": e.args
+        }
+

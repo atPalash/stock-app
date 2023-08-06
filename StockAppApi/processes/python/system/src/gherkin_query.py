@@ -75,6 +75,10 @@ class GherkinQuery(System):
             r'^(\w+) (\w+) (\w+) (\d+) in (\w+) for (\d+) days$': when.indicator_slope_compare_value,
             # 1.25 of 52 week low < close
             r'^([-+]?\d*\.\d+) of (\d+) (\w+) (\w+) ([><=!]+) (\w+)$': when.ohlc_compare_value,
+            # day close shows macd divergence with fastperiod 13 slowperiod 26 signalperiod 9 window 20 in last 100 ticks
+            r'^(\w+) (\w+) shows macd divergence with window (\d+) fastperiod (\d+) slowperiod (\d+) signalperiod (\d+) in last (\d+) ticks$': when.shows_macd_divergence,
+            # day close shows macd divergence with window 20 in last 100 ticks
+            r'^(\w+) (\w+) shows macd divergence with window (\d+) in last (\d+) ticks$': when.shows_macd_divergence,
         }
 
     def __call_if_step_matched(self, rule: str):
@@ -155,10 +159,10 @@ class GherkinQuery(System):
                                         if result["exception"] is None:
                                             if result["condition"]:
                                                 valid_tickers.append(
-                                                    result["ticker"])
+                                                    result)
                                         else:
                                             errors += f'{result["ticker"]} -> {result["exception"]} \n'
-                                    valid_tickers.sort()
+                                    valid_tickers.sort(key=lambda stock: stock['ticker'])
                                     return valid_tickers, errors
 
                                 step_result['parent'] = "" if keyword == 'When ' else 'when'
@@ -192,17 +196,11 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
     g_query = '''
-    Feature: Query
-    I want to query to get a list of matches      
-    Scenario: list stocks in stage 2 uptrend
+    Feature: Stocks with MACD divergence
+    I want to query to get a list of macd divergence stocks      
+    Scenario: list stocks showing macd divergence
     Given nifty 50 stocks
-    When day close ma 150 < close
-    * day close ma 200 < close
-    * day close ma 150 > day close ma 200
-    * day close ma 50 in uptrend for 90 days
-    * 1.25 of 52 week low < close
-    * 0.75 of 52 week high < close
-    * day close ma 50 < close
+    When day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
     Then get list of all match
     '''
     start = time.time()
@@ -219,9 +217,15 @@ if __name__ == "__main__":
 
     check = parser.execute()
     # print(test_map)
-    print(check.obj["list stocks in stage 2 uptrend"])
+    print(check.obj["Stocks with MACD divergence"])
     print("elasped time", time.time() - start)
 '''
+Feature: Stocks with MACD divergence
+    I want to query to get a list of macd divergence stocks      
+    Scenario: list stocks showing macd divergence
+    Given nifty 50 stocks
+    When day close shows macd divergence with window 20 in last 40 ticks
+    Then get list of all match
     Feature: Query
     I want to query to get a list of matches      
         Scenario: filter for ema and ma 

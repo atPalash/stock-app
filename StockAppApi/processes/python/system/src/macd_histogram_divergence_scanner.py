@@ -123,3 +123,28 @@ class MacdHistogramDivergenceScanner(System):
                 errors += f"{ticker}->{e.args}\n"
                 continue
         return RetVal(obj=divergence_df, obj_as_str=f'sample\n{divergence_df[ticker].to_string(max_rows=None, max_cols=None, index=False)}', errors=errors)
+
+if __name__ == "__main__":
+    from StockAppApi.processes.python.system.src.command_handler import CommandHandler
+    configFolder = "StockAppApi/configuration/"
+    indicator_config_yaml = configFolder + "indicator.yaml"   
+    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    commandHandler = CommandHandler(
+        selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml)
+    interval = 'day'
+    window = 20
+    n = 100
+    fastperiod = 12
+    slowperiod = 26
+    signalperiod = 9
+    ticker = 'ASIANPAINT'
+    query = f"macdhistdivergencescan --ticker {ticker} --interval {interval} --do get \
+        --window {window} --n {n} --latest 0 --fastperiod {fastperiod} \
+        --slowperiod {slowperiod} --signalperiod {signalperiod}"
+    ret = commandHandler.execute(query, False).obj
+    # yf = MacdHistogramDivergenceScanner(indicator_config_file=indicator_config_yaml, 
+    #                   selected_stocks_config_file=selected_stocks_yaml,
+    #                   parameter={'interval':'day', 'panda': 1, 'ticker':'ABB'}, command_handler=commandHandler,
+    #                   name="")
+    # data = yf.debug_get()
+    print(ret)
