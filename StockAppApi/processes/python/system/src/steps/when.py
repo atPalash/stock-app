@@ -108,12 +108,42 @@ def ohlc_compare_value(selected_stocks_yaml, indicator_config_yaml, ticker, grou
         df = pandas.read_csv(ticker_ohlc_csv_path)
 
         # lhs ohlc
-        lhs = (df[ohlc_lhs.capitalize()].tail(
-            int(window)).min()) * float(mulitplier)
-        condition_string = f'{lhs} {condition} {df[ohlc_rhs.capitalize()].iloc[-1]}'
+        rhs = df[ohlc_rhs.capitalize()].iloc[-1]
+        # remove the current
+        df = df.drop(df.index[-1])
+        lhs = (df[ohlc_lhs.capitalize()].tail(int(window)).min()) * float(mulitplier) if ohlc_lhs == "low" else (df[ohlc_lhs.capitalize()].tail(
+            int(window)).max()) * float(mulitplier)
+        condition_string = f'{lhs} {condition} {rhs}'
         return {
             "ticker": ticker,
             "query": "ohlc read from csv",
+            "condition": eval(condition_string),
+            "exception": None
+        }
+    except Exception as e:
+        return {
+            "ticker": ticker,
+            "exception": e.args
+        }
+
+
+@when
+def ohlc_window_compare(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
+    try:
+        interval, ohlc_lhs, condition, ohlc_rhs, window = groups
+        ticker_ohlc_csv_path = f'{read_config(indicator_config_yaml)["indicator"]["data"][interval]}/{ticker}.csv'
+        df = pandas.read_csv(ticker_ohlc_csv_path)
+
+        # lhs ohlc
+        lhs = df[ohlc_lhs.capitalize()].iloc[-1]
+        # remove the current
+        df = df.drop(df.index[-1])
+        rhs = df[ohlc_rhs.capitalize()].tail(int(window)).min() if ohlc_rhs == "low" else df[ohlc_rhs.capitalize()].tail(
+            int(window)).max()
+        condition_string = f'{lhs} {condition} {rhs}'
+        return {
+            "ticker": ticker,
+            "query": "ohlc_window_compare",
             "condition": eval(condition_string),
             "exception": None
         }
@@ -229,21 +259,32 @@ def shows_macd_divergence(selected_stocks_yaml, indicator_config_yaml, ticker, g
         }
 
 
+def get_steps():
+    return {
+        # day close ema 50 > close
+        r'^(\w+) (\w+) (\w+)\s+(\d+)\s+([><=!]+)\s+(\w+)$': indicator_compare_with_ohlc,
+        # day close ema 50 > day close ma 20
+        r'^(\w+) (\w+) (\w+)\s+(\d+)\s+([><=!]+)\s+(\w+) (\w+)\s+(\w+)\s+(\d+)$': indicator_compare_indicator,
+        # day close ma 50 in uptrend for 90 days
+        r'^(\w+) (\w+) (\w+)\s+(\d+) in (\w+) for (\d+) days$': indicator_slope_compare_value,
+        # 1.25 of 52 week low < close
+        r'^([-+]?\d*\.\d+) of (\d+) (\w+) (\w+)\s+([><=!]+)\s+(\w+)$': ohlc_compare_value,
+        # day close > high of last 20 ticks
+        r'^(\w+) (\w+)\s+([><=!]+)\s+(\w+) of last (\d+) ticks$': ohlc_window_compare,
+        # day close shows macd divergence with fastperiod 13 slowperiod 26 signalperiod 9 window 20 in last 100 ticks
+        r'^(\w+) (\w+) shows macd divergence with window (\d+) fastperiod (\d+) slowperiod (\d+) signalperiod (\d+) in last (\d+) ticks$': shows_macd_divergence,
+        # day close shows macd divergence with window 20 in last 100 ticks
+        r'^(\w+) (\w+) shows macd divergence with window (\d+) in last (\d+) ticks$': shows_macd_divergence,
+    }
+
+
 if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
-    interval = 'day'
-    window = 20
-    n = 100
-    fastperiod = 12
-    slowperiod = 26
-    signalperiod = 9
     ticker = 'ASIANPAINT'
-    ohlc = 'close'
-    tickcount = 100
-    res = shows_macd_divergence(selected_stocks_yaml=selected_stocks_yaml,
-                                indicator_config_yaml=indicator_config_yaml,
-                                ticker=ticker,
-                                groups=(interval, ohlc, window, tickcount))
+    res = ohlc_window_compare(selected_stocks_yaml=selected_stocks_yaml,
+                              indicator_config_yaml=indicator_config_yaml,
+                              ticker=ticker,
+                              groups=('day', 'close', '>', 'high', 20))
     print(res)

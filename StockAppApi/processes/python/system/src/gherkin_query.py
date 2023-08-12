@@ -57,29 +57,14 @@ class GherkinQuery(System):
             # 'where': self.__where # call with single ticker
         }
 
-        self.steps = {
-            # Given
-            # nifty 50 stocks
-            r'^(\w+)\s+(\d+)\s+stocks$': given.get_selected_stocks,
+        self.steps = {}
 
-            # Then
-            # get list of all match
-            r'^get list of (\w+) match$': then.get_list,
-
-            # When
-            # day close ema 50 > close
-            r'^(\w+)\s+(\w+)\s+(\w+)\s+(\d+)\s+([><=!]+)\s+(\w+)$': when.indicator_compare_with_ohlc,
-            # day close ema 50 > day close ma 20
-            r'^(\w+)\s+(\w+)\s+(\w+)\s+(\d+)\s+([><=!]+)\s+(\w+)\s+(\w+)\s+(\w+)\s+(\d+)$': when.indicator_compare_indicator,
-            # day close ma 50 in uptrend for 90 days
-            r'^(\w+) (\w+) (\w+) (\d+) in (\w+) for (\d+) days$': when.indicator_slope_compare_value,
-            # 1.25 of 52 week low < close
-            r'^([-+]?\d*\.\d+) of (\d+) (\w+) (\w+) ([><=!]+) (\w+)$': when.ohlc_compare_value,
-            # day close shows macd divergence with fastperiod 13 slowperiod 26 signalperiod 9 window 20 in last 100 ticks
-            r'^(\w+) (\w+) shows macd divergence with window (\d+) fastperiod (\d+) slowperiod (\d+) signalperiod (\d+) in last (\d+) ticks$': when.shows_macd_divergence,
-            # day close shows macd divergence with window 20 in last 100 ticks
-            r'^(\w+) (\w+) shows macd divergence with window (\d+) in last (\d+) ticks$': when.shows_macd_divergence,
-        }
+        def add_steps(supported_steps):
+            for regex, func in supported_steps.items():
+                self.steps[regex] = func
+        add_steps(given.get_steps())
+        add_steps(when.get_steps())
+        add_steps(then.get_steps())
 
     def __call_if_step_matched(self, rule: str):
         result = {
@@ -162,7 +147,8 @@ class GherkinQuery(System):
                                                     result)
                                         else:
                                             errors += f'{result["ticker"]} -> {result["exception"]} \n'
-                                    valid_tickers.sort(key=lambda stock: stock['ticker'])
+                                    valid_tickers.sort(
+                                        key=lambda stock: stock['ticker'])
                                     return valid_tickers, errors
 
                                 step_result['parent'] = "" if keyword == 'When ' else 'when'
@@ -196,12 +182,18 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
     g_query = '''
-    Feature: Stocks with MACD divergence
-    I want to query to get a list of macd divergence stocks      
-    Scenario: list stocks showing macd divergence
-    Given nifty 50 stocks
-    When day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
-    Then get list of all match
+Feature: Stage2 stocks
+I want to query to get a list of stage 2 stocks
+Scenario: list stocks in stage 2 uptrend
+Given nifty 50 stocks
+When day close ma 150 < close
+* day close ma 200 < close
+* day close ma 150 > day close ma 200
+* day close ma 50 in uptrend for 90 days
+* 1.25 of 52 week low < close
+* 0.75 of 52 week high < close
+* day close ma 50 < close
+Then get list of all match
     '''
     start = time.time()
     configFolder = "StockAppApi/configuration/"
@@ -217,7 +209,7 @@ if __name__ == "__main__":
 
     check = parser.execute()
     # print(test_map)
-    print(check.obj["Stocks with MACD divergence"])
+    print(check.obj["Stage2 stocks"])
     print("elasped time", time.time() - start)
 '''
 Feature: Stocks with MACD divergence

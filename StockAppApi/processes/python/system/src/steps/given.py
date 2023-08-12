@@ -15,3 +15,8 @@ def get_selected_stocks(allTickers, groups):
             "tickers": None,
             "exception": e.args
         }
+    
+def get_steps():
+    return {
+        r'^(\w+)\s+(\d+)\s+stocks$': get_selected_stocks,
+    }

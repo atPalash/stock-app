@@ -42,3 +42,7 @@ def color_tickers(selector, steps):
             "exception": e.args
         }
 
+def get_steps():
+    return {
+        r'^get list of (\w+) match$': get_list,
+    }
