@@ -1,4 +1,5 @@
 # TODO
+- [ ] Download minute data - use for intra-day short
 - [ ] Optimize bdd query 
 - [ ] Scan for pivot points
 - [ ] Implement config in client side else default config 

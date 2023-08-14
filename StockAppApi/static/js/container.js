@@ -56,8 +56,8 @@ class Container {
             this.#config["column-right"] = this.columnRight.getConfig()
 
             var configData = { 'column-left': this.#config["column-left"], 'column-right': this.#config["column-right"] }
-            localStorage.setItem('userConfig', JSON.stringify(configData));
-            // await apiPost("config", configData)
+            // localStorage.setItem('userConfig', JSON.stringify(configData));
+            await apiPost("config", configData)
         })
     }
 }

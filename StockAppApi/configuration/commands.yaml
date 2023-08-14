@@ -53,7 +53,7 @@ When day high > high of last 20 ticks
 Then get list of all match
 '
   turtleS1LongExit: '
-Feature: turtle S1 stocks long enter
+Feature: turtle S1 stocks long exit
 I want to query to get a list of turtle S1 stocks      
 Scenario: list stocks with turtle S1 exit
 Given nifty 50 stocks
