@@ -112,7 +112,7 @@ def download_stock_stats(tickers: list, destination):
 
 if __name__ == "__main__":
     try:
-        download_historical_data(["^NSEI"], "10y", "1wk", True, True, "/home/palash/dev/stock-app/StockAppApi/processes/python/yahoofinance")
+        download_historical_data(["PRAKASHSTL.NS"], "1y", "1d", True, True, "/home/palash/dev/stock-app/StockAppApi/processes/python/yahoofinance")
         # download_stock_stats(["HATSUN", "HDFC"])
     except Exception as e:
         print(e.args)

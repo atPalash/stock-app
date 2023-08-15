@@ -17,6 +17,7 @@ class YahooScheduler(Scheduler):
     def run(self):
         scheduler = BackgroundScheduler()
         for interval in self.indicator_config['indicator']['data']:
+            self.__periodic_download(interval=interval)
             if interval == 'week':
                 scheduler.add_job(self.__periodic_download, 'cron', hour='17',
                                   day_of_week='fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
@@ -55,6 +56,16 @@ class YahooScheduler(Scheduler):
             query = f"yahoofinance --ticker all --do fundamentals --pandas 0  --csv 1"
             ret = self.system_command_handler.execute(message=query, is_rest=False) # just download the data, only print the errors
             if ret.errors != "":
-                print("ERROR yahoo fundamental download system", ret.errors)
+                print("ERROR yahoo fundamental download system", ret.errors) # TODO
         except Exception as e:
             print("ERROR __monthly_fundamental_download", e.args)
+
+
+if __name__ == "__main__":
+    from StockAppApi.base.python.src.yaml_parser import read_config
+    configFolder = "StockAppApi/configuration/"
+    config = read_config(configFolder + "config.yaml")
+    indicator_config_yaml = configFolder + "indicator.yaml"   
+    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
+    scheduler.run()

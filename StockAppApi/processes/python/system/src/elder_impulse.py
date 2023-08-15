@@ -50,7 +50,7 @@ class ElderImpulse(System):
                'macd_hist_week_slope', 'ema_action', 'machdhist_action', 'trend']
         impulse_df = pandas.DataFrame(columns=cols)
         errors = ""
-        for stock in self._get_tickers():
+        for stock in self._get_indices() + self._get_tickers():
             try:
                 # get slope of last n data points of ema<window>.
                 ema_day_query = f'talibquery --ticker {stock} --interval day --do get --csv 0 \

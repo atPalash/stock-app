@@ -1,11 +1,13 @@
 from StockAppApi.base.python.interface.commandHandlerIf import CommandHandlerIf, Response, get_commands_as_str
 from StockAppApi.base.python.src.message_parser import parse_message
 from StockAppApi.processes.python.system.src.elder_impulse import ElderImpulse
+from StockAppApi.processes.python.system.src.gherkin_query import GherkinQuery
 from StockAppApi.processes.python.system.src.talib_query import TalibQuery
 from StockAppApi.processes.python.system.src.yahoo_finance import YahooFinance
 from StockAppApi.processes.python.system.src.macd_histogram_divergence_scanner import MacdHistogramDivergenceScanner
 from StockAppApi.processes.python.system.src.canslim import Canslim
 from StockAppApi.processes.python.system.src.webserver import Webserver
+from StockAppApi.processes.python.system.src.stage2_scanner import Stage2Scanner
 
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml, indicator_config_yaml) -> None:
@@ -16,7 +18,9 @@ class CommandHandler(CommandHandlerIf):
             "yahoofinance": YahooFinance,
             "macdhistdivergencescan": MacdHistogramDivergenceScanner,
             "canslim": Canslim,
-            "webserver": Webserver
+            "webserver": Webserver,
+            "stage2scan": Stage2Scanner,
+            "gherkinquery": GherkinQuery
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml

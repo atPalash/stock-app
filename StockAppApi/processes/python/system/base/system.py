@@ -6,6 +6,8 @@ class System(SystemIf):
     def __init__(self, indicator_config_file:str, selected_stocks_config_file:str, 
                  parameter: dict, command_handler: object, name="") -> None:
         self.name = name
+        self.selected_stocks_config_file = selected_stocks_config_file
+        self.indicator_config_file = indicator_config_file
         self.selected_stocks_config = read_config(selected_stocks_config_file)
         self.indicator_config = read_config(indicator_config_file)
         self.parameter = self.__update_parameter_or_set_to_default(parameter=parameter)
@@ -23,6 +25,7 @@ class System(SystemIf):
             'condition': parameter.get('condition', ''),
             'csv': int(parameter.get('csv', '0')),
             'do': parameter.get('do', 'get'),
+            'gherkin': parameter.get('gherkin', ''),
             'indicator': parameter.get('indicator', 'ema'),
             'interval': parameter.get('interval', 'day'),
             'index': parameter.get('index', '^NSEI'),
@@ -38,17 +41,26 @@ class System(SystemIf):
             'save_plot': parameter.get('save_plot', ''),
             'ticker': parameter.get('ticker', 'all'),
             'window': int(parameter.get('window', '20')),
+            'stage2scannertype': parameter.get('stage2scannertype', 'ma')
         }
         
         return parameters
     
-    def _get_tickers(self) ->list:
+    def __get_list_of_tickers(self, type:str) -> list:
         tickers = []
         ticker = self.parameter['ticker']
+        all_tickers = self.selected_stocks_config[type]
         if ticker == "all":
-            tickers = self.selected_stocks_config['stock']
+            tickers = all_tickers
         else:
             for tick in ticker.split(','):
-                tickers.append(tick)
+                if tick in all_tickers:
+                    tickers.append(tick)
         tickers = [ticker.replace(" ", "") for ticker in tickers]
         return tickers
+
+    def _get_tickers(self) ->list:
+        return self.__get_list_of_tickers('stock')
+    
+    def _get_indices(self) -> list:
+        return self.__get_list_of_tickers('index')

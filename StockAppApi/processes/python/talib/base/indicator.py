@@ -3,7 +3,7 @@ import numpy
 from scipy.stats import linregress
 
 from StockAppApi.processes.python.talib.interface.indicator_if import IndicatorIf
-
+from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_latest_data
 class Indicator(IndicatorIf):
     def __init__(self, ohlc:pandas.DataFrame, parameter:dict,ticker:str, name="", type="") -> None:
         self.name = name
@@ -22,4 +22,15 @@ class Indicator(IndicatorIf):
             dict: pandas dataframe with additional column for analysed data 
         """
         self._do_analysis(latest=with_latest_minute)
+        return self.ohlc
+    
+    def get_data(self, latest=True):
+        if latest == 1:
+            tickers = []
+            if '^' in self.ticker: #index are with ^in yahoo
+                tickers = [self.ticker]
+            else:
+                tickers = [f'{self.ticker}.NS']
+            last_minute_series = download_latest_data(tickers=tickers)
+            self.ohlc = pandas.concat([self.ohlc, last_minute_series])
         return self.ohlc

@@ -1,3 +1,5 @@
+import pandas
+
 from StockAppApi.processes.python.system.base.system import System, RetVal
 from StockAppApi.processes.python.yahoofinance.src.data_fetcher import download_historical_data, download_stock_stats
 
@@ -44,10 +46,10 @@ class YahooFinance(System):
         tickers = self._get_tickers()
         # Need to add NS to download stock ohlc from yahoo
         tickers = [f"{tick}.NS" for tick in tickers]
-        # We will download index ohlc with every download. Maybe add logic later
-        # to avoid this redundant calls
-        for index in self.selected_stocks_config['index']:
-            tickers.append(index)  # For index ohlc no need to add NS
+        
+        indices = self._get_indices()
+        
+        tickers = tickers + indices
 
         df, err = download_historical_data(tickers=tickers,
                                       period=self.periods[self.parameter['interval']],
@@ -59,7 +61,8 @@ class YahooFinance(System):
         return RetVal(obj=df, obj_as_str="pandas dataframe downloaded", errors=err)
 
     def __get_fundamentals(self) -> RetVal:
-        """Used to download fundamentals as csv all the selected stocks
+        """Used to download fundamentals as csv all the selected stocks. Index don't have
+        any fundamental data as a whole.
 
         Returns:
             RetVal: containing error as useful data.
@@ -73,3 +76,25 @@ class YahooFinance(System):
         # return None as retval object since no sense to return fundamentals dataframe of different sizes. Just download
         # and read later
         return RetVal(obj=None, obj_as_str="None downloaded as csv", errors=error)
+    
+    def debug_get(self):
+        return self.__get().obj
+    
+    def get_df(interval:str, ticker:str):
+        try:
+            return pandas.read_csv(f"{interval}/{ticker}.csv")
+        except Exception as e:
+            raise
+        
+    
+if __name__ == "__main__":
+    configFolder = "StockAppApi/configuration/"
+    indicator_config_yaml = configFolder + "indicator.yaml"   
+    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    yf = YahooFinance(indicator_config_file=indicator_config_yaml, 
+                      selected_stocks_config_file=selected_stocks_yaml,
+                      parameter={'interval':'day', 'panda': 1, 'ticker':'all'}, command_handler=None,
+                      name="")
+    data = yf.debug_get()
+    print(data)
+    

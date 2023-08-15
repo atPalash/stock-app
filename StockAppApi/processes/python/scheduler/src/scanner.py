@@ -39,15 +39,15 @@ class Scanner(Scheduler):
         macdhist_week_divergence = self.__macd_histogram_divergence_scan("week")
         macdhist_day_divergence = self.__macd_histogram_divergence_scan("day")
         macdhist_hour_divergence = self.__macd_histogram_divergence_scan("hour")
-
+        
         # plot analysed data
-        for ticker in self.selected_stocks_config['stock']:
+        for ticker in self.selected_stocks_config['stock'] + self.selected_stocks_config['index']:
             try:
-                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim[ticker],
+                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim.get(ticker, None),
                             macd_hist=macdhist_week_divergence[ticker], interval="week")
-                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim[ticker],
+                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim.get(ticker, None),
                             macd_hist=macdhist_day_divergence[ticker], interval="day")
-                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim[ticker],
+                self.__plot(ticker=ticker, elder=elder[elder['stock']==ticker], canslim=canslim.get(ticker, None),
                         macd_hist=macdhist_hour_divergence[ticker], interval="hour")
             except Exception as e:
                 print (ticker, e.args)
@@ -65,7 +65,7 @@ class Scanner(Scheduler):
 
     def __macd_histogram_divergence_scan(self, interval):
         try:
-            query = f"macdhistdivergencescan --ticker all --interval {interval} --do get --window 20 --n {self.sample[interval]} --latest 1"
+            query = f"macdhistdivergencescan --ticker all --interval {interval} --do get --window 20 --n {self.sample[interval]} --latest 0"
             ret = self.system_command_handler.execute(query)
             if ret.errors != "":
                 print(f"ERROR macdhist system for {interval}", ret.errors)
@@ -140,8 +140,8 @@ class Scanner(Scheduler):
         # Define the text and position
         position = (10, 10)
         text = f""
-        if "canslim" in kwargs:
-            canslim = kwargs['canslim']
+        canslim = kwargs.get('canslim', None)
+        if canslim is not None:
             quaterly_eps_growth = f'quaterly eps growth\n{canslim.C.pct_change(periods=-1).to_string()}\n'
             yearly_eps_growth = f'yearly eps growth\n{canslim.A.pct_change(periods=-1).to_string()}\n'
             relative_strength = f'relative strength\n{canslim.L.values.mean()}\n'
@@ -149,8 +149,8 @@ class Scanner(Scheduler):
             shares_outstanding = f'shares outstanding\n{canslim.S.to_string()}\n'
             text = text + f'--Canslim--\n' + quaterly_eps_growth + yearly_eps_growth + shares_outstanding + relative_strength + market_direction
 
-        if "elder" in kwargs:
-            elder = kwargs['elder']
+        elder = kwargs.get('elder', None)
+        if elder is not None:
             text = text + f'--Elder impulse--\n {elder["trend"].to_string()}'
         
         # Draw the text on the image

@@ -54,7 +54,7 @@ class MacdHistogramDivergenceScanner(System):
     def __get(self) -> RetVal:
         errors = ""
         divergence_df = {}
-        for ticker in self._get_tickers():
+        for ticker in self._get_tickers() + self._get_indices():
             try:
                 macdhist_query = f'talibquery --ticker {ticker} --interval {self.parameter["interval"]} --do get \
                     --indicator macdhist --fastperiod {self.parameter["macd_fast_period"]} \
@@ -64,13 +64,8 @@ class MacdHistogramDivergenceScanner(System):
 
                 ret['macdhist_divergence'] = 0
                 # here taking close as the price
-                # search end of window divergence by lowering the window size
-                for i in range(ret.index.min(), ret.index.max() - int(self.parameter['window'] * 0.5), 1):
-                    last_index = i+self.parameter['window']
-                    if i + self.parameter['window'] >= ret.index.max():
-                        last_index = ret.index.max()
-                    
-                    window = ret.loc[i:last_index]
+                for i in range(ret.index.min(), ret.index.max() - self.parameter['window'] + 1, 1):
+                    window = ret.loc[i:i+self.parameter['window']]
                     window_macdhist = window['macdhist']
                     window_macdhist_min = window_macdhist.min()
                     window_macdhist_max = window_macdhist.max()
@@ -128,3 +123,28 @@ class MacdHistogramDivergenceScanner(System):
                 errors += f"{ticker}->{e.args}\n"
                 continue
         return RetVal(obj=divergence_df, obj_as_str=f'sample\n{divergence_df[ticker].to_string(max_rows=None, max_cols=None, index=False)}', errors=errors)
+
+if __name__ == "__main__":
+    from StockAppApi.processes.python.system.src.command_handler import CommandHandler
+    configFolder = "StockAppApi/configuration/"
+    indicator_config_yaml = configFolder + "indicator.yaml"   
+    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    commandHandler = CommandHandler(
+        selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml)
+    interval = 'day'
+    window = 20
+    n = 100
+    fastperiod = 12
+    slowperiod = 26
+    signalperiod = 9
+    ticker = 'ASIANPAINT'
+    query = f"macdhistdivergencescan --ticker {ticker} --interval {interval} --do get \
+        --window {window} --n {n} --latest 0 --fastperiod {fastperiod} \
+        --slowperiod {slowperiod} --signalperiod {signalperiod}"
+    ret = commandHandler.execute(query, False).obj
+    # yf = MacdHistogramDivergenceScanner(indicator_config_file=indicator_config_yaml, 
+    #                   selected_stocks_config_file=selected_stocks_yaml,
+    #                   parameter={'interval':'day', 'panda': 1, 'ticker':'ABB'}, command_handler=commandHandler,
+    #                   name="")
+    # data = yf.debug_get()
+    print(ret)
