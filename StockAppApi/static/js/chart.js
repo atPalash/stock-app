@@ -25,11 +25,15 @@ class TradingViewChart {
         slide.style.display = 'block';
         slide.style.height = `${this.#height}px`
         slide.style.width = `${this.#width}px`
-
+        const intervalsWithOutTime = ["month", "week", "day"]
         const tvChart = LightweightCharts.createChart(slide, {
             // autoSize: true
             height: this.#height,
-            width: this.#width
+            width: this.#width,
+            timeScale: {
+                timeVisible: !intervalsWithOutTime.includes(slideData.interval),
+                timeFormat: '%h:%m',
+            },
         });
 
         const tvSeries = tvChart.addCandlestickSeries();
