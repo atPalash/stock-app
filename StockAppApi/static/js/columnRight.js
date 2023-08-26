@@ -83,9 +83,14 @@ class ColumnRight {
         // insert to the parent
         var innerHtml = `
         <select id="interval-${row}-${col}">
+            <option value="minute">Minute</option>    
+            <option value="minute5">5 Minutes</option>
+            <option value="minute15">15 Minutes</option>
+            <option value="minute30">30 Minutes</option>
             <option value="hour">Hour</option>
             <option value="day" selected>Day</option>
             <option value="week">Week</option>
+            <option value="month">Month</option>
         </select>
         <select id="indicator-${row}-${col}">
             <option value="None" selected>None</option>
