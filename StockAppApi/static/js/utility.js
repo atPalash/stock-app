@@ -26,15 +26,13 @@ async function apiGet(endPoint) {
 }
 
 function convertToUtc(time) {
-    var timestamp = time
     if (time.includes(":")) {
-        timestamp = timestamp.replace(" ", "T")
-        timestamp = timestamp + "+05:30"
-        timestamp = new Date(timestamp)
-        timestamp = timestamp.getTime()
-        return timestamp
+        // This offset will change based on the source data and client
+        // time zone, also when DST is applied
+        const offset = 10800      
+        return Date.parse(time) / 1000 + offset
     }
-    return timestamp
+    return time
 }
 
 function addInnerHtmlToDiv(parentId, options) {
