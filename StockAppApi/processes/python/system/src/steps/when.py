@@ -138,7 +138,7 @@ def ohlc_window_compare(selected_stocks_yaml, indicator_config_yaml, ticker, gro
         lhs = df[ohlc_lhs.capitalize()].iloc[-1]
         # remove the current
         df = df.drop(df.index[-1])
-        rhs = df[ohlc_rhs.capitalize()].tail(int(window)).min() if ohlc_rhs == "low" else df[ohlc_rhs.capitalize()].tail(
+        rhs = df[ohlc_rhs.capitalize()].tail(int(window)).min() if condition == "<" else df[ohlc_rhs.capitalize()].tail(
             int(window)).max()
         condition_string = f'{lhs} {condition} {rhs}'
         return {
@@ -282,9 +282,9 @@ if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
-    ticker = 'ASIANPAINT'
+    ticker = 'ADANIENT'
     res = ohlc_window_compare(selected_stocks_yaml=selected_stocks_yaml,
                               indicator_config_yaml=indicator_config_yaml,
                               ticker=ticker,
-                              groups=('day', 'close', '>', 'high', 20))
+                              groups=('minute', 'close', '<', 'low', 10))
     print(res)

@@ -1,6 +1,7 @@
 # TODO
-- [ ] Download minute data - use for intra-day short
-- [ ] Optimize bdd query 
+- [ ] Fix date for minute hour data in tv
+- [ ] Backtest capability
+- [ ] Volume strategy
 - [ ] Scan for pivot points
 - [ ] Implement config in client side else default config 
 - [ ] show Macd hist
@@ -10,11 +11,13 @@
 - [ ] Delete capability in multi-timeframe
 - [ ] Show info on the indicator / scanner
 # BUG
+- The chart seems to be not using the selected interval
 - The config is empty when saved from non-debug browser
- 
 # Aborted
 - [x] VCP pattern -> check BB contraction
 # Done
+- [x] Download minute data - use for intra-day short
+- [x] Optimize bdd query 
 - [x] Implement bdd query
 - [x] Click to select ticker from MACD Div list or Stage2
 - [x] Stage2Scanner from Mark Minervini

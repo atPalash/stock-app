@@ -14,9 +14,6 @@ class CommandHandler(CommandHandlerIf):
         self.schedulers = { 
             'yahoo': YahooScheduler(indicator_config_file=indicator_config_file, 
                                         selected_stocks_config_file=selected_stocks_config_file, 
-                                        master_url=master_url),
-            'scanner': Scanner(indicator_config_file=indicator_config_file, 
-                                        selected_stocks_config_file=selected_stocks_config_file, 
                                         master_url=master_url)
         }
 

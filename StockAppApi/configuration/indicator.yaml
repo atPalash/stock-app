@@ -1,8 +1,14 @@
 indicator:
   data:
+    month: "StockAppApi/database/ohlc/month" 
     day: "StockAppApi/database/ohlc/day"
     hour: "StockAppApi/database/ohlc/hour"
     week: "StockAppApi/database/ohlc/week"
+    minute: "StockAppApi/database/ohlc/minute"
+    minute2: "StockAppApi/database/ohlc/minute2"
+    minute5: "StockAppApi/database/ohlc/minute5"
+    minute15: "StockAppApi/database/ohlc/minute15"
+    minute30: "StockAppApi/database/ohlc/minute30"
   plot:
     day: "StockAppApi/database/plot/day"
     hour: "StockAppApi/database/plot/hour"

@@ -18,7 +18,10 @@ class YahooScheduler(Scheduler):
         scheduler = BackgroundScheduler()
         for interval in self.indicator_config['indicator']['data']:
             self.__periodic_download(interval=interval)
-            if interval == 'week':
+            if interval == 'month':
+                scheduler.add_job(self.__periodic_download, 'cron', day='1', hour='0', minute='0',
+                                  timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
+            elif interval == 'week':
                 scheduler.add_job(self.__periodic_download, 'cron', hour='17',
                                   day_of_week='fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
             elif interval == 'day':
@@ -26,6 +29,18 @@ class YahooScheduler(Scheduler):
                                   day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
             elif interval == 'hour':
                 scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='16',
+                                  day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
+            elif interval == 'minute':
+                scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*',
+                                  day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
+            elif interval == 'minute5':
+                scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*/5',
+                                  day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
+            elif interval == 'minute15':
+                scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*/15',
+                                  day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
+            elif interval == 'minute30':
+                scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*/30',
                                   day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
             else:
                 print(f"Error: This {interval} is not allowed")
@@ -35,6 +50,13 @@ class YahooScheduler(Scheduler):
             timezone=pytz.timezone('Asia/Kolkata'))
         scheduler.start()
 
+    def forceDownload(self, inter=""):
+        if inter == "":
+            for interval in self.indicator_config['indicator']['data']:
+                self.__periodic_download(interval=interval)
+        else:
+            self.__periodic_download(interval=inter)
+            
     def __periodic_download(self, interval: str):
         """Analysis method will include all the possible combination of the indicators.
         Donot call this method directly to avoid confusion, use the above methods. 
@@ -68,4 +90,4 @@ if __name__ == "__main__":
     indicator_config_yaml = configFolder + "indicator.yaml"   
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
     scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
-    scheduler.run()
+    scheduler.forceDownload("month")
