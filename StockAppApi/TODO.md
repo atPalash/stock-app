@@ -1,5 +1,4 @@
 # TODO
-- [ ] Fix date for minute hour data in tv
 - [ ] Backtest capability
 - [ ] Volume strategy
 - [ ] Scan for pivot points
@@ -16,6 +15,7 @@
 # Aborted
 - [x] VCP pattern -> check BB contraction
 # Done
+- [x] Fix date for minute hour data in tv
 - [x] Download minute data - use for intra-day short
 - [x] Optimize bdd query 
 - [x] Implement bdd query

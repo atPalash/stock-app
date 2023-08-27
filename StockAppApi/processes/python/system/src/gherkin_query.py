@@ -2,6 +2,8 @@ import multiprocessing
 import time
 import re
 
+import pandas
+
 from StockAppApi.processes.python.system.base.system import System, RetVal
 from StockAppApi.utility.python.bdd import gherkin_parser
 from StockAppApi.processes.python.system.src.steps import given, when, then
@@ -142,7 +144,9 @@ class GherkinQuery(System):
 
                                     for result in multi_results:
                                         if result["exception"] is None:
-                                            if result["condition"]:
+                                            if isinstance(result["condition"], pandas.DataFrame) and (result["condition"]["eval"] == True).any():
+                                                valid_tickers.append(result)    
+                                            else:
                                                 valid_tickers.append(
                                                     result)
                                         else:
@@ -160,7 +164,7 @@ class GherkinQuery(System):
                                 # 3rd step -> data presentation
                                 step_result['parent'] = "" if keyword == 'Then ' else 'then'
                                 step_result['result'] = matched_step['func'](
-                                    matched_step["match"].group(1), step_results)
+                                    matched_step["match"].groups(), step_results)
                                 current_keyword = 'Then '
                                 step_results.append(step_result)
                             else:
@@ -182,18 +186,12 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
     g_query = '''
-Feature: Stage2 stocks
-I want to query to get a list of stage 2 stocks
-Scenario: list stocks in stage 2 uptrend
-Given nifty 50 stocks
-When day close ma 150 < close
-* day close ma 200 < close
-* day close ma 150 > day close ma 200
-* day close ma 50 in uptrend for 90 days
-* 1.25 of 52 week low < close
-* 0.75 of 52 week high < close
-* day close ma 50 < close
-Then get list of all match
+    Feature: Plot signals
+    I want to query to plot signals in stocks
+    Scenario: list stocks with signal
+    Given nifty 50 stocks
+    When plot signals for last 100 ticks | day close > high of last 20 ticks
+    Then get list of all match
     '''
     start = time.time()
     configFolder = "StockAppApi/configuration/"
@@ -209,8 +207,9 @@ Then get list of all match
 
     check = parser.execute()
     # print(test_map)
-    print(check.obj["Stage2 stocks"])
+    print(check.obj["Plot signals"])
     print("elasped time", time.time() - start)
+    
 '''
 Feature: Stocks with MACD divergence
     I want to query to get a list of macd divergence stocks      

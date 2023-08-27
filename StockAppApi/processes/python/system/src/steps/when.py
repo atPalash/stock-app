@@ -1,6 +1,8 @@
 import pandas
 import numpy
 from scipy.stats import linregress
+import re
+from typing import Callable
 
 from StockAppApi.base.python.src.yaml_parser import read_config
 from StockAppApi.utility.python.bdd.steps import when
@@ -101,25 +103,28 @@ def indicator_slope_compare_value(selected_stocks_yaml, indicator_config_yaml, t
 
 
 @when
-def ohlc_compare_value(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
+def ohlc_compare_value(selected_stocks_yaml, indicator_config_yaml, ticker, groups, lookback_window: int=-1):
     try:
         mulitplier, window, interval, ohlc_lhs, condition, ohlc_rhs = groups
         ticker_ohlc_csv_path = f'{read_config(indicator_config_yaml)["indicator"]["data"][interval]}/{ticker}.csv'
-        df = pandas.read_csv(ticker_ohlc_csv_path)
+        ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
 
-        # lhs ohlc
-        rhs = df[ohlc_rhs.capitalize()].iloc[-1]
-        # remove the current
-        df = df.drop(df.index[-1])
-        lhs = (df[ohlc_lhs.capitalize()].tail(int(window)).min()) * float(mulitplier) if ohlc_lhs == "low" else (df[ohlc_lhs.capitalize()].tail(
-            int(window)).max()) * float(mulitplier)
-        condition_string = f'{lhs} {condition} {rhs}'
-        return {
-            "ticker": ticker,
-            "query": "ohlc read from csv",
-            "condition": eval(condition_string),
-            "exception": None
-        }
+        def logic(df: pandas.DataFrame):
+            # lhs ohlc
+            rhs = df[ohlc_rhs.capitalize()].iloc[-1]
+            # remove the current
+            df = df.drop(df.index[-1])
+            lhs = (df[ohlc_lhs.capitalize()].tail(int(window)).min()) * float(mulitplier) if ohlc_lhs == "low" else (df[ohlc_lhs.capitalize()].tail(
+                int(window)).max()) * float(mulitplier)
+            condition_string = f'{lhs} {condition} {rhs}'
+            return {
+                "ticker": ticker,
+                "query": "ohlc read from csv",
+                "condition": eval(condition_string),
+                "exception": None
+            }
+            
+        return __get_result(lookback_window=lookback_window, logic=logic, ticker_df=ticker_df)
     except Exception as e:
         return {
             "ticker": ticker,
@@ -128,25 +133,28 @@ def ohlc_compare_value(selected_stocks_yaml, indicator_config_yaml, ticker, grou
 
 
 @when
-def ohlc_window_compare(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
+def ohlc_window_compare(selected_stocks_yaml, indicator_config_yaml, ticker, groups, lookback_window: int=-1):
     try:
         interval, ohlc_lhs, condition, ohlc_rhs, window = groups
         ticker_ohlc_csv_path = f'{read_config(indicator_config_yaml)["indicator"]["data"][interval]}/{ticker}.csv'
-        df = pandas.read_csv(ticker_ohlc_csv_path)
+        ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
 
-        # lhs ohlc
-        lhs = df[ohlc_lhs.capitalize()].iloc[-1]
-        # remove the current
-        df = df.drop(df.index[-1])
-        rhs = df[ohlc_rhs.capitalize()].tail(int(window)).min() if condition == "<" else df[ohlc_rhs.capitalize()].tail(
-            int(window)).max()
-        condition_string = f'{lhs} {condition} {rhs}'
-        return {
-            "ticker": ticker,
-            "query": "ohlc_window_compare",
-            "condition": eval(condition_string),
-            "exception": None
-        }
+        def logic(df:pandas.DataFrame):
+            # lhs ohlc
+            lhs = df[ohlc_lhs.capitalize()].iloc[-1]
+            # remove the current
+            df = df.drop(df.index[-1])
+            rhs = df[ohlc_rhs.capitalize()].tail(int(window)).min() if condition == "<" else df[ohlc_rhs.capitalize()].tail(
+                int(window)).max()
+            condition_string = f'{lhs} {condition} {rhs}'
+            return {
+                "ticker": ticker,
+                "query": "ohlc_window_compare",
+                "condition": eval(condition_string),
+                "exception": None
+            }
+
+        return __get_result(lookback_window=lookback_window, logic=logic, ticker_df=ticker_df)
     except Exception as e:
         return {
             "ticker": ticker,
@@ -259,6 +267,42 @@ def shows_macd_divergence(selected_stocks_yaml, indicator_config_yaml, ticker, g
         }
 
 
+@when
+def plot_signals(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
+    """Method to call to set backtest criteria. This method must be called before
+    defining the condition to backtest on.
+
+    e.g. "plot signals for last 100 ticks | day close > high of last 20 ticks"
+    regex: r'^plot signals for last (\d+) ticks \| (.*)$'
+
+    Args:
+        selected_stocks_yaml (_type_): selected stock list
+        indicator_config_yaml (_type_): indicator configuration
+        ticker (_type_): stock to test
+        groups (_type_): match groups from user input
+    """
+    try:
+        look_back_window, signal_condition = groups
+        matched_step = __call_if_step_matched(signal_condition)
+        if matched_step["matched"]:
+            ret = matched_step["func"](
+                selected_stocks_yaml, indicator_config_yaml, ticker, matched_step["match"].groups(), int(look_back_window))
+            return {
+                "ticker": ticker,
+                "query": "plot_signals",
+                "condition": ret["condition"],
+                "exception": ret["exception"]
+            }
+        else:
+            raise Exception(
+                f'Exception in matching keyword {signal_condition}')
+
+    except Exception as e:
+        return {
+            "ticker": ticker,
+            "exception": e.args
+        }
+
 def get_steps():
     return {
         # day close ema 50 > close
@@ -275,7 +319,40 @@ def get_steps():
         r'^(\w+) (\w+) shows macd divergence with window (\d+) fastperiod (\d+) slowperiod (\d+) signalperiod (\d+) in last (\d+) ticks$': shows_macd_divergence,
         # day close shows macd divergence with window 20 in last 100 ticks
         r'^(\w+) (\w+) shows macd divergence with window (\d+) in last (\d+) ticks$': shows_macd_divergence,
+        # plot signals for last 100 ticks | day close > high of last 20 ticks
+        r'^plot signals for last (\d+) ticks \| (.*)$': plot_signals
     }
+
+def __get_result(lookback_window: int, logic: Callable, ticker_df:pandas.DataFrame):
+    result = logic(ticker_df)
+    if lookback_window == -1:
+        return result
+    else:
+        # start_index = 
+        index_conditions = []
+        for i in range(ticker_df.index.stop - lookback_window, ticker_df.index.stop):
+            look_back_df = ticker_df[0:i]
+            ret = logic(look_back_df)
+            if ret["exception"] is not None:
+                result["exception"] = result["exception"] + ret["exception"]
+            index_conditions.append((i, ret["condition"]))
+        result["condition"] = pandas.DataFrame(index_conditions, columns=['index', 'eval'])
+        return result
+    
+def __call_if_step_matched(rule: str):
+    result = {
+        'matched': False,
+        'match': None,
+        'func': None
+    }
+    for pattern, func in get_steps().items():
+        match = re.search(pattern, rule)
+        if match:
+            result['matched'] = True
+            result['match'] = match
+            result['func'] = func
+            break
+    return result
 
 
 if __name__ == "__main__":
@@ -283,8 +360,9 @@ if __name__ == "__main__":
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
     ticker = 'ADANIENT'
-    res = ohlc_window_compare(selected_stocks_yaml=selected_stocks_yaml,
-                              indicator_config_yaml=indicator_config_yaml,
-                              ticker=ticker,
-                              groups=('minute', 'close', '<', 'low', 10))
-    print(res)
+    query = "plot signals for last 100 ticks | day close > high of last 20 ticks"
+    # query = "day close > high of last 20 ticks"
+    matched_step = __call_if_step_matched(query)
+    result = matched_step['func'](selected_stocks_yaml, indicator_config_yaml,
+                         ticker, matched_step["match"].groups())
+    print(result)
