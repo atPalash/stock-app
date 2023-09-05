@@ -5,7 +5,6 @@ indicator:
     hour: "StockAppApi/database/ohlc/hour"
     week: "StockAppApi/database/ohlc/week"
     minute: "StockAppApi/database/ohlc/minute"
-    minute2: "StockAppApi/database/ohlc/minute2"
     minute5: "StockAppApi/database/ohlc/minute5"
     minute15: "StockAppApi/database/ohlc/minute15"
     minute30: "StockAppApi/database/ohlc/minute30"

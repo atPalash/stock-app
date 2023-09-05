@@ -37,7 +37,7 @@ class YahooFinance(System):
                          'minute15': '15m','minute30': '30m', 'day': '1d', 'hour': '1h', 
                          'week': '1wk', 'month': '1mo'}
         # 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
-        self.periods = {'minute': '5d', 'minute2': '1mo','minute5': '1mo', 
+        self.periods = {'minute': '5d','minute5': '1mo', 
                          'minute15': '1mo','minute30': '1mo', 'day': '5y',
                          'hour': '2y', 'week': '10y', 'month': '10y'}
 
