@@ -63,17 +63,25 @@ def list_stock_signals(groups, steps):
     """
     try:
         ret = []
-        when_step_tickers = []
+        tickers_with_signal = {}
         for step in steps:
             if step['type'] == "When " or step["parent"] == "when":
-                step_tickers = []
                 for stp in step['result']:
-                    step_tickers.append(stp['ticker'])
-                when_step_tickers.append(step_tickers)
-        
+                    if any(isinstance(item, tuple) and item[1] for item in stp["condition"]):
+                        temp = {
+                                'signal': stp['condition'],
+                                'color': stp['color'] ,
+                                'interval': stp['interval']
+                            }
+                        if(stp['ticker'] not in tickers_with_signal):
+                            tickers_with_signal[stp['ticker']] = [temp]
+                            # tickers_with_signal[stp['ticker']]['signal'] = stp["condition"]
+                            # tickers_with_signal[stp['ticker']]['color'] = stp["color"]        
+                        else:
+                            tickers_with_signal[stp['ticker']].append(temp)
         return {
-            
-            "tickers": ret
+            "tickers": list(tickers_with_signal),
+            "signals": tickers_with_signal
         }
     except Exception as e:
         return {

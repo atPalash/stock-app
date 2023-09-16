@@ -112,7 +112,7 @@ class GherkinQuery(System):
                                 # e.g. set the interval, selected stock etc.
                                 step_result['parent'] = "" if keyword == 'Given ' else 'given'
                                 step_result['result'] = matched_step['func'](
-                                    self._get_indices() + self._get_tickers(), "")
+                                    self.selected_stocks_config_file, self.indicator_config_file, matched_step["match"].groups())
                                 current_keyword = 'Given '
                                 step_results.append(step_result)
                             elif keyword == 'When ' or (current_keyword == 'When ' and keyword in conjunction_keyword):
@@ -144,11 +144,7 @@ class GherkinQuery(System):
 
                                     for result in multi_results:
                                         if result["exception"] is None:
-                                            if isinstance(result["condition"], pandas.DataFrame) and (result["condition"]["eval"] == True).any():
-                                                valid_tickers.append(result)    
-                                            else:
-                                                valid_tickers.append(
-                                                    result)
+                                            valid_tickers.append(result)
                                         else:
                                             errors += f'{result["ticker"]} -> {result["exception"]} \n'
                                     valid_tickers.sort(
@@ -186,12 +182,12 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
     g_query = '''
-    Feature: Plot signals
-    I want to query to plot signals in stocks
-    Scenario: list stocks with signal
-    Given nifty 50 stocks
-    When plot signals for last 100 ticks | day close > high of last 20 ticks
-    Then get list of all match
+    Feature: Back test day turtle S1
+    I want to query to backtest in stocks
+    Scenario: backtest stocks
+    Given nifty 100 stocks
+    When backtest for last 100 ticks with signal color green | day close > close of last 55 ticks
+    Then get list of stocks with signals
     '''
     start = time.time()
     configFolder = "StockAppApi/configuration/"
@@ -207,16 +203,22 @@ if __name__ == "__main__":
 
     check = parser.execute()
     # print(test_map)
-    print(check.obj["Plot signals"])
+    print(check.obj["Back test day turtle S1"])
     print("elasped time", time.time() - start)
-    
+
 '''
+    Feature: Back test
+    I want to query to backtest in stocks
+    Scenario: backtest stocks
+    Given nifty 50 stocks
+    When backtest for last 100 ticks with signal color green | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
+    Then get list of stocks with signals
 Feature: Stocks with MACD divergence
     I want to query to get a list of macd divergence stocks      
     Scenario: list stocks showing macd divergence
     Given nifty 50 stocks
     When day close shows macd divergence with window 20 in last 40 ticks
-    Then get list of all match
+    Then get list of stocks with signals
     Feature: Query
     I want to query to get a list of matches      
         Scenario: filter for ema and ma 

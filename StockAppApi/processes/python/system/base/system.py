@@ -64,3 +64,6 @@ class System(SystemIf):
     
     def _get_indices(self) -> list:
         return self.__get_list_of_tickers('index')
+    
+    def get_list_of_tickers(self, type:str) -> list:
+        return self.__get_list_of_tickers(type=type)
