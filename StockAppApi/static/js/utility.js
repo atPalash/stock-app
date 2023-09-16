@@ -65,18 +65,19 @@ function addInnerHtmlToDiv(parentId, options) {
     }
 }
 
-function addListToDiv(parentId, list, eventHandler=null) {
+function addListToDiv(parentId, list, eventHandler=null, metaData=null) {
     // Create the unordered list element
     const ul = document.createElement('ul');
     ul.setAttribute('id', `${parentId}-list`)
     ul.setAttribute('style', "margin-top: 0; margin-bottom: 0;")
 
-    list.forEach(element => {
+    for (let ticker in list) {
         const li = document.createElement('li');
-        li.textContent = element.text;
-        li.style.color = element.color
+        li.textContent = ticker;
+        li.style.color = "black"
+        li.setAttribute('meta-data', JSON.stringify(list[ticker]))
         ul.appendChild(li);
-    })
+    }
 
     // Append the unordered list to the body of the page
     document.getElementById(parentId).appendChild(ul);
@@ -86,7 +87,9 @@ function addListToDiv(parentId, list, eventHandler=null) {
         }
       });
     if(eventHandler!=null) {
-        ul.addEventListener("click", (event) => eventHandler(event))
+        ul.addEventListener("click", (event) => {
+            eventHandler(event)
+        })
     }
 }
 
@@ -121,12 +124,22 @@ function parseJSON(jsonString) {
     return thisJson;
 }
 
-function changeSelection(id, index) {
+function changeSelection(id, index, detail=null) {
     var select = document.getElementById(id)
     select.selectedIndex = index
     var event = new Event('change');
+    event.detail = detail
     select.dispatchEvent(event);
 }
+
+function popUpSelection(id, index, detail=null) {
+    var select = document.getElementById(id)
+    select.selectedIndex = index
+    var event = new Event('change');
+    event.detail = detail
+    select.dispatchEvent(event);
+}
+
 
 function getUnicodeIcon(uniStr) {
     var decimalValue = parseInt(uniStr.substr(3), 16);
