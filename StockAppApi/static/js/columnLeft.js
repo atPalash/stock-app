@@ -63,7 +63,7 @@ class ColumnLeft {
                         if (ev.target.id == `button-${divId}`) {
                             var gherkinQueryId = `gherkin-query-${this.#queryCount}`
                             this.#addGherkinQueryDiv(gherkinQueryId, this.#row, this.#col, `column-left-${this.#row}`,
-                            "")
+                                "")
                             this.#queryCount += 1
                         }
                     }
@@ -91,6 +91,8 @@ class ColumnLeft {
                     <textarea id=input-${divId} class="input-query" type="text" placeholder="Enter your gherkin query here" 
                     style="position: absolute; top: 0; left: 100%; margin-left: 10px; height: 50vh; 
                     width: 30vw; overflow: scroll;">${textQuery}</textarea>
+                </div>
+                <div class=chart-popup id=chart-popup-${divId} style="display: none; z-index: 999; background-color: darkgoldenrod; position: relative;">
                 </div>
                 `
             },
@@ -157,55 +159,47 @@ class ColumnLeft {
                 var gherkin_response = await apiPost(`gherkin-query`, {
                     "query": `webserver --gherkin ${query} --indicator gherkin`
                 });
-
+                
                 // User must define one feature per query
                 var feature = Object.keys(gherkin_response["gherkin"])[0]
                 document.getElementById(`label-${divId}`).innerText = feature
                 var then_steps_tickers = []
+                var ticker_signals = {}
                 for (var scenario in gherkin_response['gherkin'][feature]) {
                     var current_keyword = ""
                     var steps = gherkin_response['gherkin'][feature][scenario]
                     steps.forEach(step => {
                         if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
                             step['result']['tickers'].forEach(ticker => {
-                                if (!then_steps_tickers.includes(ticker)) {
-                                    then_steps_tickers.push(
-                                        {
-                                            "text": ticker,
-                                            "color": "black"
-                                        }
-                                    )
+                                var ticker_sigs = step['result']['signals'][ticker]
+                                if (ticker in ticker_signals) {
+                                    ticker_signals[ticker]["signals"].push(...ticker_sigs)
+                                } else {
+                                    ticker_signals[ticker] = { "signals": ticker_sigs }
                                 }
                             })
                             current_keyword = 'Then '
                         }
                     });
                 }
-                then_steps_tickers.sort(function (a, b) {
-                    if (a.text < b.text) {
-                        return -1
-                    }
-                    if (a.text > b.text) {
-                        return 1
-                    }
-                    return 0
-                })
 
                 var list = document.getElementById(`${divId}-list`)
                 if (list != null) {
                     list.remove()
                 }
 
-                addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker)
+                addListToDiv(divId, ticker_signals, this.#clickToSelectTicker)
             } catch (error) {
                 console.error('An error occurred during gherkin query', error);
             }
         }
     }
 
-    #clickToSelectTicker = (evt) => {
+    #clickToSelectTicker = async (evt) => {
+        // id of top-nav ticker selector
         var id = `ticker-select-0`
-        var index = Array.from(document.getElementById(id).children).findIndex(function (ele) {
+        var tickerSelector = document.getElementById(id)
+        var index = Array.from(tickerSelector.children).findIndex(function (ele) {
             if (ele.innerText == evt.target.innerText) {
                 return true;
             }
@@ -214,6 +208,40 @@ class ColumnLeft {
             console.error("Should not happen")
             return
         }
+
+        var popupId = `chart-popup-gherkin-query-0-0-0`
+        var meta = evt.target.getAttribute('meta-data') != null ? JSON.parse(evt.target.getAttribute('meta-data')) : null
+        if (meta['signals'] != null && meta['signals'].length > 0) {
+            var popup = document.getElementById(popupId)
+            popup.innerHTML = ""
+            // var existingTvCharts = popup.getElementsByClassName("tv-chart");
+            // while (existingTvCharts.length > 0) {
+            //     existingTvCharts[0].parentNode.removeChild(existingTvCharts[0]);
+            // }
+
+            var tvChart = new TradingViewChart(500, 1000)
+            var divTvChart = await tvChart.plotCandle({
+                symbol: evt.target.innerText,
+                interval: meta['signals'][0]['interval'],
+                n: 1000, // TODO,
+                meta: meta,
+                style: "position: absolute; top: 0; left: 100%; margin-left: 10px;"
+            })
+            popup.appendChild(divTvChart)
+
+            if(tickerSelector.value == evt.target.innerText) {
+                if (popup.style.display == 'block') {
+                    popup.style.display = 'none'
+                } else {
+                    popup.style.display = 'block'
+                }
+            }
+            else {
+                popup.style.display = 'block'
+            }
+        }
+
+        // changeSelection(id, index, evt.target.getAttribute('meta-data'))
         changeSelection(id, index)
     }
 }

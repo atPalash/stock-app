@@ -17,14 +17,17 @@ class TradingViewChart {
     }
     async plotCandle(slideData) {
         var query_ohlc = { "query": `webserver --ticker ${slideData.symbol} --interval ${slideData.interval} --do get --indicator ohlc --n ${slideData.n}` }
-        var resp_ohlc = await apiPost("ohlc",query_ohlc);
-        resp_ohlc = this.#extractOhlc(resp_ohlc, slideData.symbol)
+        var data_ohlc = await apiPost("ohlc", query_ohlc);
+        var resp_ohlc = this.#extractOhlc(data_ohlc, slideData.symbol)
         const slide = document.createElement('div');
         slide.classList.add(`tv-chart`);
         slide.setAttribute("id", `${slideData.symbol}`)
-        slide.style.display = 'block';
-        slide.style.height = `${this.#height}px`
-        slide.style.width = `${this.#width}px`
+        if (slideData.style == null) {
+            slide.style.display = 'block';
+        } else {
+            slide.style = slideData.style
+        }
+
         const intervalsWithOutTime = ["month", "week", "day"]
         const tvChart = LightweightCharts.createChart(slide, {
             // autoSize: true
@@ -42,12 +45,14 @@ class TradingViewChart {
         // go through each desired indicator and plot them
         for (let key in slideData.indicators) {
             var indicator = slideData.indicators[key]
-            switch(indicator['type']) {
+            switch (indicator['type']) {
                 case 'ema':
-                    var query = { "query": `webserver --ticker ${slideData.symbol} \
+                    var query = {
+                        "query": `webserver --ticker ${slideData.symbol} \
                     --interval ${slideData.interval} --do get --indicator ema \
-                    --window ${indicator["window"]} --n ${slideData.n}`}
-                    var resp = await apiPost("ohlc",query);
+                    --window ${indicator["window"]} --n ${slideData.n}`
+                    }
+                    var resp = await apiPost("ohlc", query);
                     var series = this.#extractIndicatorValue(resp, slideData.symbol)
                     const chartSeries = tvChart.addLineSeries({ color: indicator['color'], lineWidth: 1 });
                     chartSeries.setData(series);
@@ -78,25 +83,25 @@ class TradingViewChart {
         }
 
         // go throught each desired scanner and plot signals
-        var markers = []
-        for (let key in slideData.scanners) {
-            var scanner = slideData.scanners[key]
-            switch(scanner['type']) {
-                case 'macd_divergence':
-                    var query_macd_div = { "query": `webserver --ticker ${slideData.symbol} \
-                    --interval ${slideData.interval} --do get --indicator macdhistdivergencescan \
-                    --n ${scanner["n"]} --window ${scanner["window"]}` }
-                    var resp_macd_div = await apiPost("ohlc",query_macd_div);
-                    var signals_macd_div = this.#extractSignal(resp_macd_div, slideData.symbol, 
-                        {"buyColor": scanner["buyColor"], "sellColor": scanner["sellColor"]})
-                    
-                    markers.push(...signals_macd_div)
-                    tvSeries.setMarkers(markers);
-                    break;
-                default:
-                    console.log("Scanner not avaialable")
+        if (slideData.meta != null) {
+            var meta_dict = slideData.meta
+            var signals = []
+            for (let key in meta_dict) {
+                switch (key) {
+                    case 'signals':
+                        meta_dict[key].forEach(element => {
+                            var ret = this.#extractSignal(element['color'], element['signal'])
+                            signals.push(...ret)
+                        });
+
+                        tvSeries.setMarkers(signals);
+                        break;
+                    default:
+                        console.log("Scanner not avaialable")
+                }
             }
         }
+        
         this.#chart = tvChart
         this.#slide = slide
         return slide
@@ -130,28 +135,19 @@ class TradingViewChart {
         return values
     }
 
-    #extractSignal(data, symbol, options) {
-        var signals = []
-        for (const [time, value] of Object.entries(JSON.parse(data[symbol]))) {
-            if (value === 1) {
+    #extractSignal(color, signals) {
+        var ret = []
+        signals.forEach(element => {
+            if (element[2]) {
                 var row = {
-                    'time': convertToUtc(time),
-                    'position': 'belowBar',
-                    'color': options["buyColor"],
-                    'shape': 'arrowUp',
+                    'time': convertToUtc(element[1]),
+                    'position': element[3] < 0 ? 'aboveBar':'belowBar',
+                    'color': element[3] < 0 ? 'red':color,
+                    'shape': element[3] < 0 ? 'arrowDown':'arrowUp',
                 }
-                signals.push(row)
+                ret.push(row)
             }
-            else if (value === -1) {
-                var row = {
-                    'time': convertToUtc(time),
-                    'position': 'aboveBar',
-                    'color': options["sellColor"],
-                    'shape': 'arrowDown',
-                }
-                signals.push(row)
-            }
-        }
-        return signals
+        })
+        return ret
     }
 }

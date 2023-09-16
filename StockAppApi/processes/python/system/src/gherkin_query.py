@@ -2,6 +2,8 @@ import multiprocessing
 import time
 import re
 
+import pandas
+
 from StockAppApi.processes.python.system.base.system import System, RetVal
 from StockAppApi.utility.python.bdd import gherkin_parser
 from StockAppApi.processes.python.system.src.steps import given, when, then
@@ -110,7 +112,7 @@ class GherkinQuery(System):
                                 # e.g. set the interval, selected stock etc.
                                 step_result['parent'] = "" if keyword == 'Given ' else 'given'
                                 step_result['result'] = matched_step['func'](
-                                    self._get_indices() + self._get_tickers(), "")
+                                    self.selected_stocks_config_file, self.indicator_config_file, matched_step["match"].groups())
                                 current_keyword = 'Given '
                                 step_results.append(step_result)
                             elif keyword == 'When ' or (current_keyword == 'When ' and keyword in conjunction_keyword):
@@ -142,9 +144,7 @@ class GherkinQuery(System):
 
                                     for result in multi_results:
                                         if result["exception"] is None:
-                                            if result["condition"]:
-                                                valid_tickers.append(
-                                                    result)
+                                            valid_tickers.append(result)
                                         else:
                                             errors += f'{result["ticker"]} -> {result["exception"]} \n'
                                     valid_tickers.sort(
@@ -160,7 +160,7 @@ class GherkinQuery(System):
                                 # 3rd step -> data presentation
                                 step_result['parent'] = "" if keyword == 'Then ' else 'then'
                                 step_result['result'] = matched_step['func'](
-                                    matched_step["match"].group(1), step_results)
+                                    matched_step["match"].groups(), step_results)
                                 current_keyword = 'Then '
                                 step_results.append(step_result)
                             else:
@@ -182,18 +182,12 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
     g_query = '''
-Feature: Stage2 stocks
-I want to query to get a list of stage 2 stocks
-Scenario: list stocks in stage 2 uptrend
-Given nifty 50 stocks
-When day close ma 150 < close
-* day close ma 200 < close
-* day close ma 150 > day close ma 200
-* day close ma 50 in uptrend for 90 days
-* 1.25 of 52 week low < close
-* 0.75 of 52 week high < close
-* day close ma 50 < close
-Then get list of all match
+    Feature: Back test day turtle S1
+    I want to query to backtest in stocks
+    Scenario: backtest stocks
+    Given nifty 100 stocks
+    When backtest for last 100 ticks with signal color green | day close > close of last 55 ticks
+    Then get list of stocks with signals
     '''
     start = time.time()
     configFolder = "StockAppApi/configuration/"
@@ -209,15 +203,22 @@ Then get list of all match
 
     check = parser.execute()
     # print(test_map)
-    print(check.obj["Stage2 stocks"])
+    print(check.obj["Back test day turtle S1"])
     print("elasped time", time.time() - start)
+
 '''
+    Feature: Back test
+    I want to query to backtest in stocks
+    Scenario: backtest stocks
+    Given nifty 50 stocks
+    When backtest for last 100 ticks with signal color green | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
+    Then get list of stocks with signals
 Feature: Stocks with MACD divergence
     I want to query to get a list of macd divergence stocks      
     Scenario: list stocks showing macd divergence
     Given nifty 50 stocks
     When day close shows macd divergence with window 20 in last 40 ticks
-    Then get list of all match
+    Then get list of stocks with signals
     Feature: Query
     I want to query to get a list of matches      
         Scenario: filter for ema and ma 
