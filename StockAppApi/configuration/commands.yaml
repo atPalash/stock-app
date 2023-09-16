@@ -79,10 +79,10 @@ Then get list of all match
 '
 
   plotSignals: '
-Feature: Plot signals
-I want to query to plot signals in stocks
-Scenario: list stocks with signal
-Given nifty 50 stocks
-When plot signals for last 100 ticks | day close > high of last 20 ticks
-Then get list of all match
+    Feature: Plot signals
+    I want to query to plot signals in stocks
+    Scenario: list stocks with signal
+    Given nifty 50 stocks
+    When plot signals for last 100 ticks | day close > high of last 20 ticks
+    Then get list of all match
 '

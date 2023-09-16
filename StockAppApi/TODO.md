@@ -1,5 +1,5 @@
 # TODO
-- [ ] Backtest capability
+
 - [ ] Volume strategy
 - [ ] Scan for pivot points
 - [ ] Implement config in client side else default config 
@@ -15,6 +15,7 @@
 # Aborted
 - [x] VCP pattern -> check BB contraction
 # Done
+- [x] Backtest capability
 - [x] Fix date for minute hour data in tv
 - [x] Download minute data - use for intra-day short
 - [x] Optimize bdd query 
