@@ -143,8 +143,15 @@ class GherkinQuery(System):
                                             errors += f"{e.args}"
 
                                     for result in multi_results:
+                                        satisfies = False
+                                        if isinstance(result["condition"], bool):
+                                            satisfies = result["condition"]
+                                        if isinstance(result["condition"], list):
+                                            satisfies = any(result["condition"])
+                                            
                                         if result["exception"] is None:
-                                            valid_tickers.append(result)
+                                            if satisfies :
+                                                valid_tickers.append(result)
                                         else:
                                             errors += f'{result["ticker"]} -> {result["exception"]} \n'
                                     valid_tickers.sort(
@@ -182,12 +189,12 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
     g_query = '''
-    Feature: Back test day turtle S1
-    I want to query to backtest in stocks
-    Scenario: backtest stocks
-    Given nifty 100 stocks
-    When backtest for last 100 ticks with signal color green | day close > close of last 55 ticks
-    Then get list of stocks with signals
+Feature: test
+I want to query to get a list of turtle S1 stocks      
+Scenario: test
+Given nifty50 stocks
+When day close > high of last 20 ticks
+Then get list of all match
     '''
     start = time.time()
     configFolder = "StockAppApi/configuration/"
@@ -202,11 +209,16 @@ if __name__ == "__main__":
                           name="")
 
     check = parser.execute()
-    # print(test_map)
-    print(check.obj["Back test day turtle S1"])
+    print(check.obj["test"])
     print("elasped time", time.time() - start)
 
 '''
+Feature: Back test day turtle S1
+    I want to query to backtest in stocks
+    Scenario: backtest stocks
+    Given nifty 100 stocks
+    When backtest for last 100 ticks with signal color green | day close > close of last 55 ticks
+    Then get list of stocks with signals
     Feature: Back test
     I want to query to backtest in stocks
     Scenario: backtest stocks
