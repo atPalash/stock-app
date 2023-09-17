@@ -414,8 +414,8 @@ if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
-    ticker = 'ABB'
-    query = "backtest for last 100 ticks with signal color black | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks"
+    ticker = 'SBIN'
+    query = "day close > high of last 20 ticks"
     # query = "day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks"
     matched_step = __call_if_step_matched(query)
     result = matched_step['func'](selected_stocks_yaml, indicator_config_yaml,

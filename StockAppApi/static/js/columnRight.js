@@ -161,7 +161,6 @@ class ColumnRight {
     }
 
     async #updateTvChart(chartContainer, tickerToRemove, currentTicker, col, meta=null) {
-        debugger
         chartContainer.removeChild(this.#config[chartContainer.id][tickerToRemove])
         var tvChart = new TradingViewChart(650, 1500)
         var divTvChart = await tvChart.plotCandle({
@@ -211,7 +210,6 @@ class ColumnRight {
     }
 
     #addIndicator(row, col, type, config = {}) {
-        debugger
         this.#indicators[type.target.value](row, col, config)
     }
 
@@ -323,7 +321,6 @@ class ColumnRight {
             }
         }
         addInnerHtmlToDiv(`chart-container-${row}-${col}`, options)
-        debugger
         this.#config[`chart-container-${row}-${col}`]["indicators"][`div-${indicatorId}`] = {
             "window": parseInt(document.getElementById(`rolling-window-${indicatorId}`).value),
             "type": "ema",

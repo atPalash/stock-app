@@ -6,8 +6,10 @@ process:
       - download --stock all --interval 1h # download all selected stock hour data
       - download --stock TCS --interval 1d # download TCS stock day data
     format: download --stock ${stockname} --interval ${interval} --csv ${as_csv_int} # period is set to max
+
 gherkin:
-  stage2: '
+  stage2: | 
+"
 Feature: Stage2 stocks
 I want to query to get a list of stage 2 stocks
 Scenario: list stocks in stage 2 uptrend
@@ -20,17 +22,18 @@ When day close ma 150 < close
 * 0.75 of 52 week high < close
 * day close ma 50 < close
 Then get list of all match
-'
-  macd_divergence:
-    '
+"
+macd_divergence:
+"
 Feature: Stocks with MACD divergence
 I want to query to get a list of macd divergence stocks      
 Scenario: list stocks showing macd divergence
 Given nifty 50 stocks
 When day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
 Then get list of all match
-    '
-  stage2ema: '
+"
+stage2ema: 
+"
 Feature: Stage2 stocks ema
 I want to query to get a list of stage 2 stocks
 Scenario: list stocks in stage 2 uptrend
@@ -43,46 +46,50 @@ When day close ema 150 < close
 * 0.75 of 52 week high < close
 * day close ema 50 < close
 Then get list of all match
-  '
-  turtleS1LongEnter: '
+"
+turtleS1LongEnter: 
+"
 Feature: turtle S1 stocks long enter
 I want to query to get a list of turtle S1 stocks      
 Scenario: list stocks with turtle S1 enter
 Given nifty 50 stocks
 When day high > high of last 20 ticks
 Then get list of all match
-'
-  turtleS1LongExit: '
+"
+turtleS1LongExit: 
+"
 Feature: turtle S1 stocks long exit
 I want to query to get a list of turtle S1 stocks      
 Scenario: list stocks with turtle S1 exit
 Given nifty 50 stocks
 When day low < low of last 10 ticks
 Then get list of all match
-'
-  turtleS2LongEnter: '
+"
+turtleS2LongEnter: 
+"
 Feature: turtle S2 stocks long enter
 I want to query to get a list of turtle S1 stocks      
 Scenario: list stocks with turtle S2 enter
 Given nifty 50 stocks
 When day high > high of last 55 ticks
 Then get list of all match
-'
-
-  turtleS2LongEnter: '
+"
+turtleS2LongEnter: 
+"
 Feature: turtle S2 stocks long exit
 I want to query to get a list of turtle S2 stocks      
 Scenario: list stocks with turtle S2 exit
 Given nifty 50 stocks
 When day low < low of last 20 ticks
 Then get list of all match
-'
+"
+Backtest:
+"
+Feature: Back test day macdhist niftyauto
+I want to query to backtest in stocks
+Scenario: backtest stocks
+Given niftyauto stocks
+When backtest for last 100 ticks with signal color green | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
+Then get list of stocks with signals
+"
 
-  plotSignals: '
-    Feature: Plot signals
-    I want to query to plot signals in stocks
-    Scenario: list stocks with signal
-    Given nifty 50 stocks
-    When plot signals for last 100 ticks | day close > high of last 20 ticks
-    Then get list of all match
-'
