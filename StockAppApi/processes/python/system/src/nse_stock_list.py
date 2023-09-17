@@ -17,6 +17,7 @@ class NseStockList(System):
         - ABB
         - BEL
 
+        e.g. nsestocklist --do get, nsestocklist --do get
         Args:
             indicator_config_file (str): indicator configuration
             selected_stocks_config_file (str): selected stocks list
@@ -41,6 +42,7 @@ class NseStockList(System):
         Returns:
             RetVal: selected stock config
         """
+        self.index_stock_map = read_config(f'{self.parameter["config_dir"]}/index_stock.yaml')
         return RetVal(obj=self.index_stock_map, obj_as_str="dict of stocks", errors="")
 
     def __update(self) -> RetVal:
