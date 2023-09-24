@@ -54,6 +54,20 @@ def get_index_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
             selected_stocks_yaml, indicator_config_yaml)
         ret = command_handler.execute(
             'nsestocklist --do get', is_rest=False).obj
+        
+        if index == 'all':
+            all_tickers = []
+            for index, tickers in ret.items():
+                for ticker in tickers:
+                    if ticker not in all_tickers:
+                        all_tickers.append(ticker)
+            all_tickers.sort()
+            
+            return {
+                "tickers": all_tickers,
+                "exception": None
+            }    
+            
         return {
             "tickers": ret[index],
             "exception": None
@@ -101,8 +115,8 @@ if __name__ == "__main__":
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
     
-    # query = f'stocks ABB,BEL,  TCS'
-    query = f'niftycommodities stocks'
+    query = f'stocks BAJAJ-AUTO'
+    # query = f'all stocks'
     # query = "day close > high of last 20 ticks"
     matched_step = __call_if_step_matched(query)
     result = matched_step['func'](selected_stocks_yaml, indicator_config_yaml,
