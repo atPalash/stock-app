@@ -2,7 +2,9 @@
 import re
 from StockAppApi.utility.python.bdd.steps import given
 from StockAppApi.processes.python.system.base.system import System
+import StockAppApi.processes.python.system.src.command_handler as executor
 
+# TODO deprecate
 @given
 def get_stocks_in_index(selected_stocks_yaml, indicator_config_yaml, groups):
     """Get a list of stocks based on criteria
@@ -17,7 +19,8 @@ def get_stocks_in_index(selected_stocks_yaml, indicator_config_yaml, groups):
         _type_: _description_
     """
     system = System(indicator_config_yaml, selected_stocks_yaml, {}, None)
-    all_tickers = system.get_list_of_tickers('stock') + system.get_list_of_tickers('index')
+    all_tickers = system.get_list_of_tickers(
+        'stock') + system.get_list_of_tickers('index')
     try:
         # TODO logic to select selected stocks
         return {
@@ -31,8 +34,53 @@ def get_stocks_in_index(selected_stocks_yaml, indicator_config_yaml, groups):
             "exception": e.args
         }
 
+
+@given
+def get_index_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
+    """Get a list of stocks based on criteria
+
+    Args:
+        selected_stocks_yaml (_type_): _description_
+        indicator_config_yaml (_type_): _description_
+        ticker (_type_): _description_
+        groups (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    try:
+        index = groups[0]
+        command_handler = executor.CommandHandler(
+            selected_stocks_yaml, indicator_config_yaml)
+        ret = command_handler.execute(
+            'nsestocklist --do get', is_rest=False).obj
+        
+        if index == 'all':
+            all_tickers = []
+            for index, tickers in ret.items():
+                for ticker in tickers:
+                    if ticker not in all_tickers:
+                        all_tickers.append(ticker)
+            all_tickers.sort()
+            
+            return {
+                "tickers": all_tickers,
+                "exception": None
+            }    
+            
+        return {
+            "tickers": ret[index],
+            "exception": None
+        }
+    except Exception as e:
+        return {
+            "tickers": None,
+            "exception": e.args
+        }
+
+
 def get_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
-    ticker_str = groups[0].replace(" ","")
+    ticker_str = groups[0].replace(" ", "")
     return {
         "tickers": ticker_str.split(',') if ',' in ticker_str else [ticker_str],
         "exception": None
@@ -40,9 +88,10 @@ def get_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
     
 def get_steps():
     return {
-        r'^(\w+)\s+(\d+)\s+stocks$': get_stocks_in_index,
+        # r'^(\w+)\s+(\d+)\s+stocks$': get_stocks_in_index,
+        r'^(\w+)\s+stocks$': get_index_stocks,
         r'^stocks (\w+(?:,*\s*\w*)*)$': get_stocks,
-        r'^indexes (\w+(?:,*\s*\w*)*)$': get_stocks
+        # r'^indexes (\w+(?:,*\s*\w*)*)$': get_stocks
     }
     
 def __call_if_step_matched(rule: str):
@@ -66,8 +115,8 @@ if __name__ == "__main__":
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
     
-    # query = f'stocks ABB,BEL,  TCS'
-    query = f'nifty 50 stocks'
+    query = f'stocks BAJAJ-AUTO'
+    # query = f'all stocks'
     # query = "day close > high of last 20 ticks"
     matched_step = __call_if_step_matched(query)
     result = matched_step['func'](selected_stocks_yaml, indicator_config_yaml,
@@ -84,8 +133,3 @@ if __name__ == "__main__":
     #     print(extracted_string)
     # else:
     #     print("No match found.")
-
-
-
-   
-    

@@ -8,6 +8,7 @@ from StockAppApi.processes.python.system.src.macd_histogram_divergence_scanner i
 from StockAppApi.processes.python.system.src.canslim import Canslim
 from StockAppApi.processes.python.system.src.webserver import Webserver
 from StockAppApi.processes.python.system.src.stage2_scanner import Stage2Scanner
+from StockAppApi.processes.python.system.src.nse_stock_list import NseStockList
 
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml, indicator_config_yaml) -> None:
@@ -20,7 +21,8 @@ class CommandHandler(CommandHandlerIf):
             "canslim": Canslim,
             "webserver": Webserver,
             "stage2scan": Stage2Scanner,
-            "gherkinquery": GherkinQuery
+            "gherkinquery": GherkinQuery,
+            "nsestocklist": NseStockList
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml

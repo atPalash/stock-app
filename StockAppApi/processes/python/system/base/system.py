@@ -24,11 +24,13 @@ class System(SystemIf):
         parameters = {
             'condition': parameter.get('condition', ''),
             'csv': int(parameter.get('csv', '0')),
+            'config_dir': parameter.get('config_dir', '/home/palash/dev/stock-app/StockAppApi/configuration'),
             'do': parameter.get('do', 'get'),
             'gherkin': parameter.get('gherkin', ''),
             'indicator': parameter.get('indicator', 'ema'),
             'interval': parameter.get('interval', 'day'),
             'index': parameter.get('index', '^NSEI'),
+            'index_csv': parameter.get('index_csv', 'MW-All-Indices-17-Sep-2023.csv'), #https://www.nseindia.com/market-data/live-market-indices
             'latest': int(parameter.get('latest', '0')),
             'macd_fast_period': int(parameter.get('macd_fast_period','13')),
             'macd_slow_period': int(parameter.get("macd_slow_period", '26')),

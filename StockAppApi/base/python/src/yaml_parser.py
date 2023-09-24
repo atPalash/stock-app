@@ -8,3 +8,9 @@ def read_config(path):
         except Exception as exc:
             print(exc)
             return None
+
+def save_config(data:dict, path:str):   
+    # Save the dictionary to a YAML file
+    with open(path, "w") as file:
+        yaml.dump(data, file)
+    

@@ -19,7 +19,7 @@ def get_list(groups, steps):
             ret = list(set.union(*map(set, when_step_tickers)))
         else:
             raise Exception("Not valid selection")
-
+        ret.sort()
         return {
             "selection": selector,
             "tickers": ret
@@ -74,9 +74,7 @@ def list_stock_signals(groups, steps):
                                 'interval': stp['interval']
                             }
                         if(stp['ticker'] not in tickers_with_signal):
-                            tickers_with_signal[stp['ticker']] = [temp]
-                            # tickers_with_signal[stp['ticker']]['signal'] = stp["condition"]
-                            # tickers_with_signal[stp['ticker']]['color'] = stp["color"]        
+                            tickers_with_signal[stp['ticker']] = [temp]     
                         else:
                             tickers_with_signal[stp['ticker']].append(temp)
         return {

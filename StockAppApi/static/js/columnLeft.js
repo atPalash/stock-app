@@ -159,23 +159,27 @@ class ColumnLeft {
                 var gherkin_response = await apiPost(`gherkin-query`, {
                     "query": `webserver --gherkin ${query} --indicator gherkin`
                 });
-                
+
                 // User must define one feature per query
                 var feature = Object.keys(gherkin_response["gherkin"])[0]
                 document.getElementById(`label-${divId}`).innerText = feature
                 var then_steps_tickers = []
                 var ticker_signals = {}
-                for (var scenario in gherkin_response['gherkin'][feature]) {
+                                for (var scenario in gherkin_response['gherkin'][feature]) {
                     var current_keyword = ""
                     var steps = gherkin_response['gherkin'][feature][scenario]
                     steps.forEach(step => {
                         if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
                             step['result']['tickers'].forEach(ticker => {
-                                var ticker_sigs = step['result']['signals'][ticker]
-                                if (ticker in ticker_signals) {
-                                    ticker_signals[ticker]["signals"].push(...ticker_sigs)
+                                if (step['result']['signals'] != null) {
+                                    var ticker_sigs = step['result']['signals'][ticker]
+                                    if (ticker in ticker_signals) {
+                                        ticker_signals[ticker]["signals"].push(...ticker_sigs)
+                                    } else {
+                                        ticker_signals[ticker] = { "signals": ticker_sigs }
+                                    }
                                 } else {
-                                    ticker_signals[ticker] = { "signals": ticker_sigs }
+                                    ticker_signals[ticker] = {}
                                 }
                             })
                             current_keyword = 'Then '
@@ -229,7 +233,7 @@ class ColumnLeft {
             })
             popup.appendChild(divTvChart)
 
-            if(tickerSelector.value == evt.target.innerText) {
+            if (tickerSelector.value == evt.target.innerText) {
                 if (popup.style.display == 'block') {
                     popup.style.display = 'none'
                 } else {
