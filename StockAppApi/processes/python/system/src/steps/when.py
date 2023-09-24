@@ -22,7 +22,7 @@ def indicator_compare_with_ohlc(selected_stocks_yaml, indicator_config_yaml, tic
                 --ohlc {ohlc_source_ind_lsh.capitalize()}'
         ticker_df = command_handler.execute(indicator_query, is_rest=False).obj
         def logic(df: pandas.DataFrame):
-            condition_string = f'{df[ind_lhs.capitalize()].iloc[-1]} {condition} {df[ohlc_rhs.capitalize()].iloc[-1]}'
+            condition_string = f'{df[ind_lhs].iloc[-1]} {condition} {df[ohlc_rhs.capitalize()].iloc[-1]}'
             return {
                 "ticker": ticker,
                 "interval": interval,
