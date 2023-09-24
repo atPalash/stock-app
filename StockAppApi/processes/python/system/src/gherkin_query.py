@@ -143,13 +143,12 @@ class GherkinQuery(System):
                                             errors += f"{e.args}"
 
                                     for result in multi_results:
-                                        satisfies = False
-                                        if isinstance(result["condition"], bool):
-                                            satisfies = result["condition"]
-                                        if isinstance(result["condition"], list):
-                                            satisfies = any(result["condition"])
-                                            
                                         if result["exception"] is None:
+                                            satisfies = False
+                                            if isinstance(result["condition"], bool):
+                                                satisfies = result["condition"]
+                                            if isinstance(result["condition"], list):
+                                                satisfies = any(result["condition"])                                        
                                             if satisfies :
                                                 valid_tickers.append(result)
                                         else:
@@ -188,6 +187,7 @@ class GherkinQuery(System):
 
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
+    tt ='Given stocks ASAHIINDIA, ASTRAZEN, BAJAJ-AUTO, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,M&M,MAHABANK,NESTLEIND,PNB,PSB,SBIN,SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC'
     g_query = '''
 Feature: test
 I want to query to get a list of turtle S1 stocks      
@@ -195,7 +195,8 @@ Scenario: test
 Given nifty50 stocks
 When day close > high of last 20 ticks
 Then get list of all match
-    '''
+'''
+
     start = time.time()
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
@@ -213,6 +214,17 @@ Then get list of all match
     print("elasped time", time.time() - start)
 
 '''
+Given stocks ASAHIINDIA, ASTRAZEN, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,MAHABANK,NESTLEIND,PNB,PSB,SBIN, SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC
+When day close ma 50 < close
+* day close ma 150 < close
+* day close ma 200 < close
+* day close ma 50 > day close ma 150
+* day close ma 50 > day close ma 200
+* day close ma 150 > day close ma 200
+* day close ma 200 in uptrend for 60 days
+* 1.25 of 52 week low < close
+* 0.75 of 52 week high < close
+Then get list of all match
 Feature: Back test day turtle S1
     I want to query to backtest in stocks
     Scenario: backtest stocks
