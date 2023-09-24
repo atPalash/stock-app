@@ -65,14 +65,17 @@ class YahooFinance(System):
         
         return RetVal(obj=df, obj_as_str="pandas dataframe downloaded", errors=err)
 
-    def __get_fundamentals(self) -> RetVal:
+    def __get_fundamentals(self, debug_tickers:list=[]) -> RetVal:
         """Used to download fundamentals as csv all the selected stocks. Index don't have
         any fundamental data as a whole.
 
         Returns:
             RetVal: containing error as useful data.
         """
-        tickers = self._get_tickers()
+        if len(debug_tickers) == 0:
+            tickers = self._get_tickers()
+        else:
+            tickers = debug_tickers
         # Need to add NS to download stock fundamentals from yahoo
         tickers = [f"{tick}.NS" for tick in tickers]
 
@@ -84,6 +87,9 @@ class YahooFinance(System):
     
     def debug_get(self):
         return self.__get().obj
+
+    def debug_get_fundamentals(self, tickers:list):
+        self.__get_fundamentals(debug_tickers=tickers)
     
     def get_df(interval:str, ticker:str):
         try:
@@ -100,6 +106,6 @@ if __name__ == "__main__":
                       selected_stocks_config_file=selected_stocks_yaml,
                       parameter={'interval':'day', 'panda': 1, 'ticker':'all'}, command_handler=None,
                       name="")
-    data = yf.debug_get()
+    data = yf.debug_get_fundamentals(['ABB'])
     print(data)
     
