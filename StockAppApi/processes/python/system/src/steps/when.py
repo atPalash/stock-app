@@ -3,6 +3,7 @@ import numpy
 from scipy.stats import linregress
 import re
 from typing import Callable
+from datetime import datetime
 
 from StockAppApi.base.python.src.yaml_parser import read_config
 from StockAppApi.utility.python.bdd.steps import when
@@ -10,7 +11,7 @@ import StockAppApi.processes.python.system.src.command_handler as executor
 
 
 @when
-def indicator_compare_with_ohlc(selected_stocks_yaml, indicator_config_yaml, ticker, groups, lookback_window:int=-1) -> dict:
+def indicator_compare_with_ohlc(selected_stocks_yaml, indicator_config_yaml, ticker, groups, lookback_window: int = -1) -> dict:
     try:
         command_handler = executor.CommandHandler(
             selected_stocks_yaml, indicator_config_yaml)
@@ -21,6 +22,7 @@ def indicator_compare_with_ohlc(selected_stocks_yaml, indicator_config_yaml, tic
                 --indicator {ind_lhs} --window {ind_lhs_window} --n 1000 \
                 --ohlc {ohlc_source_ind_lsh.capitalize()}'
         ticker_df = command_handler.execute(indicator_query, is_rest=False).obj
+
         def logic(df: pandas.DataFrame):
             condition_string = f'{df[ind_lhs].iloc[-1]} {condition} {df[ohlc_rhs.capitalize()].iloc[-1]}'
             return {
@@ -197,10 +199,9 @@ def shows_macd_divergence(selected_stocks_yaml, indicator_config_yaml, ticker, g
 
         ticker_df = command_handler.execute(
             macdhist_query, is_rest=False).obj
-
         window = int(window)
-        # for i in range(ret.index.min(), ret.index.max() - window + 1, 1):
-        def logic(df:pandas.DataFrame):
+
+        def logic(df: pandas.DataFrame):
             roll_window_start_index = df.index.stop - window
             roll_window = df.loc[roll_window_start_index:df.index.stop]
             window_macdhist = roll_window['macdhist']
@@ -281,11 +282,73 @@ def shows_macd_divergence(selected_stocks_yaml, indicator_config_yaml, ticker, g
 
 
 @when
+def quaterly_eps(selected_stocks_yaml, indicator_config_yaml, ticker, groups, lookback_window: int = -1):
+    try:
+        condition, threshold, interval = groups
+        command_handler = executor.CommandHandler(
+            selected_stocks_yaml, indicator_config_yaml)
+        financials_query = f'yahoofinance --ticker {ticker} --do financials'
+        financials = command_handler.execute(
+            financials_query, is_rest=False).obj
+        ohlc_query = f'yahoofinance --ticker {ticker} --interval {interval} --do ohlc'
+        ohlc = command_handler.execute(ohlc_query, is_rest=False).obj
+
+        eps = []
+        for quarter, statement in financials['incomeStatementHistoryQuarterly'].items():
+            if 'basicEPS' in statement:
+                eps.append((quarter, statement['basicEPS']))
+
+        # start with 0 growth rate at begining
+        growth_rates = {eps[0][0]: 0}
+        for i in range(0, len(eps)-1):
+            beginning_value = eps[i][1]
+            ending_value = eps[i + 1][1]
+            growth_rate = round(((ending_value - beginning_value) /
+                           beginning_value) * 100, 2)
+            growth_rates[eps[i+1][0]] = growth_rate
+
+        def logic(df: pandas.DataFrame):
+            try:
+                df_last_date = datetime.strptime(
+                    df.iloc[-1]['Date'], "%Y-%m-%d")
+                dates = list(growth_rates.keys())
+                quarter_found = False
+                query_quarter = dates[-1]
+                if df_last_date > dates[-1]:
+                    quarter_found = True
+                else:
+                    for i in range(len(dates) - 1):
+                        if dates[i] <= df_last_date <= dates[i + 1]:
+                            query_quarter = dates[i]
+                            quarter_found = True
+                            break
+                condition_string = "False"
+                if quarter_found:
+                    condition_string = f'{growth_rates[query_quarter]} {condition} {float(threshold)}'
+                return {
+                    "ticker": ticker,
+                    "query": "quaterly_eps",
+                    "interval": interval,
+                    "quarter": query_quarter,
+                    "condition": eval(condition_string),
+                    "exception": None
+                }
+            except Exception as e:
+                raise
+        return __get_result(lookback_window=lookback_window, logic=logic, ticker_df=ohlc)
+    except Exception as e:
+        return {
+            "ticker": ticker,
+            "exception": e.args
+        }
+
+
+@when
 def backtest(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
     """Method to call to set backtest criteria. This method is a 2-part step.
     Step 1: set the backtest criteria
-    Step 2: set the logic to backtest on 
-    The steps are separated by |. 
+    Step 2: set the logic to backtest on
+    The steps are separated by |.
 
     e.g. "backtest for last 100 ticks | day close > high of last 20 ticks"
     regex: r'^backtest for last (\d+) ticks \| (.*)$'
@@ -296,7 +359,7 @@ def backtest(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
         ticker (_type_): stock to test
         groups (_type_): match groups from user input
 
-    Returns: 
+    Returns:
     A dictionary with a key "condition" which contains indexes and value
     of step2 logic.
     """
@@ -316,7 +379,7 @@ def backtest(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
             return {
                 "ticker": ticker,
                 "interval": ret["interval"],
-                "query": "backtest",
+                "query": f"backtest_{ret['query']}",
                 "condition": ret["condition"],
                 "color": signal_color,
                 "exception": ret["exception"]
@@ -351,27 +414,32 @@ def get_steps():
         # backtest for last 100 ticks | day close > high of last 20 ticks - default color red
         r'^backtest for last (\d+) ticks \| (.*)$': backtest,
         # backtest for last 100 ticks with signal color red | day close > high of last 20 ticks
-        r'^backtest for last (\d+) ticks with signal color (\w+) \| (.*)$': backtest
+        r'^backtest for last (\d+) ticks with signal color (\w+) \| (.*)$': backtest,
+        # quarterly earnings growth > 20 percent using day chart
+        r'^quarterly earnings growth ([><=!]+) (\d+) percent using (\w+) chart$': quaterly_eps
     }
 
 
 def __get_result(lookback_window: int, logic: Callable, ticker_df: pandas.DataFrame):
-    result = logic(ticker_df)
-    if lookback_window == -1:
-        return result
-    else:
-        # start_index =
-        index_conditions = []
-        for i in range(ticker_df.index.stop - lookback_window, ticker_df.index.stop):
-            look_back_df = ticker_df.loc[0:i]
-            ret = logic(look_back_df)
-            if ret["exception"] is not None:
-                result["exception"] = result["exception"] + ret["exception"]
-            timestamp = ticker_df.loc[i]['Datetime'] if 'Datetime' in ticker_df.columns else ticker_df.loc[i]['Date']
-            index_conditions.append((i, timestamp, ret["condition"], ret.get("signal", 0)))
-        # result["condition"] = pandas.DataFrame(index_conditions, columns=['index', 'eval'])
-        result["condition"] = index_conditions
-        return result
+    try:
+        result = logic(ticker_df)
+        if lookback_window == -1:
+            return result
+        else:
+            # start_index =
+            index_conditions = []
+            for i in range(ticker_df.index.stop - lookback_window, ticker_df.index.stop):
+                look_back_df = ticker_df.loc[0:i]
+                ret = logic(look_back_df)
+                if ret["exception"] is not None:
+                    result["exception"] = result["exception"] + ret["exception"]
+                timestamp = ticker_df.loc[i]['Datetime'] if 'Datetime' in ticker_df.columns else ticker_df.loc[i]['Date']
+                index_conditions.append((i, timestamp, ret["condition"], ret.get("signal", 0)))
+            # result["condition"] = pandas.DataFrame(index_conditions, columns=['index', 'eval'])
+            result["condition"] = index_conditions
+            return result
+    except Exception as e:
+        raise
 
 
 def __get_result_double_df(lookback_window: int, logic: Callable, ticker_df1: pandas.DataFrame, ticker_df2: pandas.DataFrame):
@@ -414,9 +482,10 @@ if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
-    ticker = 'SBIN'
-    query = "day close > high of last 20 ticks"
-    # query = "day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks"
+    ticker = 'COALINDIA'
+    # query = "quarterly earnings growth > 20 percent using week chart"
+    query = "backtest for last 100 ticks | quarterly earnings growth > 20 percent using week chart"
+    # query = "backtest for last 100 ticks | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks"
     matched_step = __call_if_step_matched(query)
     result = matched_step['func'](selected_stocks_yaml, indicator_config_yaml,
                                   ticker, matched_step["match"].groups())
