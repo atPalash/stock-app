@@ -192,8 +192,9 @@ if __name__ == "__main__":
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
-Given nifty50 stocks
-When day close > high of last 20 ticks
+Given stocks TATACONSUM
+When backtest for last 100 ticks with signal color green | day close > high of last 20 ticks
+* backtest for last 100 ticks with signal color green | quarterly earnings growth > 20 percent using week chart
 Then get list of all match
 '''
 

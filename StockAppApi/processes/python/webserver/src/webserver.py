@@ -38,6 +38,10 @@ class Webserver(Server):
         @self.app.route("/gherkin-query", methods=['GET', 'POST'])
         def gherkin_query():
             return self.handle_request(req=request)
+        
+        @self.app.route("/financials-query", methods=['GET', 'POST'])
+        def financials_query():
+            return self.handle_request(req=request)
             
     def handle_request(self, req: request):
         if request.method == 'POST':
