@@ -85,16 +85,28 @@ class TradingViewChart {
         // go throught each desired scanner and plot signals
         if (slideData.meta != null) {
             var meta_dict = slideData.meta
-            var signals = []
+            var signal_offset = 0
             for (let key in meta_dict) {
                 switch (key) {
                     case 'signals':
                         meta_dict[key].forEach(element => {
                             var ret = this.#extractSignal(element['color'], element['signal'])
-                            signals.push(...ret)
+                            const tempSeries = tvChart.addLineSeries({ 
+                                color: 'rgba(255, 255, 255, 0)', // hide or show the line by setting opacity
+                                lastValueVisible: false, // hide value from y axis
+                                priceLineVisible: false
+                            });
+                            const tempCloseSeries = []
+                            resp_ohlc.forEach(element => {
+                                tempCloseSeries.push({
+                                    'time': element['time'], 
+                                    'value': element['low'] + signal_offset
+                                })
+                            })
+                            tempSeries.setData(tempCloseSeries);
+                            tempSeries.setMarkers(ret)
+                            signal_offset -= 10 
                         });
-
-                        tvSeries.setMarkers(signals);
                         break;
                     default:
                         console.log("Scanner not avaialable")
