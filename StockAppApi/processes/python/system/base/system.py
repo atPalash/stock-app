@@ -26,6 +26,7 @@ class System(SystemIf):
             'csv': int(parameter.get('csv', '0')),
             'config_dir': parameter.get('config_dir', '/home/palash/dev/stock-app/StockAppApi/configuration'),
             'do': parameter.get('do', 'get'),
+            'database_dir': parameter.get('config_dir', '/home/palash/dev/stock-app/StockAppApi/database'),
             'gherkin': parameter.get('gherkin', ''),
             'indicator': parameter.get('indicator', 'ema'),
             'interval': parameter.get('interval', 'day'),
