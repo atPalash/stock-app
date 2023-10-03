@@ -93,6 +93,14 @@ class GherkinQuery(System):
                 step_results = []
                 # populate the given, when, then keywords to make further query
                 current_keyword = ""
+                all_match = False
+                for step in check["scenarios"][scenario]:
+                    keyword = step['keyword']
+                    if keyword == 'Then ' or (current_keyword == 'Then ' and keyword in conjunction_keyword):
+                        if 'all match' in step['text']:
+                            all_match = True
+
+                last_when_tickers = []
                 for step in check["scenarios"][scenario]:
                     try:
                         errors = ""
@@ -119,15 +127,23 @@ class GherkinQuery(System):
                                 # 2nd step -> compute the condition
                                 # get the context from given above and generate result
                                 # based on the condition
-                                def execute_when(errors: str):
+                                def execute_when(errors: str, when_tickers: list = []):
                                     errors = ""
+                                    valid_tickers_list = []
                                     valid_tickers = []
                                     given_tickers = []
+                                    filter_when_tickers = when_tickers != [] and all_match
                                     for rslt in step_results:
                                         if rslt['type'] == "Given " or rslt["parent"] == "given":
                                             for tick in rslt['result']['tickers']:
                                                 if tick not in given_tickers:
-                                                    given_tickers.append(tick)
+                                                    if filter_when_tickers:
+                                                        if tick in when_tickers:
+                                                            given_tickers.append(
+                                                                tick)
+                                                    else:
+                                                        given_tickers.append(
+                                                            tick)
 
                                     args = []
                                     for ticker in given_tickers:
@@ -148,18 +164,21 @@ class GherkinQuery(System):
                                             if isinstance(result["condition"], bool):
                                                 satisfies = result["condition"]
                                             if isinstance(result["condition"], list):
-                                                satisfies = any(result["condition"])                                        
-                                            if satisfies :
+                                                satisfies = any(
+                                                    result["condition"])
+                                            if satisfies:
                                                 valid_tickers.append(result)
+                                                valid_tickers_list.append(
+                                                    result['ticker'])
                                         else:
                                             errors += f'{result["ticker"]} -> {result["exception"]} \n'
                                     valid_tickers.sort(
                                         key=lambda stock: stock['ticker'])
-                                    return valid_tickers, errors
+                                    return valid_tickers_list, valid_tickers, errors
 
                                 step_result['parent'] = "" if keyword == 'When ' else 'when'
-                                step_result['result'], step_result['errors'] = execute_when(
-                                    errors=errors)
+                                last_when_tickers, step_result['result'], step_result['errors'] = execute_when(
+                                    errors=errors, when_tickers=last_when_tickers)
                                 current_keyword = 'When '
                                 step_results.append(step_result)
                             elif keyword == 'Then ' or (current_keyword == 'Then ' and keyword in conjunction_keyword):
@@ -187,14 +206,21 @@ class GherkinQuery(System):
 
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
-    tt ='Given stocks ASAHIINDIA, ASTRAZEN, BAJAJ-AUTO, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,M&M,MAHABANK,NESTLEIND,PNB,PSB,SBIN,SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC'
+    tt = 'Given stocks ASAHIINDIA, ASTRAZEN, BAJAJ-AUTO, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,M&M,MAHABANK,NESTLEIND,PNB,PSB,SBIN,SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC'
     g_query = '''
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
-Given stocks TATACONSUM
-When backtest for last 100 ticks with signal color green | day close > high of last 20 ticks
-* backtest for last 100 ticks with signal color green | quarterly earnings growth > 20 percent using week chart
+Given all stocks
+When 1.25 of 52 week low < close
+* 0.75 of 52 week high < close 
+* day close ma 50 < close
+* day close ma 150 < close
+* day close ma 200 < close
+* day close ma 50 > day close ma 150
+* day close ma 50 > day close ma 200
+* day close ma 150 > day close ma 200
+* day close ma 200 in uptrend for 60 days
 Then get list of all match
 '''
 

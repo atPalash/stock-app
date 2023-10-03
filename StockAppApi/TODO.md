@@ -15,6 +15,9 @@
 # Aborted
 - [x] VCP pattern -> check BB contraction
 # Done
+- [x] Optimise search for all match filter out stocks that are already not satisfying 
+condition from previous step
+
 - [x] Backtest capability
 - [x] Fix date for minute hour data in tv
 - [x] Download minute data - use for intra-day short
