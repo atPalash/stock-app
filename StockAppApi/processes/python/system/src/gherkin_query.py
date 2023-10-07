@@ -211,8 +211,9 @@ if __name__ == "__main__":
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
-Given all stocks
-When 1.25 of 52 week low < close
+Given niftypharma stocks
+When quarterly earnings quarter to quarter growth rate > 5%
+* 1.25 of 52 week low < close
 * 0.75 of 52 week high < close 
 * day close ma 50 < close
 * day close ma 150 < close
