@@ -3,7 +3,8 @@ import numpy
 from scipy.stats import linregress
 import re
 from typing import Callable
-from datetime import datetime
+import datetime
+from StockAppApi.base.python.src import date_helper
 
 from StockAppApi.base.python.src.yaml_parser import read_config
 from StockAppApi.utility.python.bdd.steps import when
@@ -282,59 +283,116 @@ def shows_macd_divergence(selected_stocks_yaml, indicator_config_yaml, ticker, g
 
 
 @when
-def quaterly_eps(selected_stocks_yaml, indicator_config_yaml, ticker, groups, lookback_window: int = -1):
+def quaterly_eps_growth(selected_stocks_yaml, indicator_config_yaml, ticker, groups, lookback_window: int = -1):
+    """Query eps growth with different type
+    * net - slope of eps growth
+    * recent - growth compared to last quarter
+    * quarter to quarter - growth comparted to same quarter last year 
+
+    Args:
+        selected_stocks_yaml (str): selected stocks list 
+        indicator_config_yaml (str): indicator config
+        ticker (str): ticker name e.g ABB 
+        groups (regex groups): read the user input value from this
+        lookback_window (int, optional): used for backtest as the window to look back and compute the logic
+
+    Returns:
+        dict: dictionary containing the result of the logic
+    """
     try:
-        condition, threshold, interval = groups
+        condition_type = "quarter to quarter"
+        if len(groups) == 3:
+            condition_type, condition, threshold = groups
+        elif len(groups) == 2:
+            condition, threshold = groups
+        else:
+            raise Exception(
+                f"Gherkin query arguments should be 2 or 3 : {groups}")
+
         command_handler = executor.CommandHandler(
             selected_stocks_yaml, indicator_config_yaml)
         financials_query = f'yahoofinance --ticker {ticker} --do financials'
         financials = command_handler.execute(
             financials_query, is_rest=False).obj
-        ohlc_query = f'yahoofinance --ticker {ticker} --interval {interval} --do ohlc'
+        ohlc_query = f'yahoofinance --ticker {ticker} --interval week --do ohlc'
         ohlc = command_handler.execute(ohlc_query, is_rest=False).obj
 
         eps = []
+        quarters = []
         for quarter, statement in financials['incomeStatementHistoryQuarterly'].items():
             if 'basicEPS' in statement:
-                eps.append((quarter, statement['basicEPS']))
+                eps.append(statement['basicEPS'])
+                quarters.append(quarter)
 
-        # start with 0 growth rate at begining
-        growth_rates = {eps[0][0]: 0}
-        for i in range(0, len(eps)-1):
-            beginning_value = eps[i][1]
-            ending_value = eps[i + 1][1]
-            growth_rate = round(((ending_value - beginning_value) /
-                           beginning_value) * 100, 2)
-            growth_rates[eps[i+1][0]] = growth_rate
+        def net(date):
+            try:
+                _, index = date_helper.find_closest_date(date, quarters)
+                index = index + 1 # include this index also
+                start_date = quarters[0]
+                quarter_series = [(x - start_date).days  for x in quarters[:index]]
+                slope, _ = numpy.polyfit(quarter_series, eps[:index], 1)
+                return slope
+            except Exception as e:
+                raise
 
+        def previous_to_quarter(date):
+            try:
+                _, index = date_helper.find_closest_date(date, quarters)
+                index = index + 1 # include this index also
+                selected_eps = eps[:index]
+                growth_rates = {quarters[0]: 0}
+                for i in range(0, len(selected_eps)-1):
+                    beginning_value = selected_eps[i]
+                    ending_value = selected_eps[i + 1]
+                    growth_rate = round((ending_value - beginning_value) /
+                                        beginning_value, 2)
+                    growth_rates[quarters[i+1]] = growth_rate
+                return growth_rates[quarters[-1]]
+            except Exception as e:
+                raise
+
+        def quarter_to_quarter(date):
+            try:
+                _, index = date_helper.find_closest_date(date, quarters)
+                index = index + 1 # include this index also
+                selected_eps = eps[:index]
+                selected_quarters = quarters[:index]
+                this_quarter = selected_quarters[-1]
+                previous_year_quarter = this_quarter - datetime.timedelta(days=365)
+                previous_year_quarter, index = date_helper.find_closest_date(
+                    previous_year_quarter, quarters)
+
+                this_quarter_eps = selected_eps[-1]
+                previous_year_quarter_eps = selected_eps[index]
+                return round((this_quarter_eps - previous_year_quarter_eps) /
+                            previous_year_quarter_eps, 2)
+            except Exception as e:
+                raise
+        
+        condition_funcs = {
+            "net": net,
+            "recent": previous_to_quarter,
+            "quarter to quarter": quarter_to_quarter
+        }
+        
         def logic(df: pandas.DataFrame):
             try:
-                df_last_date = datetime.strptime(
+                df_last_date = datetime.datetime.strptime(
                     df.iloc[-1]['Date'], "%Y-%m-%d")
-                dates = list(growth_rates.keys())
-                quarter_found = False
-                query_quarter = dates[-1]
-                if df_last_date > dates[-1]:
-                    quarter_found = True
-                else:
-                    for i in range(len(dates) - 1):
-                        if dates[i] <= df_last_date <= dates[i + 1]:
-                            query_quarter = dates[i]
-                            quarter_found = True
-                            break
-                condition_string = "False"
-                if quarter_found:
-                    condition_string = f'{growth_rates[query_quarter]} {condition} {float(threshold)}'
+                query_quarter, _ = date_helper.find_closest_date(df_last_date, quarters)
+                rate = condition_funcs[condition_type](df_last_date)
+                condition_string = f'{rate} {condition} {float(threshold) / 100}'
                 return {
                     "ticker": ticker,
-                    "query": "quaterly_eps",
-                    "interval": interval,
+                    "query": "quaterly_eps_growth",
+                    "interval": "week",
                     "quarter": query_quarter,
                     "condition": eval(condition_string),
                     "exception": None
                 }
             except Exception as e:
                 raise
+        
         return __get_result(lookback_window=lookback_window, logic=logic, ticker_df=ohlc)
     except Exception as e:
         return {
@@ -395,31 +453,6 @@ def backtest(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
         }
 
 
-def get_steps():
-    return {
-        # day close ema 50 > close
-        r'^(\w+) (\w+) (\w+)\s+(\d+)\s+([><=!]+)\s+(\w+)$': indicator_compare_with_ohlc,
-        # day close ema 50 > day close ma 20
-        r'^(\w+) (\w+) (\w+)\s+(\d+)\s+([><=!]+)\s+(\w+) (\w+)\s+(\w+)\s+(\d+)$': indicator_compare_indicator,
-        # day close ma 50 in uptrend for 90 days
-        r'^(\w+) (\w+) (\w+)\s+(\d+) in (\w+) for (\d+) days$': indicator_slope_compare_value,
-        # 1.25 of 52 week low < close
-        r'^([-+]?\d*\.\d+) of (\d+) (\w+) (\w+)\s+([><=!]+)\s+(\w+)$': ohlc_compare_value,
-        # day close > high of last 20 ticks
-        r'^(\w+) (\w+)\s+([><=!]+)\s+(\w+) of last (\d+) ticks$': ohlc_window_compare,
-        # day close shows macd divergence with fastperiod 13 slowperiod 26 signalperiod 9 window 20 in last 100 ticks
-        r'^(\w+) (\w+) shows macd divergence with window (\d+) fastperiod (\d+) slowperiod (\d+) signalperiod (\d+) in last (\d+) ticks$': shows_macd_divergence,
-        # day close shows macd divergence with window 20 in last 100 ticks
-        r'^(\w+) (\w+) shows macd divergence with window (\d+) in last (\d+) ticks$': shows_macd_divergence,
-        # backtest for last 100 ticks | day close > high of last 20 ticks - default color red
-        r'^backtest for last (\d+) ticks \| (.*)$': backtest,
-        # backtest for last 100 ticks with signal color red | day close > high of last 20 ticks
-        r'^backtest for last (\d+) ticks with signal color (\w+) \| (.*)$': backtest,
-        # quarterly earnings growth > 20 percent using day chart
-        r'^quarterly earnings growth ([><=!]+) (\d+) percent using (\w+) chart$': quaterly_eps
-    }
-
-
 def __get_result(lookback_window: int, logic: Callable, ticker_df: pandas.DataFrame):
     try:
         result = logic(ticker_df)
@@ -432,9 +465,11 @@ def __get_result(lookback_window: int, logic: Callable, ticker_df: pandas.DataFr
                 look_back_df = ticker_df.loc[0:i]
                 ret = logic(look_back_df)
                 if ret["exception"] is not None:
-                    result["exception"] = result["exception"] + ret["exception"]
+                    result["exception"] = result["exception"] + \
+                        ret["exception"]
                 timestamp = ticker_df.loc[i]['Datetime'] if 'Datetime' in ticker_df.columns else ticker_df.loc[i]['Date']
-                index_conditions.append((i, timestamp, ret["condition"], ret.get("signal", 0)))
+                index_conditions.append(
+                    (i, timestamp, ret["condition"], ret.get("signal", 0)))
             # result["condition"] = pandas.DataFrame(index_conditions, columns=['index', 'eval'])
             result["condition"] = index_conditions
             return result
@@ -477,14 +512,40 @@ def __call_if_step_matched(rule: str):
             break
     return result
 
+def get_steps():
+    return {
+        # day close ema 50 > close
+        r'^(\w+) (\w+) (\w+)\s+(\d+)\s+([><=!]+)\s+(\w+)$': indicator_compare_with_ohlc,
+        # day close ema 50 > day close ma 20
+        r'^(\w+) (\w+) (\w+)\s+(\d+)\s+([><=!]+)\s+(\w+) (\w+)\s+(\w+)\s+(\d+)$': indicator_compare_indicator,
+        # day close ma 50 in uptrend for 90 days
+        r'^(\w+) (\w+) (\w+)\s+(\d+) in (\w+) for (\d+) days$': indicator_slope_compare_value,
+        # 1.25 of 52 week low < close
+        r'^([-+]?\d*\.\d+) of (\d+) (\w+) (\w+)\s+([><=!]+)\s+(\w+)$': ohlc_compare_value,
+        # day close > high of last 20 ticks
+        r'^(\w+) (\w+)\s+([><=!]+)\s+(\w+) of last (\d+) ticks$': ohlc_window_compare,
+        # day close shows macd divergence with fastperiod 13 slowperiod 26 signalperiod 9 window 20 in last 100 ticks
+        r'^(\w+) (\w+) shows macd divergence with window (\d+) fastperiod (\d+) slowperiod (\d+) signalperiod (\d+) in last (\d+) ticks$': shows_macd_divergence,
+        # day close shows macd divergence with window 20 in last 100 ticks
+        r'^(\w+) (\w+) shows macd divergence with window (\d+) in last (\d+) ticks$': shows_macd_divergence,
+        # backtest for last 100 ticks | day close > high of last 20 ticks - default color red
+        r'^backtest for last (\d+) ticks \| (.*)$': backtest,
+        # backtest for last 100 ticks with signal color red | day close > high of last 20 ticks
+        r'^backtest for last (\d+) ticks with signal color (\w+) \| (.*)$': backtest,
+        # quarterly earnings net growth rate > 20%
+        # quarterly earnings recent growth rate > 20%
+        r'^quarterly earnings (\w+) growth rate ([><=!]+) (\d+)%$': quaterly_eps_growth,
+        # quarterly earnings quarter to quarter growth rate > 20%
+        r'^quarterly earnings quarter to quarter growth rate ([><=!]+) (\d+)%$': quaterly_eps_growth
+    }
 
 if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
-    ticker = 'COALINDIA'
-    # query = "quarterly earnings growth > 20 percent using week chart"
-    query = "backtest for last 100 ticks | quarterly earnings growth > 20 percent using week chart"
+    ticker = 'AUROPHARMA'
+    query = "quarterly earnings quarter to quarter growth rate > 20%"
+    # query = "backtest for last 10 ticks | quarterly earnings quarter to quarter growth rate > 5%"
     # query = "backtest for last 100 ticks | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks"
     matched_step = __call_if_step_matched(query)
     result = matched_step['func'](selected_stocks_yaml, indicator_config_yaml,
