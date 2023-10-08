@@ -32,7 +32,6 @@ class ColumnLeft {
             var gherkinQueryId = `gherkin-query-${this.#queryCount}`
             this.#addGherkinQueryDiv(gherkinQueryId, this.#row, this.#col, `column-left-${this.#row}`, userConfig[key])
             this.#queryCount += 1
-
         }
     }
 
@@ -117,7 +116,7 @@ class ColumnLeft {
                             if (popup.style.display == 'block') {
                                 popup.style.display = 'none'
                                 if (query !== currentGherkin) {
-                                    await this.#updateGherkinQueryList(divId, query)
+                                    await this.#updateGherkinQueryList(divId, query, `context-menu-${divId}`)
                                     currentGherkin = query
                                 }
                             } else {
@@ -165,9 +164,11 @@ class ColumnLeft {
                     "target": `context-menu-backtest-${divId}`,
                     "type": "click",
                     "callback": async (ev) => {
-                        var element = await this.#getBacktestChart(ev, `input-${divId}`)
-                        if (element != null) {
-                            openWindow(`context-result-${divId}`, element)
+                        if (ev.currentTarget.id == `context-menu-backtest-${divId}`) {
+                            var element = await this.#getBacktestChart(ev, `input-${divId}`)
+                            if (element != null) {
+                                openWindow(`context-result-${divId}`, element)
+                            }
                         }
                     }
                 }
@@ -181,7 +182,7 @@ class ColumnLeft {
         document.addEventListener('click', (event) => hideContextMenus())
     }
 
-    async #updateGherkinQueryList(divId, query) {
+    async #updateGherkinQueryList(divId, query, context_menu_query_id) {
         var conjunction_keyword = ['And ', '* ']
         if (query != "" && query != undefined) {
             try {
@@ -213,7 +214,7 @@ class ColumnLeft {
                     list.remove()
                 }
 
-                addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker, this.#rightClickToContext)
+                addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker, this.#rightClickToContext, context_menu_query_id)
             } catch (error) {
                 console.error('An error occurred during gherkin query', error);
             }
@@ -262,8 +263,8 @@ class ColumnLeft {
         changeSelection(id, index)
     }
 
-    #rightClickToContext = async (evt, top, left, contextElement) => {
-        var id = 'context-menu-gherkin-query-0-0-0'
+    #rightClickToContext = async (evt, top, left, contextElement, context_menu_query_id) => {
+        var id = context_menu_query_id
         const contextMenu = document.getElementById(id);
         contextMenu.style.left = `${left}px`;
         contextMenu.style.top = `${top}px`;
@@ -275,7 +276,6 @@ class ColumnLeft {
         var meta = this.#contextElement.getAttribute('meta-data') != null ? JSON.parse(this.#contextElement.getAttribute('meta-data')) : {}
 
         if (Object.keys(meta).length == 0) {
-            debugger
             var signals = await this.#getBacktestSignals(evt, queryElementId)
             meta['signals'] = signals[this.#contextElement.textContent]['signals']
             this.#contextElement.setAttribute('meta-data', JSON.stringify(meta))

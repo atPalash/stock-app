@@ -65,7 +65,7 @@ function addInnerHtmlToDiv(parentId, options) {
     }
 }
 
-function addListToDiv(parentId, ticker_list, clickHandler = null, contextHandler = null) {
+function addListToDiv(parentId, ticker_list, clickHandler = null, contextHandler = null, context_menu_query_id="") {
     // Create the unordered list element
     const ul = document.createElement('ul');
     ul.setAttribute('id', `${parentId}-list`)
@@ -83,7 +83,7 @@ function addListToDiv(parentId, ticker_list, clickHandler = null, contextHandler
                 const rect = li.getBoundingClientRect();
                 const top = rect.top;
                 const left = rect.left + rect.width * 0.5;
-                contextHandler(event, top, left, li)
+                contextHandler(event, top, left, li, context_menu_query_id)
             })
         }
         ul.appendChild(li);
