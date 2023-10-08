@@ -82,11 +82,45 @@ class GherkinQuery(System):
                 result['func'] = func
                 break
         return result
+    
+    def __convertToBacktest(self, gherkin_query: str) -> dict:
+        """Convert the gherkin query to backtest gherkin query. Ensure the keyword
+        Backtest is in the top line.
 
+        Args:
+            gherkin_query (str): gherkin query string with Backtest in top line
+
+        Returns:
+            dict: converted steps
+        """
+        lines = gherkin_query.split('\n')
+        query = '\n'.join(lines[1:])
+        check = gherkin_parser.parse(
+                    gherkin_string=query)
+        conjunction_keyword = ['And ', '* ']
+        for scenario in check["scenarios"]:
+            current_keyword = ""
+            for step in check["scenarios"][scenario]:
+                keyword = step['keyword']
+                step_text = step['text']
+                if keyword == 'Given ' or (current_keyword == 'Given ' and keyword in conjunction_keyword):
+                    current_keyword = 'Given '
+                elif keyword == 'When ' or (current_keyword == 'When ' and keyword in conjunction_keyword):
+                    step['text'] = f'backtest for last 100 ticks | {step_text}'
+                    current_keyword = 'When '
+                elif keyword == 'Then ' or (current_keyword == 'Then ' and keyword in conjunction_keyword):
+                    step['text'] = f'get list of stocks with signals'
+                    current_keyword = 'Then '
+        return check
+                    
     def __get(self) -> RetVal:
         try:
-            check = gherkin_parser.parse(
-                gherkin_string=self.parameter['gherkin'])
+            check = None
+            if 'Backtest' in self.parameter['gherkin']:
+                check = self.__convertToBacktest(self.parameter['gherkin'])
+            else:
+                check = gherkin_parser.parse(
+                    gherkin_string=self.parameter['gherkin'])
             conjunction_keyword = ['And ', '* ']
             scenario_results = {}
             for scenario in check["scenarios"]:
@@ -206,8 +240,7 @@ class GherkinQuery(System):
 
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
-    tt = 'Given stocks ASAHIINDIA, ASTRAZEN, BAJAJ-AUTO, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,M&M,MAHABANK,NESTLEIND,PNB,PSB,SBIN,SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC'
-    g_query = '''
+    g_query = '''Backtest
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
