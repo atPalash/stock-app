@@ -1,3 +1,4 @@
+import random
 import pandas
 import numpy
 from scipy.stats import linregress
@@ -421,12 +422,13 @@ def backtest(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
     A dictionary with a key "condition" which contains indexes and value
     of step2 logic.
     """
+    colors = ["red", "blue", "green", "yellow", "orange", "purple", "brown", "pink", "gray"]
     try:
         if len(groups) == 3:
             look_back_window, signal_color, signal_condition = groups
         elif len(groups) == 2:
             look_back_window, signal_condition = groups
-            signal_color = "red"
+            signal_color = random.choice(colors)
         else:
             raise Exception("Backtest query format error")
 
