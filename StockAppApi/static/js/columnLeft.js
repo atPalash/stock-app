@@ -7,6 +7,7 @@ class ColumnLeft {
     #width
     #config
     #queryCount
+    #contextElement
     // #tvCharts 
     constructor(num, tickers, height, width) {
         this.#row = num;
@@ -19,6 +20,7 @@ class ColumnLeft {
         this.#parentId = `column-${num}`; // change
         this.#config = {}
         this.#queryCount = 0
+        this.#contextElement = null
     }
 
     init = async (userConfig) => {
@@ -94,6 +96,14 @@ class ColumnLeft {
                 </div>
                 <div class=chart-popup id=chart-popup-${divId} style="display: none; z-index: 999; background-color: darkgoldenrod; position: relative;">
                 </div>
+                <div class=context-menu id=context-menu-${divId} style="display: none; z-index: 999; border: 1px solid #ccc; position: absolute;">
+                <ul style="position: absolute; top: 0; left: 100%; margin-left: 10px;">
+                    <li id='context-menu-financials-${divId}'>Financials</li>
+                    <li id='context-menu-backtest-${divId}'>Backtest</li>
+                </ul>
+                </div>
+                <div id=context-result-${divId} style="display: none; z-index: 999; position: relative;">
+                </div>
                 `
             },
             "events": {
@@ -143,6 +153,23 @@ class ColumnLeft {
                             div.remove()
                         }
                     }
+                },
+                [`context-menu-financials-${divId}-click`]: {
+                    "target": `context-menu-financials-${divId}`,
+                    "type": "click",
+                    "callback": async (ev) => {
+                        return
+                    }
+                },
+                [`context-menu-backtest-${divId}-click`]: {
+                    "target": `context-menu-backtest-${divId}`,
+                    "type": "click",
+                    "callback": async (ev) => {
+                        var element = await this.#getBacktestChart(ev, `input-${divId}`)
+                        if (element != null) {
+                            openWindow(`context-result-${divId}`, element)
+                        }
+                    }
                 }
             }
         }
@@ -150,6 +177,8 @@ class ColumnLeft {
         // execute query when loaded with prexisting config query. 2 times to open and close
         document.getElementById(`button-query-${divId}`).click()
         document.getElementById(`button-query-${divId}`).click()
+
+        document.addEventListener('click', (event) => hideContextMenus())
     }
 
     async #updateGherkinQueryList(divId, query) {
@@ -164,22 +193,14 @@ class ColumnLeft {
                 var feature = Object.keys(gherkin_response["gherkin"])[0]
                 document.getElementById(`label-${divId}`).innerText = feature
                 var then_steps_tickers = []
-                var ticker_signals = {}
-                                for (var scenario in gherkin_response['gherkin'][feature]) {
+                for (var scenario in gherkin_response['gherkin'][feature]) {
                     var current_keyword = ""
                     var steps = gherkin_response['gherkin'][feature][scenario]
                     steps.forEach(step => {
                         if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
                             step['result']['tickers'].forEach(ticker => {
-                                if (step['result']['signals'] != null) {
-                                    var ticker_sigs = step['result']['signals'][ticker]
-                                    if (ticker in ticker_signals) {
-                                        ticker_signals[ticker]["signals"].push(...ticker_sigs)
-                                    } else {
-                                        ticker_signals[ticker] = { "signals": ticker_sigs }
-                                    }
-                                } else {
-                                    ticker_signals[ticker] = {}
+                                if(!then_steps_tickers.includes(ticker)) {
+                                    then_steps_tickers.push(ticker)
                                 }
                             })
                             current_keyword = 'Then '
@@ -192,10 +213,34 @@ class ColumnLeft {
                     list.remove()
                 }
 
-                addListToDiv(divId, ticker_signals, this.#clickToSelectTicker)
+                addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker, this.#rightClickToContext)
             } catch (error) {
                 console.error('An error occurred during gherkin query', error);
             }
+        }
+    }
+
+    async #getFinancials(ticker) {
+        try {
+            var financials_response = await apiPost(`financials-query`, {
+                "query": `webserver --ticker ${ticker} --indicator financials`
+            });
+            return financials_response
+        } catch (error) {
+            console.error('An error occurred during financials query', error);
+        }
+    }
+
+    async #createFinancialsTable(containerId, financials) {
+        try {
+            const tableContainer = document.getElementById(containerId);
+            // const table = createTableFromJson(financials['balanceSheetHistory'])
+            var dummyImage = document.createElement("img");
+            dummyImage.src = "https://via.placeholder.com/300";
+            tableContainer.appendChild(dummyImage)
+            tableContainer.style.display = 'block';
+        } catch (error) {
+            console.error('An error occurred during financials query', error);
         }
     }
 
@@ -213,40 +258,77 @@ class ColumnLeft {
             return
         }
 
-        var popupId = `chart-popup-gherkin-query-0-0-0`
-        var meta = evt.target.getAttribute('meta-data') != null ? JSON.parse(evt.target.getAttribute('meta-data')) : null
-        if (meta['signals'] != null && meta['signals'].length > 0) {
-            var popup = document.getElementById(popupId)
-            popup.innerHTML = ""
-            // var existingTvCharts = popup.getElementsByClassName("tv-chart");
-            // while (existingTvCharts.length > 0) {
-            //     existingTvCharts[0].parentNode.removeChild(existingTvCharts[0]);
-            // }
+        // changeSelection(id, index, evt.target.getAttribute('meta-data'))
+        changeSelection(id, index)
+    }
 
+    #rightClickToContext = async (evt, top, left, contextElement) => {
+        var id = 'context-menu-gherkin-query-0-0-0'
+        const contextMenu = document.getElementById(id);
+        contextMenu.style.left = `${left}px`;
+        contextMenu.style.top = `${top}px`;
+        contextMenu.style.display = 'block';
+        this.#contextElement = contextElement
+    }
+
+    #getBacktestChart = async (evt, queryElementId) => {
+        var meta = this.#contextElement.getAttribute('meta-data') != null ? JSON.parse(this.#contextElement.getAttribute('meta-data')) : {}
+
+        if (Object.keys(meta).length == 0) {
+            debugger
+            var signals = await this.#getBacktestSignals(evt, queryElementId)
+            meta['signals'] = signals[this.#contextElement.textContent]['signals']
+            this.#contextElement.setAttribute('meta-data', JSON.stringify(meta))
+        }
+        
+        if (meta != null && meta['signals'] != null && meta['signals'].length > 0) {
             var tvChart = new TradingViewChart(500, 1000)
             var divTvChart = await tvChart.plotCandle({
-                symbol: evt.target.innerText,
+                symbol: this.#contextElement.innerText,
                 interval: meta['signals'][0]['interval'],
                 n: 1000, // TODO,
                 meta: meta,
                 style: "position: absolute; top: 0; left: 100%; margin-left: 10px;"
             })
-            popup.appendChild(divTvChart)
-
-            if (tickerSelector.value == evt.target.innerText) {
-                if (popup.style.display == 'block') {
-                    popup.style.display = 'none'
-                } else {
-                    popup.style.display = 'block'
-                }
-            }
-            else {
-                popup.style.display = 'block'
-            }
+            return divTvChart
         }
 
-        // changeSelection(id, index, evt.target.getAttribute('meta-data'))
-        changeSelection(id, index)
+        return null
+    }
+
+    #getBacktestSignals = async (evt, queryElementId) => {
+        var gherkinQuery = document.getElementById(queryElementId).value
+
+        gherkinQuery = `Backtest
+        ${gherkinQuery}`
+        var gherkin_response = await apiPost(`gherkin-query`, {
+            "query": `webserver --gherkin ${gherkinQuery} --indicator gherkin`
+        });
+
+        var feature = Object.keys(gherkin_response["gherkin"])[0]
+        var ticker_signals = {}
+        for (var scenario in gherkin_response['gherkin'][feature]) {
+            var current_keyword = ""
+            var steps = gherkin_response['gherkin'][feature][scenario]
+            steps.forEach(step => {
+                if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
+                    step['result']['tickers'].forEach(ticker => {                     
+                        if (step['result']['signals'] != null) {
+                            var ticker_sigs = step['result']['signals'][ticker]
+                            if (ticker in ticker_signals) {
+                                ticker_signals[ticker]["signals"].push(...ticker_sigs)
+                            } else {
+                                ticker_signals[ticker] = { "signals": ticker_sigs }
+                            }
+                        } else {
+                            ticker_signals[ticker] = {}
+                        }
+                    })
+                    current_keyword = 'Then '
+                }
+            });
+        }
+        return ticker_signals
     }
 }
 

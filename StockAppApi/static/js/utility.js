@@ -29,7 +29,7 @@ function convertToUtc(time) {
     if (time.includes(":")) {
         // This offset will change based on the source data and client
         // time zone, also when DST is applied
-        const offset = 10800      
+        const offset = 10800
         return Date.parse(time) / 1000 + offset
     }
     return time
@@ -65,32 +65,49 @@ function addInnerHtmlToDiv(parentId, options) {
     }
 }
 
-function addListToDiv(parentId, list, eventHandler=null, metaData=null) {
+function addListToDiv(parentId, ticker_list, clickHandler = null, contextHandler = null) {
     // Create the unordered list element
     const ul = document.createElement('ul');
     ul.setAttribute('id', `${parentId}-list`)
     ul.setAttribute('style', "margin-top: 0; margin-bottom: 0;")
 
-    for (let ticker in list) {
+    ticker_list.forEach(ticker => {
         const li = document.createElement('li');
         li.textContent = ticker;
         li.style.color = "black"
-        li.setAttribute('meta-data', JSON.stringify(list[ticker]))
+        if (contextHandler != null) {
+            li.addEventListener("contextmenu", (event) => {
+                event.preventDefault();
+                hideContextMenus();
+
+                const rect = li.getBoundingClientRect();
+                const top = rect.top;
+                const left = rect.left + rect.width * 0.5;
+                contextHandler(event, top, left, li)
+            })
+        }
         ul.appendChild(li);
-    }
+    })
 
     // Append the unordered list to the body of the page
     document.getElementById(parentId).appendChild(ul);
-    ul.addEventListener('mouseover', function(event) {
+    ul.addEventListener('mouseover', function (event) {
         if (event.target.matches('li')) {
-          event.target.style.cursor = 'pointer';
+            event.target.style.cursor = 'pointer';
         }
-      });
-    if(eventHandler!=null) {
+    });
+
+    if (clickHandler != null) {
         ul.addEventListener("click", (event) => {
-            eventHandler(event)
+            clickHandler(event)
         })
     }
+}
+
+function hideContextMenus() {
+    Array.from(document.getElementsByClassName('context-menu')).forEach(menu => {
+        menu.style.display = 'none';
+    });
 }
 
 function notifyLoad(data = {}) {
@@ -124,7 +141,7 @@ function parseJSON(jsonString) {
     return thisJson;
 }
 
-function changeSelection(id, index, detail=null) {
+function changeSelection(id, index, detail = null) {
     var select = document.getElementById(id)
     select.selectedIndex = index
     var event = new Event('change');
@@ -132,7 +149,7 @@ function changeSelection(id, index, detail=null) {
     select.dispatchEvent(event);
 }
 
-function popUpSelection(id, index, detail=null) {
+function popUpSelection(id, index, detail = null) {
     var select = document.getElementById(id)
     select.selectedIndex = index
     var event = new Event('change');
@@ -144,4 +161,15 @@ function popUpSelection(id, index, detail=null) {
 function getUnicodeIcon(uniStr) {
     var decimalValue = parseInt(uniStr.substr(3), 16);
     return String.fromCharCode(decimalValue);
+}
+
+function openWindow(parentId, elementToUpdate) {
+    var parent = document.getElementById(parentId)
+    parent.innerHTML = `<button id="${parentId}-closeButton" style="position: absolute; top: 10px; left: 100px;">&times;</button>`
+    parent.appendChild(elementToUpdate)
+    document.getElementById(`${parentId}-closeButton`).addEventListener("click", (evt) => {
+        parent.style.display = 'none'
+        parent.innerHTML = ''
+    })
+    parent.style.display = 'block'
 }
