@@ -9,7 +9,7 @@ class TradingViewChart {
         this.#width = width
         this.#chart = null
         this.#slide = null
-        this.#tooltip = {'signals':{}, 'width': 100}
+        this.#tooltip = { 'signals': {}, 'width': 100 }
     }
 
     setHeightWidth(height, width) {
@@ -104,16 +104,16 @@ class TradingViewChart {
                 toolTip.style.display = 'block';
                 const data = param.seriesData.get(tvSeries);
                 const price = data.value !== undefined ? data.value : data.close;
-                
+
                 var tooltipData = this.#tooltip
                 toolTip.innerHTML = `
                 <div style="color: ${'rgba( 239, 83, 80, 1)'}">⬤ ${slideData.symbol}
                 </div>
                 `;
-                if(tooltipData['signals'].hasOwnProperty(dateStr)) {
+                if (tooltipData['signals'].hasOwnProperty(dateStr)) {
                     tooltipData['signals'][dateStr].forEach(element => {
                         const tooltipOffsetWidth = element.length * 12 * 0.5
-                        if(this.#tooltip['width'] < tooltipOffsetWidth) {
+                        if (this.#tooltip['width'] < tooltipOffsetWidth) {
                             this.#tooltip['width'] = tooltipOffsetWidth
                         } else if (tooltipOffsetWidth < 100) {
                             this.#tooltip['width'] = 100
@@ -125,7 +125,7 @@ class TradingViewChart {
                         `
                     });
                 }
-                
+
 
                 let left = param.point.x; // relative to timeScale
                 const timeScaleWidth = tvChart.timeScale().width();
@@ -260,11 +260,13 @@ class TradingViewChart {
                 }
                 ret.push(row)
             }
-            
-            if(this.#tooltip['signals'].hasOwnProperty(time)) {
-                this.#tooltip['signals'][time].push(step)
-            } else {
-                this.#tooltip['signals'][time] = [step]
+
+            if (element[2]) {
+                if (this.#tooltip['signals'].hasOwnProperty(time)) {
+                    this.#tooltip['signals'][time].push(step)
+                } else {
+                    this.#tooltip['signals'][time] = [step]
+                }
             }
         })
         return ret
