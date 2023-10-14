@@ -1,5 +1,6 @@
 # TODO
 - ![ mimic market smith](image.png)
+- [ ] containerize
 - [ ] Volume strategy
 - [ ] Scan for pivot points
 - [ ] Implement config in client side else default config 

@@ -71,7 +71,8 @@ def list_stock_signals(groups, steps):
                         temp = {
                                 'signal': stp['condition'],
                                 'color': stp['color'] ,
-                                'interval': stp['interval']
+                                'interval': stp['interval'],
+                                'step': step['step']
                             }
                         if(stp['ticker'] not in tickers_with_signal):
                             tickers_with_signal[stp['ticker']] = [temp]     
