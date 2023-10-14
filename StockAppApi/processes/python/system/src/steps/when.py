@@ -545,7 +545,7 @@ if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
-    ticker = 'AUROPHARMA'
+    ticker = 'TEJASNET'
     query = "quarterly earnings quarter to quarter growth rate > 20%"
     # query = "backtest for last 10 ticks | quarterly earnings quarter to quarter growth rate > 5%"
     # query = "backtest for last 100 ticks | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks"

@@ -94,6 +94,7 @@ class GherkinQuery(System):
             dict: converted steps
         """
         lines = gherkin_query.split('\n')
+        backtest_ticker = lines[0].split(':')[1]
         query = '\n'.join(lines[1:])
         check = gherkin_parser.parse(
                     gherkin_string=query)
@@ -104,6 +105,7 @@ class GherkinQuery(System):
                 keyword = step['keyword']
                 step_text = step['text']
                 if keyword == 'Given ' or (current_keyword == 'Given ' and keyword in conjunction_keyword):
+                    step['text'] = f'stocks {backtest_ticker}'
                     current_keyword = 'Given '
                 elif keyword == 'When ' or (current_keyword == 'When ' and keyword in conjunction_keyword):
                     step['text'] = f'backtest for last 100 ticks | {step_text}'
@@ -166,18 +168,15 @@ class GherkinQuery(System):
                                     valid_tickers_list = []
                                     valid_tickers = []
                                     given_tickers = []
-                                    filter_when_tickers = when_tickers != [] and all_match
-                                    for rslt in step_results:
-                                        if rslt['type'] == "Given " or rslt["parent"] == "given":
-                                            for tick in rslt['result']['tickers']:
-                                                if tick not in given_tickers:
-                                                    if filter_when_tickers:
-                                                        if tick in when_tickers:
-                                                            given_tickers.append(
-                                                                tick)
-                                                    else:
-                                                        given_tickers.append(
-                                                            tick)
+                                    filter_when_tickers = len(when_tickers) != 0 and all_match
+                                    if filter_when_tickers:
+                                        given_tickers = when_tickers
+                                    else:    
+                                        for rslt in step_results:
+                                            if rslt['type'] == "Given " or rslt["parent"] == "given":
+                                                for tick in rslt['result']['tickers']:
+                                                    if tick not in given_tickers:
+                                                        given_tickers.append(tick)
 
                                     args = []
                                     for ticker in given_tickers:
@@ -240,7 +239,7 @@ class GherkinQuery(System):
 
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
-    g_query = '''Backtest
+    g_query = '''
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test

@@ -298,9 +298,7 @@ class ColumnLeft {
 
     #getBacktestSignals = async (evt, queryElementId) => {
         var gherkinQuery = document.getElementById(queryElementId).value
-
-        gherkinQuery = `Backtest
-        ${gherkinQuery}`
+        gherkinQuery = `Backtest:${this.#contextElement.innerText}\n${gherkinQuery}`
         var gherkin_response = await apiPost(`gherkin-query`, {
             "query": `webserver --gherkin ${gherkinQuery} --indicator gherkin`
         });
