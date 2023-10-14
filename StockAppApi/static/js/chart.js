@@ -3,11 +3,13 @@ class TradingViewChart {
     #width
     #chart
     #slide
+    #tooltip
     constructor(height, width) {
         this.#height = height
         this.#width = width
         this.#chart = null
         this.#slide = null
+        this.#tooltip = {'signals':{}, 'width': 100}
     }
 
     setHeightWidth(height, width) {
@@ -39,8 +41,99 @@ class TradingViewChart {
             },
         });
 
+        tvChart.applyOptions({
+            rightPriceScale: {
+                visible: true,
+            },
+            crosshair: {
+                horzLine: {
+                    visible: true,
+                    labelVisible: true,
+                },
+                vertLine: {
+                    visible: true,
+                    style: 0,
+                    width: 2,
+                    color: 'rgba(32, 38, 46, 0.1)',
+                    labelVisible: true,
+                },
+            },
+            // hide the grid lines
+            grid: {
+                vertLines: {
+                    visible: false,
+                },
+                horzLines: {
+                    visible: false,
+                },
+            },
+        });
+
         const tvSeries = tvChart.addCandlestickSeries();
+        tvSeries.priceScale().applyOptions({
+            scaleMargins: {
+                top: 0.3, // leave some space for the legend
+                bottom: 0.25,
+            },
+        });
         tvSeries.setData(resp_ohlc);
+
+        // Create and style the tooltip html element
+        const toolTip = document.createElement('div');
+        toolTip.style = `width: ${this.#tooltip['width']}px; height: 300px; position: absolute; display: none; padding: 8px; box-sizing: border-box; font-size: 12px; text-align: left; z-index: 1000; top: 12px; left: 12px; pointer-events: none; border-radius: 4px 4px 0px 0px; border-bottom: none; box-shadow: 0 2px 5px 0 rgba(117, 134, 150, 0.45);font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;`;
+        toolTip.style.background = `rgba(${'255, 255, 255'}, 0.25)`;
+        toolTip.style.color = 'black';
+        toolTip.style.borderColor = 'rgba( 239, 83, 80, 1)';
+        slide.appendChild(toolTip);
+
+        // update tooltip
+        tvChart.subscribeCrosshairMove(param => {
+            if (
+                param.point === undefined ||
+                !param.time ||
+                param.point.x < 0 ||
+                param.point.x > slide.clientWidth ||
+                param.point.y < 0 ||
+                param.point.y > slide.clientHeight
+            ) {
+                toolTip.style.display = 'none';
+            } else {
+                // time will be in the same format that we supplied to setData.
+                // thus it will be YYYY-MM-DD
+                const dateStr = param.time;
+                toolTip.style.display = 'block';
+                const data = param.seriesData.get(tvSeries);
+                const price = data.value !== undefined ? data.value : data.close;
+                
+                var tooltipData = this.#tooltip
+                toolTip.innerHTML = `
+                <div style="color: ${'rgba( 239, 83, 80, 1)'}">⬤ ${slideData.symbol}
+                </div>
+                `;
+                if(tooltipData['signals'].hasOwnProperty(dateStr)) {
+                    tooltipData['signals'][dateStr].forEach(element => {
+                        toolTip.innerHTML += `
+                        <div style="color: ${'rgba( 239, 83, 80, 1)'}">${element}
+                        </div>
+                        `
+                    });
+                }
+                
+
+                let left = param.point.x; // relative to timeScale
+                const timeScaleWidth = tvChart.timeScale().width();
+                const priceScaleWidth = tvChart.priceScale('left').width();
+                const halfTooltipWidth = this.#tooltip['width'] / 2;
+                left += priceScaleWidth - halfTooltipWidth;
+                left = Math.min(left, priceScaleWidth + timeScaleWidth - this.#tooltip['width']);
+                left = Math.max(left, priceScaleWidth);
+
+                toolTip.style.left = left + 'px';
+                toolTip.style.top = 0 + 'px';
+            }
+        });
+
+        // tvChart.timeScale().fitContent();
 
         // go through each desired indicator and plot them
         for (let key in slideData.indicators) {
@@ -90,8 +183,8 @@ class TradingViewChart {
                 switch (key) {
                     case 'signals':
                         meta_dict[key].forEach(element => {
-                            var ret = this.#extractSignal(element['color'], element['signal'])
-                            const tempSeries = tvChart.addLineSeries({ 
+                            var ret = this.#extractSignal(element['color'], element['signal'], element['step'].split('|')[1].trim())
+                            const tempSeries = tvChart.addLineSeries({
                                 color: 'rgba(255, 255, 255, 0)', // hide or show the line by setting opacity
                                 lastValueVisible: false, // hide value from y axis
                                 priceLineVisible: false
@@ -99,13 +192,13 @@ class TradingViewChart {
                             const tempCloseSeries = []
                             resp_ohlc.forEach(element => {
                                 tempCloseSeries.push({
-                                    'time': element['time'], 
+                                    'time': element['time'],
                                     'value': element['low'] + signal_offset
                                 })
                             })
                             tempSeries.setData(tempCloseSeries);
                             tempSeries.setMarkers(ret)
-                            signal_offset -= 10 
+                            signal_offset -= 10
                         });
                         break;
                     default:
@@ -113,7 +206,7 @@ class TradingViewChart {
                 }
             }
         }
-        
+
         this.#chart = tvChart
         this.#slide = slide
         return slide
@@ -147,17 +240,24 @@ class TradingViewChart {
         return values
     }
 
-    #extractSignal(color, signals) {
+    #extractSignal(color, signals, step) {
         var ret = []
         signals.forEach(element => {
+            var time = convertToUtc(element[1])
             if (element[2]) {
                 var row = {
-                    'time': convertToUtc(element[1]),
-                    'position': element[3] < 0 ? 'aboveBar':'belowBar',
-                    'color': element[3] < 0 ? 'red':color,
-                    'shape': element[3] < 0 ? 'arrowDown':'arrowUp',
+                    'time': time,
+                    'position': element[3] < 0 ? 'aboveBar' : 'belowBar',
+                    'color': element[3] < 0 ? 'red' : color,
+                    'shape': element[3] < 0 ? 'arrowDown' : 'arrowUp',
                 }
                 ret.push(row)
+            }
+            
+            if(this.#tooltip['signals'].hasOwnProperty(time)) {
+                this.#tooltip['signals'][time].push(step)
+            } else {
+                this.#tooltip['signals'][time] = [step]
             }
         })
         return ret
