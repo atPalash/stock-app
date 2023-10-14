@@ -112,6 +112,13 @@ class TradingViewChart {
                 `;
                 if(tooltipData['signals'].hasOwnProperty(dateStr)) {
                     tooltipData['signals'][dateStr].forEach(element => {
+                        const tooltipOffsetWidth = element.length * 12 * 0.5
+                        if(this.#tooltip['width'] < tooltipOffsetWidth) {
+                            this.#tooltip['width'] = tooltipOffsetWidth
+                        } else if (tooltipOffsetWidth < 100) {
+                            this.#tooltip['width'] = 100
+                        }
+                        toolTip.style.width = `${this.#tooltip['width']}px`
                         toolTip.innerHTML += `
                         <div style="color: ${'rgba( 239, 83, 80, 1)'}">${element}
                         </div>

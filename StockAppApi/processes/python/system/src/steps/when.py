@@ -59,17 +59,18 @@ def indicator_compare_indicator(selected_stocks_yaml, indicator_config_yaml, tic
                 --indicator {ind_rhs} --window {ind_rhs_window} --n 1000 \
                 --ohlc {ohlc_source_ind_rsh.capitalize()}'
         ticker_df_lhs = command_handler.execute(
-            ind_lhs_query, is_rest=False).obj[ind_lhs]
+            ind_lhs_query, is_rest=False).obj
         ticker_df_rhs = command_handler.execute(
-            ind_rhs_query, is_rest=False).obj[ind_rhs]
+            ind_rhs_query, is_rest=False).obj
 
         def logic(df_lhs, df_rhs):
-            condition_string = f'{df_lhs.iloc[-1]} {condition} {df_rhs.iloc[-1]}'
+            condition_string = f'{df_lhs.iloc[-1][ind_lhs]} {condition} {df_rhs.iloc[-1][ind_rhs]}'
             return {
                 "ticker": ticker,
                 "interval": ind_lhs_query,
                 "lhs_query": ind_lhs_query,
                 "rhs_query": ind_rhs_query,
+                "query": f'{ind_lhs_query},{ind_rhs_query}',
                 "condition": eval(condition_string),
                 "exception": None
             }
@@ -93,12 +94,12 @@ def indicator_slope_compare_value(selected_stocks_yaml, indicator_config_yaml, t
                 --indicator {ind_lhs} --window {ind_lhs_window} --n 1000 \
                 --ohlc {ohlc_source_ind_lsh.capitalize()}'
         ticker_df = command_handler.execute(
-            indicator_query, is_rest=False).obj[ind_lhs]
+            indicator_query, is_rest=False).obj
 
         def logic(df: pandas.DataFrame):
             df = df.tail(int(days_span))
             slope, _, _, _, _ = linregress(
-                numpy.arange(0, df.shape[0], 1), df)
+                numpy.arange(0, df.shape[0], 1), df[ind_lhs])
             condition = '>' if trend == 'uptrend' else '<'
             condition_string = f'{slope} {condition} 0'
             return {
@@ -545,10 +546,10 @@ if __name__ == "__main__":
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
-    ticker = 'TEJASNET'
-    query = "quarterly earnings quarter to quarter growth rate > 20%"
+    ticker = 'LT'
+    # query = "quarterly earnings quarter to quarter growth rate > 20%"
     # query = "backtest for last 10 ticks | quarterly earnings quarter to quarter growth rate > 5%"
-    # query = "backtest for last 100 ticks | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks"
+    query = "backtest for last 100 ticks | day close ma 200 in uptrend for 60 days"
     matched_step = __call_if_step_matched(query)
     result = matched_step['func'](selected_stocks_yaml, indicator_config_yaml,
                                   ticker, matched_step["match"].groups())

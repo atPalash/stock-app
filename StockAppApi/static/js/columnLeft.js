@@ -186,10 +186,12 @@ class ColumnLeft {
         var conjunction_keyword = ['And ', '* ']
         if (query != "" && query != undefined) {
             try {
+                // const startTime = performance.now();
                 var gherkin_response = await apiPost(`gherkin-query`, {
                     "query": `webserver --gherkin ${query} --indicator gherkin`
                 });
-
+                // console.log(query, "took", (performance.now() - startTime)*0.001)
+                
                 // User must define one feature per query
                 var feature = Object.keys(gherkin_response["gherkin"])[0]
                 document.getElementById(`label-${divId}`).innerText = feature
