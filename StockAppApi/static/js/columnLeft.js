@@ -284,7 +284,7 @@ class ColumnLeft {
         }
 
         if (meta != null && meta['signals'] != null && meta['signals'].length > 0) {
-            var tvChart = new TradingViewChart(500, 1000)
+            var tvChart = new TradingViewChart(700, 1400)
             var divTvChart = await tvChart.plotCandle({
                 symbol: this.#contextElement.innerText,
                 interval: 'day', // hard-coded

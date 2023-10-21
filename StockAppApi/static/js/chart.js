@@ -190,7 +190,7 @@ class TradingViewChart {
                 switch (key) {
                     case 'signals':
                         meta_dict[key].forEach(element => {
-                            var ret = this.#extractSignal(element['color'], element['signal'], element['step'].split('|')[1].trim())
+                            var ret = this.#extractSignal(resp_ohlc, element['color'], element['signal'], element['step'].split('|')[1].trim())
                             const tempSeries = tvChart.addLineSeries({
                                 color: 'rgba(255, 255, 255, 0)', // hide or show the line by setting opacity
                                 lastValueVisible: false, // hide value from y axis
@@ -247,10 +247,11 @@ class TradingViewChart {
         return values
     }
 
-    #extractSignal(color, signals, step) {
+    #extractSignal(ohlc, color, signals, step) {
         var ret = []
+        const timeArray = ohlc.map(obj => obj.time);
         signals.forEach(element => {
-            var time = convertToUtc(element[1])
+            var time = findNearestMarketOpenDate(timeArray, convertToUtc(element[1]))
             if (element[2]) {
                 var row = {
                     'time': time,
