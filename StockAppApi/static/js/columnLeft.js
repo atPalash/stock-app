@@ -191,7 +191,7 @@ class ColumnLeft {
                     "query": `webserver --gherkin ${query} --indicator gherkin`
                 });
                 // console.log(query, "took", (performance.now() - startTime)*0.001)
-                
+
                 // User must define one feature per query
                 var feature = Object.keys(gherkin_response["gherkin"])[0]
                 document.getElementById(`label-${divId}`).innerText = feature
@@ -202,7 +202,7 @@ class ColumnLeft {
                     steps.forEach(step => {
                         if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
                             step['result']['tickers'].forEach(ticker => {
-                                if(!then_steps_tickers.includes(ticker)) {
+                                if (!then_steps_tickers.includes(ticker)) {
                                     then_steps_tickers.push(ticker)
                                 }
                             })
@@ -282,12 +282,12 @@ class ColumnLeft {
             meta['signals'] = signals[this.#contextElement.textContent]['signals']
             this.#contextElement.setAttribute('meta-data', JSON.stringify(meta))
         }
-        
+
         if (meta != null && meta['signals'] != null && meta['signals'].length > 0) {
-            var tvChart = new TradingViewChart(500, 1000)
+            var tvChart = new TradingViewChart(700, 1400)
             var divTvChart = await tvChart.plotCandle({
                 symbol: this.#contextElement.innerText,
-                interval: meta['signals'][0]['interval'],
+                interval: 'day', // hard-coded
                 n: 1000, // TODO,
                 meta: meta,
                 style: "position: absolute; top: 0; left: 100%; margin-left: 10px;"
@@ -312,7 +312,7 @@ class ColumnLeft {
             var steps = gherkin_response['gherkin'][feature][scenario]
             steps.forEach(step => {
                 if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
-                    step['result']['tickers'].forEach(ticker => {                     
+                    step['result']['tickers'].forEach(ticker => {
                         if (step['result']['signals'] != null) {
                             var ticker_sigs = step['result']['signals'][ticker]
                             if (ticker in ticker_signals) {

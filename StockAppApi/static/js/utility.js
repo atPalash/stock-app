@@ -65,7 +65,7 @@ function addInnerHtmlToDiv(parentId, options) {
     }
 }
 
-function addListToDiv(parentId, ticker_list, clickHandler = null, contextHandler = null, context_menu_query_id="") {
+function addListToDiv(parentId, ticker_list, clickHandler = null, contextHandler = null, context_menu_query_id = "") {
     // Create the unordered list element
     const ul = document.createElement('ul');
     ul.setAttribute('id', `${parentId}-list`)
@@ -165,11 +165,31 @@ function getUnicodeIcon(uniStr) {
 
 function openWindow(parentId, elementToUpdate) {
     var parent = document.getElementById(parentId)
-    parent.innerHTML = `<button id="${parentId}-closeButton" style="position: absolute; top: 10px; left: 100px;">&times;</button>`
+    parent.innerHTML = `<button id="${parentId}-closeButton" style="position: absolute; top: 10px; left: 50px;">&times;</button>`
     parent.appendChild(elementToUpdate)
     document.getElementById(`${parentId}-closeButton`).addEventListener("click", (evt) => {
         parent.style.display = 'none'
         parent.innerHTML = ''
     })
     parent.style.display = 'block'
+}
+
+function findNearestMarketOpenDate(datesArray, comparisonDate) {
+    let closest = datesArray[0];
+    let closestDiff = Math.abs(new Date(closest) - new Date(comparisonDate));
+
+    for (let i = 1; i < datesArray.length; i++) {
+        const diff = Math.abs(new Date(datesArray[i]) - new Date(comparisonDate));
+
+        // If the current difference is larger than the smallest difference found so far,
+        // and we know the array is sorted, we can stop iterating.
+        if (diff > closestDiff) {
+            break;
+        }
+
+        closestDiff = diff;
+        closest = datesArray[i];
+    }
+
+    return closest;
 }
