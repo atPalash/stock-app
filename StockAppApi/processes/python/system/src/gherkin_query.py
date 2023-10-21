@@ -10,17 +10,24 @@ from StockAppApi.processes.python.system.src.steps import given, when, then
 
 
 class GherkinQuery(System):
-    def __init__(self, indicator_config_file: str, selected_stocks_config_file: str, parameter: dict, command_handler: object, name="") -> None:
-        """Get the result of gherkin query. Go through all the scenarios and make 
-        further queries to the indicators based on the steps then return the result. 
-        Note: The Given and Then steps are implemented by this class, whereas the 
+    def __init__(
+        self,
+        indicator_config_file: str,
+        selected_stocks_config_file: str,
+        parameter: dict,
+        command_handler: object,
+        name="",
+    ) -> None:
+        """Get the result of gherkin query. Go through all the scenarios and make
+        further queries to the indicators based on the steps then return the result.
+        Note: The Given and Then steps are implemented by this class, whereas the
         When are implemented by the individual indicators.
 
-        e.g. 
-        gherkin --query 
+        e.g.
+        gherkin --query
         Feature: Query
         I want to query to get a list of matches
-        Scenario: filter for ema and ma 
+        Scenario: filter for ema and ma
             Given all nifty 50 stocks
             When ema of window <window> is <condition> <rhs>
             And ma of window <window> is <condition> <rhs>
@@ -48,14 +55,16 @@ class GherkinQuery(System):
             parameter (dict): key-value pairs for setting up the query
             name (str, optional): Name of the query. Defaults to "".
         """
-        super().__init__(indicator_config_file=indicator_config_file,
-                         selected_stocks_config_file=selected_stocks_config_file,
-                         parameter=parameter,
-                         command_handler=command_handler,
-                         name=name)
+        super().__init__(
+            indicator_config_file=indicator_config_file,
+            selected_stocks_config_file=selected_stocks_config_file,
+            parameter=parameter,
+            command_handler=command_handler,
+            name=name,
+        )
 
         self.commands = {
-            'get': self.__get,  # call with single ticker
+            "get": self.__get,  # call with single ticker
             # 'where': self.__where # call with single ticker
         }
 
@@ -64,25 +73,22 @@ class GherkinQuery(System):
         def add_steps(supported_steps):
             for regex, func in supported_steps.items():
                 self.steps[regex] = func
+
         add_steps(given.get_steps())
         add_steps(when.get_steps())
         add_steps(then.get_steps())
 
     def __call_if_step_matched(self, rule: str):
-        result = {
-            'matched': False,
-            'match': None,
-            'func': None
-        }
+        result = {"matched": False, "match": None, "func": None}
         for pattern, func in self.steps.items():
             match = re.search(pattern, rule)
             if match:
-                result['matched'] = True
-                result['match'] = match
-                result['func'] = func
+                result["matched"] = True
+                result["match"] = match
+                result["func"] = func
                 break
         return result
-    
+
     def __convertToBacktest(self, gherkin_query: str) -> dict:
         """Convert the gherkin query to backtest gherkin query. Ensure the keyword
         Backtest is in the top line.
@@ -93,37 +99,48 @@ class GherkinQuery(System):
         Returns:
             dict: converted steps
         """
-        lines = gherkin_query.split('\n')
-        backtest_ticker = lines[0].split(':')[1]
-        query = '\n'.join(lines[1:])
-        check = gherkin_parser.parse(
-                    gherkin_string=query)
-        conjunction_keyword = ['And ', '* ']
+        lines = gherkin_query.split("\n")
+        backtest_ticker = lines[0].split(":")[1]
+        query = "\n".join(lines[1:])
+        check = gherkin_parser.parse(gherkin_string=query)
+        conjunction_keyword = ["And ", "* "]
         for scenario in check["scenarios"]:
             current_keyword = ""
             for step in check["scenarios"][scenario]:
-                keyword = step['keyword']
-                step_text = step['text']
-                if keyword == 'Given ' or (current_keyword == 'Given ' and keyword in conjunction_keyword):
-                    step['text'] = f'stocks {backtest_ticker}'
-                    current_keyword = 'Given '
-                elif keyword == 'When ' or (current_keyword == 'When ' and keyword in conjunction_keyword):
-                    step['text'] = f'backtest for last 100 ticks | {step_text}'
-                    current_keyword = 'When '
-                elif keyword == 'Then ' or (current_keyword == 'Then ' and keyword in conjunction_keyword):
-                    step['text'] = f'get list of stocks with signals'
-                    current_keyword = 'Then '
+                keyword = step["keyword"]
+                step_text = step["text"]
+                if keyword == "Given " or (
+                    current_keyword == "Given " and keyword in conjunction_keyword
+                ):
+                    step["text"] = f"stocks {backtest_ticker}"
+                    current_keyword = "Given "
+                elif keyword == "When " or (
+                    current_keyword == "When " and keyword in conjunction_keyword
+                ):
+                    hard_coded_tick_count = 100
+                    if "week" in step["text"]:
+                        hard_coded_tick_count = 20
+                    if "relative" in step["text"]:
+                        hard_coded_tick_count = 5
+                    step[
+                        "text"
+                    ] = f"backtest for last {hard_coded_tick_count} ticks | {step_text}"
+                    current_keyword = "When "
+                elif keyword == "Then " or (
+                    current_keyword == "Then " and keyword in conjunction_keyword
+                ):
+                    step["text"] = f"get list of stocks with signals"
+                    current_keyword = "Then "
         return check
-                    
+
     def __get(self) -> RetVal:
         try:
             check = None
-            if 'Backtest' in self.parameter['gherkin']:
-                check = self.__convertToBacktest(self.parameter['gherkin'])
+            if "Backtest" in self.parameter["gherkin"]:
+                check = self.__convertToBacktest(self.parameter["gherkin"])
             else:
-                check = gherkin_parser.parse(
-                    gherkin_string=self.parameter['gherkin'])
-            conjunction_keyword = ['And ', '* ']
+                check = gherkin_parser.parse(gherkin_string=self.parameter["gherkin"])
+            conjunction_keyword = ["And ", "* "]
             scenario_results = {}
             for scenario in check["scenarios"]:
                 step_results = []
@@ -131,35 +148,48 @@ class GherkinQuery(System):
                 current_keyword = ""
                 all_match = False
                 for step in check["scenarios"][scenario]:
-                    keyword = step['keyword']
-                    if keyword == 'Then ' or (current_keyword == 'Then ' and keyword in conjunction_keyword):
-                        if 'all match' in step['text']:
+                    keyword = step["keyword"]
+                    if keyword == "Then " or (
+                        current_keyword == "Then " and keyword in conjunction_keyword
+                    ):
+                        if "all match" in step["text"]:
                             all_match = True
 
                 last_when_tickers = []
                 for step in check["scenarios"][scenario]:
                     try:
                         errors = ""
-                        keyword = step['keyword']
-                        step_text = step['text']
+                        keyword = step["keyword"]
+                        step_text = step["text"]
                         matched_step = self.__call_if_step_matched(step_text)
                         step_result = {
-                            'parent': "",
-                            'type': keyword,
-                            'step': step_text,
-                            'result': "",
-                            'errors': ""
+                            "parent": "",
+                            "type": keyword,
+                            "step": step_text,
+                            "result": "",
+                            "errors": "",
                         }
-                        if matched_step['matched']:
-                            if keyword == 'Given ' or (current_keyword == 'Given ' and keyword in conjunction_keyword):
+                        if matched_step["matched"]:
+                            if keyword == "Given " or (
+                                current_keyword == "Given "
+                                and keyword in conjunction_keyword
+                            ):
                                 # 1st step -> read the context
                                 # e.g. set the interval, selected stock etc.
-                                step_result['parent'] = "" if keyword == 'Given ' else 'given'
-                                step_result['result'] = matched_step['func'](
-                                    self.selected_stocks_config_file, self.indicator_config_file, matched_step["match"].groups())
-                                current_keyword = 'Given '
+                                step_result["parent"] = (
+                                    "" if keyword == "Given " else "given"
+                                )
+                                step_result["result"] = matched_step["func"](
+                                    self.selected_stocks_config_file,
+                                    self.indicator_config_file,
+                                    matched_step["match"].groups(),
+                                )
+                                current_keyword = "Given "
                                 step_results.append(step_result)
-                            elif keyword == 'When ' or (current_keyword == 'When ' and keyword in conjunction_keyword):
+                            elif keyword == "When " or (
+                                current_keyword == "When "
+                                and keyword in conjunction_keyword
+                            ):
                                 # 2nd step -> compute the condition
                                 # get the context from given above and generate result
                                 # based on the condition
@@ -168,26 +198,38 @@ class GherkinQuery(System):
                                     valid_tickers_list = []
                                     valid_tickers = []
                                     given_tickers = []
-                                    filter_when_tickers = len(when_tickers) != 0 and all_match
+                                    filter_when_tickers = (
+                                        len(when_tickers) != 0 and all_match
+                                    )
                                     if filter_when_tickers:
                                         given_tickers = when_tickers
-                                    else:    
+                                    else:
                                         for rslt in step_results:
-                                            if rslt['type'] == "Given " or rslt["parent"] == "given":
-                                                for tick in rslt['result']['tickers']:
+                                            if (
+                                                rslt["type"] == "Given "
+                                                or rslt["parent"] == "given"
+                                            ):
+                                                for tick in rslt["result"]["tickers"]:
                                                     if tick not in given_tickers:
                                                         given_tickers.append(tick)
 
                                     args = []
                                     for ticker in given_tickers:
                                         args.append(
-                                            (self.selected_stocks_config_file, self.indicator_config_file, ticker, matched_step["match"].groups()))
+                                            (
+                                                self.selected_stocks_config_file,
+                                                self.indicator_config_file,
+                                                ticker,
+                                                matched_step["match"].groups(),
+                                            )
+                                        )
 
                                     multi_results = None
                                     with multiprocessing.Pool() as pool:
                                         try:
                                             multi_results = pool.starmap(
-                                                matched_step["func"], args)
+                                                matched_step["func"], args
+                                            )
                                         except Exception as e:
                                             errors += f"{e.args}"
 
@@ -197,83 +239,99 @@ class GherkinQuery(System):
                                             if isinstance(result["condition"], bool):
                                                 satisfies = result["condition"]
                                             if isinstance(result["condition"], list):
-                                                satisfies = any(
-                                                    result["condition"])
+                                                satisfies = any(result["condition"])
                                             if satisfies:
                                                 valid_tickers.append(result)
                                                 valid_tickers_list.append(
-                                                    result['ticker'])
+                                                    result["ticker"]
+                                                )
                                         else:
                                             errors += f'{result["ticker"]} -> {result["exception"]} \n'
                                     valid_tickers.sort(
-                                        key=lambda stock: stock['ticker'])
+                                        key=lambda stock: stock["ticker"]
+                                    )
                                     return valid_tickers_list, valid_tickers, errors
 
-                                step_result['parent'] = "" if keyword == 'When ' else 'when'
-                                last_when_tickers, step_result['result'], step_result['errors'] = execute_when(
-                                    errors=errors, when_tickers=last_when_tickers)
-                                current_keyword = 'When '
+                                step_result["parent"] = (
+                                    "" if keyword == "When " else "when"
+                                )
+                                (
+                                    last_when_tickers,
+                                    step_result["result"],
+                                    step_result["errors"],
+                                ) = execute_when(
+                                    errors=errors, when_tickers=last_when_tickers
+                                )
+                                current_keyword = "When "
                                 step_results.append(step_result)
-                            elif keyword == 'Then ' or (current_keyword == 'Then ' and keyword in conjunction_keyword):
+                            elif keyword == "Then " or (
+                                current_keyword == "Then "
+                                and keyword in conjunction_keyword
+                            ):
                                 # 3rd step -> data presentation
-                                step_result['parent'] = "" if keyword == 'Then ' else 'then'
-                                step_result['result'] = matched_step['func'](
-                                    matched_step["match"].groups(), step_results)
-                                current_keyword = 'Then '
+                                step_result["parent"] = (
+                                    "" if keyword == "Then " else "then"
+                                )
+                                step_result["result"] = matched_step["func"](
+                                    matched_step["match"].groups(), step_results
+                                )
+                                current_keyword = "Then "
                                 step_results.append(step_result)
                             else:
                                 raise Exception(
-                                    f'Exception in matching keyword {keyword}')
+                                    f"Exception in matching keyword {keyword}"
+                                )
                         else:
-                            raise Exception(f'No matching steps found {step}')
+                            raise Exception(f"No matching steps found {step}")
                     except Exception as e:
                         errors += f"{step}->{e.args}\n"
-                        step_result['errors'] = errors
+                        step_result["errors"] = errors
                         raise Exception(errors)
                 scenario_results[scenario] = step_results
-            return RetVal(obj={check['feature']: scenario_results},
-                          obj_as_str="a dict of when given then result")
+            return RetVal(
+                obj={check["feature"]: scenario_results},
+                obj_as_str="a dict of when given then result",
+            )
         except Exception as e:
-            return RetVal(obj=None, obj_as_str="ERROR", errors=f"{self.parameter['ticker']}->{e.args}")
+            return RetVal(
+                obj=None,
+                obj_as_str="ERROR",
+                errors=f"{self.parameter['ticker']}->{e.args}",
+            )
 
 
 if __name__ == "__main__":
     from StockAppApi.processes.python.system.src.command_handler import CommandHandler
-    g_query = '''
+
+    g_query = """
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
-Given niftypharma stocks
-When quarterly earnings quarter to quarter growth rate > 5%
-* 1.25 of 52 week low < close
-* 0.75 of 52 week high < close 
-* day close ma 50 < close
-* day close ma 150 < close
-* day close ma 200 < close
-* day close ma 50 > day close ma 150
-* day close ma 50 > day close ma 200
-* day close ma 150 > day close ma 200
-* day close ma 200 in uptrend for 60 days
-Then get list of all match
-'''
+Given stocks LT
+When backtest for last 10 ticks | relative strength > 70
+Then get list of stocks with signals
+"""
 
     start = time.time()
     configFolder = "StockAppApi/configuration/"
     indicator_config_yaml = configFolder + "indicator.yaml"
     selected_stocks_yaml = configFolder + "selected_stocks.yaml"
     commandHandler = CommandHandler(
-        selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml)
-    parser = GherkinQuery(indicator_config_file=indicator_config_yaml,
-                          selected_stocks_config_file=selected_stocks_yaml,
-                          command_handler=commandHandler,
-                          parameter={'do': 'get', 'gherkin': g_query},
-                          name="")
+        selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml
+    )
+    parser = GherkinQuery(
+        indicator_config_file=indicator_config_yaml,
+        selected_stocks_config_file=selected_stocks_yaml,
+        command_handler=commandHandler,
+        parameter={"do": "get", "gherkin": g_query},
+        name="",
+    )
 
     check = parser.execute()
     print(check.obj["test"])
     print("elasped time", time.time() - start)
 
-'''
+"""
 Given stocks ASAHIINDIA, ASTRAZEN, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,MAHABANK,NESTLEIND,PNB,PSB,SBIN, SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC
 When day close ma 50 < close
 * day close ma 150 < close
@@ -325,8 +383,8 @@ Feature: Stocks with MACD divergence
         Given nifty 200 stocks
         When week close ema 70 > day open ma 20
         Then get list of top 10
-    '''
-'''
+    """
+"""
     g_query = 
     Feature: Query
     I want to query to get a list of matches      
@@ -351,4 +409,4 @@ Feature: Stocks with MACD divergence
         When week close ema 70 > close
         Then get list of top 10
 
-    '''
+    """
