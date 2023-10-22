@@ -10,9 +10,17 @@ from StockAppApi.base.python.src import json_helper
 
 def __download_df_from_yahoo(tickers, period, interval):
     try:
-        data = yf.download(tickers=tickers, period=period, interval=interval,
-                           progress=False, group_by="ticker", rounding=True,
-                           actions=True, threads=10, show_errors=True)
+        data = yf.download(
+            tickers=tickers,
+            period=period,
+            interval=interval,
+            progress=False,
+            group_by="ticker",
+            rounding=True,
+            actions=True,
+            threads=10,
+            show_errors=True,
+        )
         data = data.dropna()
         return data
     except Exception as e:
@@ -22,26 +30,41 @@ def __download_df_from_yahoo(tickers, period, interval):
 def __get_csv_from_yahoo(ticker, period, interval, destination):
     try:
         data = __download_df_from_yahoo(
-            tickers=ticker, period=period, interval=interval)
+            tickers=ticker, period=period, interval=interval
+        )
         csv_name = "{}/{}".format(destination, ticker.split(".")[0])
-        data.to_csv(csv_name + '.csv')
+        data.to_csv(csv_name + ".csv")
     except Exception as e:
         raise
 
 
 def download_latest_data(tickers: list):
     try:
-        data = yf.download(tickers=tickers, period='1d', interval='1m',
-                           progress=False, group_by="ticker", rounding=True,
-                           actions=True, threads=10, show_errors=True)
+        data = yf.download(
+            tickers=tickers,
+            period="1d",
+            interval="1m",
+            progress=False,
+            group_by="ticker",
+            rounding=True,
+            actions=True,
+            threads=10,
+            show_errors=True,
+        )
         data = data.dropna().tail(1)
         return data
     except Exception as e:
         raise
 
 
-def download_historical_data(tickers: list, period: int, interval: int, as_panda_df=False,
-                             as_csv=False, destination=""):
+def download_historical_data(
+    tickers: list,
+    period: int,
+    interval: int,
+    as_panda_df=False,
+    as_csv=False,
+    destination="",
+):
     """Download ohlc data from yahoo finance. When the desired return value is
     pandas dataframe the number of rows are realligned to match dataframe for all
     the stocks, this causes dropping of older rows for some tickers, since the new
@@ -75,7 +98,8 @@ def download_historical_data(tickers: list, period: int, interval: int, as_panda
 
         if as_panda_df:
             ret = __download_df_from_yahoo(
-                tickers=tickers, period=period, interval=interval)
+                tickers=tickers, period=period, interval=interval
+            )
     except Exception as e:
         frameinfo = getframeinfo(currentframe())
         errors += f"{frameinfo.filename, frameinfo.lineno}:{e.args}"
@@ -95,9 +119,8 @@ def __download_fundamentals_from_yahoo(tickers: list, destination: str):
         for row in financial_statements:
             for key, value in row.items():
                 if "error" in value:
-                    error += f'{key}: {value}'
-                json_helper.save_json(input=value,
-                                      filepath=f'{destination}/{key}.json')
+                    error += f"{key}: {value}"
+                json_helper.save_json(input=value, filepath=f"{destination}/{key}.json")
         return error
     except Exception as e:
         raise
@@ -105,7 +128,7 @@ def __download_fundamentals_from_yahoo(tickers: list, destination: str):
 
 def __fetch_fundamentals(ticker: str):
     print("__fetch_fundamentals ", ticker)
-    ticker_name = ticker.split('.')[0]
+    ticker_name = ticker.split(".")[0]
     try:
         financial_statements = {}
 
@@ -118,26 +141,23 @@ def __fetch_fundamentals(ticker: str):
         yahoo_financials = YahooFinancials(ticker, timeout=10)
         # For some reason for-loop doesn't seem to fetcht the data properly.
         # using explicit call of the methods
-        insert_to_ret(yahoo_financials.get_financial_stmts(
-            'quarterly', 'income'))
-        insert_to_ret(yahoo_financials.get_financial_stmts(
-            'quarterly', 'balance'))
-        insert_to_ret(yahoo_financials.get_financial_stmts(
-            'quarterly', 'cash'))
-        insert_to_ret(yahoo_financials.get_financial_stmts('annual', 'income'))
-        insert_to_ret(yahoo_financials.get_financial_stmts(
-            'annual', 'balance'))
-        insert_to_ret(yahoo_financials.get_financial_stmts('annual', 'cash'))
+        insert_to_ret(yahoo_financials.get_financial_stmts("quarterly", "income"))
+        insert_to_ret(yahoo_financials.get_financial_stmts("quarterly", "balance"))
+        insert_to_ret(yahoo_financials.get_financial_stmts("quarterly", "cash"))
+        insert_to_ret(yahoo_financials.get_financial_stmts("annual", "income"))
+        insert_to_ret(yahoo_financials.get_financial_stmts("annual", "balance"))
+        insert_to_ret(yahoo_financials.get_financial_stmts("annual", "cash"))
 
         return financial_statements
     except Exception as e:
-        return {ticker_name: f'{ticker} fundamental download error'}
+        return {ticker_name: f"{ticker} fundamental download error"}
 
 
 def download_stock_stats(tickers: list, destination):
     try:
         error = __download_fundamentals_from_yahoo(
-            tickers=tickers, destination=destination)
+            tickers=tickers, destination=destination
+        )
         return error
     except Exception as e:
         frameinfo = getframeinfo(currentframe())
@@ -147,15 +167,20 @@ def download_stock_stats(tickers: list, destination):
 
 if __name__ == "__main__":
     try:
-        download_stock_stats(
-            ["BEL.NS", "ABB.NS"], "/home/palash/dev/stock-app/StockAppApi/database/fundamentals")
+        download_historical_data(
+            tickers=["BEL.NS", "ABB.NS"],
+            period="1mo",
+            interval="15m",
+            as_csv=True,
+            destination="/home/palash/dev/stock-app/test",
+        )
     except Exception as e:
         print(e.args)
-'''
+"""
         frequencies = ['quaterly', 'annual']
         statements = ['income', 'balance', 'cash']
         
         for frequency in frequencies:
             for statement in statements:
                 insert_to_ret(yahoo_financials.get_financial_stmts(frequency, statement))
-'''
+"""
