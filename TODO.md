@@ -1,4 +1,5 @@
 # TODO
+- [ ] Filter out stocks under surveillance
 - ![ mimic market smith](image.png)
 - [ ] containerize
 - [ ] Volume strategy

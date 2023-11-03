@@ -95,13 +95,13 @@ class YahooScheduler(Scheduler):
                 print(f"Error: This {interval} is not allowed")
             self.schedulers[interval] = scheduler
 
-        scheduler.add_job(
-            self.__weekly_fundamental_download,
-            "cron",
-            day_of_week="fri",
-            hour="23",
-            timezone=pytz.timezone("Asia/Kolkata"),
-        )
+        # scheduler.add_job(
+        #     self.__weekly_fundamental_download,
+        #     "cron",
+        #     day_of_week="fri",
+        #     hour="23",
+        #     timezone=pytz.timezone("Asia/Kolkata"),
+        # )
         scheduler.start()
 
     def forceDownload(self, inter=""):
