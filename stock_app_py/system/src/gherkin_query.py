@@ -309,14 +309,23 @@ if __name__ == "__main__":
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
-Given stocks LT
-When backtest for last 10 ticks | relative strength > 70
-Then get list of stocks with signals
+Given all stocks exclude surveillance stocks
+When relative strength > 90 
+* day close ma 50 < close
+* day close ma 150 < close
+* day close ma 200 < close
+* day close ma 50 > day close ma 150
+* day close ma 50 > day close ma 200
+* day close ma 150 > day close ma 200
+* day close ma 200 in uptrend for 60 days
+* 1.25 of 52 week low < close
+* 0.75 of 52 week high < close
+Then get list of all match
 """
 
     start = time.time()
-    indicator_config_yaml = get_app_path('indicator.yaml')
-    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
+    indicator_config_yaml = get_app_path("indicator.yaml")
+    selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     commandHandler = CommandHandler(
         selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml
     )

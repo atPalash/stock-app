@@ -36,7 +36,7 @@ def get_stocks_in_index(selected_stocks_yaml, indicator_config_yaml, groups):
 
 @given
 def get_index_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
-    """Get a list of stocks based on criteria
+    """Get a list of stocks based on criteria.
 
     Args:
         selected_stocks_yaml (_type_): _description_
@@ -48,12 +48,20 @@ def get_index_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
         _type_: _description_
     """
     try:
-        index = groups[0]
+        exclude = ""
+        if len(groups) == 2:
+            index, exclude = groups
+        else:
+            index = groups[0]
         command_handler = executor.CommandHandler(
             selected_stocks_yaml, indicator_config_yaml
         )
         ret = command_handler.execute("nsestocklist --do get", is_rest=False).obj
+        surveillance_stocks = command_handler.execute(
+            "nsestocklist --do surveillance_stocks", is_rest=False
+        ).obj
 
+        tickers_list = []
         if index == "all":
             all_tickers = []
             for index, tickers in ret.items():
@@ -61,10 +69,19 @@ def get_index_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
                     if ticker not in all_tickers:
                         all_tickers.append(ticker)
             all_tickers.sort()
+            tickers_list = all_tickers
+        else:
+            tickers_list = ret[index]
 
-            return {"tickers": all_tickers, "exception": None}
+        # Remove the surveillance stocks if requested
+        if exclude == "exclude":
+            tickers_list = [
+                element
+                for element in tickers_list
+                if element not in surveillance_stocks
+            ]
 
-        return {"tickers": ret[index], "exception": None}
+        return {"tickers": tickers_list, "exception": None}
     except Exception as e:
         return {"tickers": None, "exception": e.args}
 
@@ -81,6 +98,7 @@ def get_steps():
     return {
         # r'^(\w+)\s+(\d+)\s+stocks$': get_stocks_in_index,
         r"^(\w+)\s+stocks$": get_index_stocks,
+        r"^(\w+)\s+stocks (\w+) surveillance stocks$": get_index_stocks,
         r"^stocks (\w+(?:,*\s*\w*)*)$": get_stocks,
         # r'^indexes (\w+(?:,*\s*\w*)*)$': get_stocks
     }
@@ -99,10 +117,10 @@ def __call_if_step_matched(rule: str):
 
 
 if __name__ == "__main__":
-    indicator_config_yaml = get_app_path('indicator.yaml')
-    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
+    indicator_config_yaml = get_app_path("indicator.yaml")
+    selected_stocks_yaml = get_app_path("selected_stocks.yaml")
 
-    query = f"stocks BAJAJ-AUTO"
+    query = f"niftymicroca stocks exclude surveillance stocks"
     # query = f'all stocks'
     # query = "day close > high of last 20 ticks"
     matched_step = __call_if_step_matched(query)

@@ -44,6 +44,7 @@ class NseStockList(System):
         self.commands = {
             "get": self.__get,
             "update": self.__update,
+            "surveillance_stocks": self.__get_stocks_in_surveillance,
         }
         self.index_stock_map = {}
 
@@ -79,6 +80,34 @@ class NseStockList(System):
                 err += f"{index_key} -> {e.args()}"
         self.__create_yaml()
         return RetVal(obj={}, obj_as_str="update index list", errors="")
+
+    def __get_stocks_in_surveillance(self) -> list:
+        """List all the stocks are in surveillance. No trade for surveillance stocks
+        since it gets difficult to sell them when needed.
+
+        Note: This relies on manually downloading the csv files from
+        asm - https://www.nseindia.com/regulations/additional-surveillance-measure
+        esm - https://www.nseindia.com/regulations/enhanced-surveillance-measure-esm
+        gsm - https://www.nseindia.com/regulations/graded-surveillance-measure
+
+        Returns:
+            list: list of all in surveillance stocks
+        """
+        asm_surveillance = pandas.read_csv(
+            f'{self.parameter["config_dir"]}/asm.csv', encoding="utf-8"
+        )
+        esm_surveillance = pandas.read_csv(
+            f'{self.parameter["config_dir"]}/esm.csv', encoding="ISO-8859-1"
+        )
+        gsm_surveillance = pandas.read_csv(
+            f'{self.parameter["config_dir"]}/gsm.csv', encoding="utf-8"
+        )
+        ret = (
+            asm_surveillance["SYMBOL \n"].tolist()
+            + esm_surveillance["Symbol"].tolist()
+            + gsm_surveillance["SYMBOL \n"].tolist()
+        )
+        return RetVal(obj=ret, obj_as_str="surveillance stock list", errors="")
 
     def __create_yaml(self):
         """Creates a stock config yaml based on the index csvs present in config_dir.
@@ -145,19 +174,13 @@ class NseStockList(System):
         except Exception as e:
             return False
 
-    def debug_update(self, index_csv_name: str):
-        self.__req_download(index_csv_name)
-
-    def debug_update2(self):
-        self.__update()
-
-    def debug_get(self):
-        return self.__create_yaml()
+    def debug(self):
+        return self.__get_stocks_in_surveillance()
 
 
 if __name__ == "__main__":
-    indicator_config_yaml = get_app_path('indicator.yaml')
-    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
+    indicator_config_yaml = get_app_path("indicator.yaml")
+    selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     yf = NseStockList(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,
@@ -169,5 +192,5 @@ if __name__ == "__main__":
     # https://www.niftyindices.com/IndexConstituent/nifty_low_Volatility50_Index.csv
     # https://www.niftyindices.com/IndexConstituent/ind_niftyoilgaslist.csv
     # javascript:;
-    data = yf.debug_update2()
+    data = yf.debug()
     print(data)
