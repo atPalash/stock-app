@@ -125,17 +125,22 @@ class NseStockList(System):
         ret = {}
         files = os.listdir(self.parameter["config_dir"])
         for file in files:
-            if file.endswith(".csv") and file != self.parameter["index_csv"]:
-                index = (file.split("_")[1]).split(".")[0][:-4]
-                df = pandas.read_csv(os.path.join(self.parameter["config_dir"], file))
-                ret[index] = df["Symbol"].to_list()
+            try:
+                if "ind_nifty" in file and ".csv" in file:
+                    index = (file.split("_")[1]).split(".")[0][:-4]
+                    df = pandas.read_csv(
+                        os.path.join(self.parameter["config_dir"], file)
+                    )
+                    ret[index] = df["Symbol"].to_list()
+            except Exception as e:
+                print("ERROR: ", file, e.args)
         save_config(ret, f'{self.parameter["config_dir"]}/index_stock.yaml')
         self.index_stock_map = ret
 
         # delete exisiting index csvs, no need to store the csvs now
         files = os.listdir(self.parameter["config_dir"])
         for file in files:
-            if file.endswith(".csv") and file != self.parameter["index_csv"]:
+            if "ind_nifty" in file and ".csv" in file:
                 os.remove(os.path.join(self.parameter["config_dir"], file))
 
         # update the selected stock yaml
@@ -175,7 +180,7 @@ class NseStockList(System):
             return False
 
     def debug(self):
-        return self.__get_stocks_in_surveillance()
+        return self.__update()
 
 
 if __name__ == "__main__":

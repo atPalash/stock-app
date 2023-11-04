@@ -3,3 +3,4 @@ dockerfiles
 .vscode
 database/
 *__pycache__
+stock_app_py.egg-info

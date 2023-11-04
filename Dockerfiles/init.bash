@@ -2,7 +2,9 @@
 
 HOME_DIR="/home/palash"
 STOCK_APP_DIR="/home/palash/stock-app"
-# echo "Initializing stock-app dev container"
+echo "Remember: \ 
+1. add <user> to sudo and set password from root in podman exec \
+2. install ifconfig sudo apt update && sudo apt install net-tools"
 
 function setEnv() {
     cp $STOCK_APP_DIR/Dockerfiles/.bashrc $HOME_DIR
@@ -22,6 +24,9 @@ function setPythonPackages() {
     && sudo rm -rf tmp \
 
     pip install -r $STOCK_APP_DIR/requirements.txt
+
+    cd $STOCK_APP_DIR
+    pip install -e .
 }
 
 function makeDirs() {

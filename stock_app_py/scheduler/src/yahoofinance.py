@@ -111,7 +111,7 @@ class YahooScheduler(Scheduler):
                 self.__periodic_download(interval=interval)
         else:
             self.__periodic_download(interval=inter)
-        self.__weekly_fundamental_download()
+        # self.__weekly_fundamental_download()
 
     def __periodic_download(self, interval: str):
         """Analysis method will include all the possible combination of the indicators.

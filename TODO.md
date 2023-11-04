@@ -1,4 +1,5 @@
 # TODO
+- [ ] Propagate backend errors to frontenf 
 - [ ] sync dev and dev-container MR #21 base commit
 - ![ mimic market smith](image.png)
 - [ ] containerize
