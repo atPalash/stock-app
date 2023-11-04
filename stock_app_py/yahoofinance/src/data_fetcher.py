@@ -166,21 +166,14 @@ def download_stock_stats(tickers: list, destination):
         return error
 
 
-def hello_world():
-    print("hello World")
-
-
 if __name__ == "__main__":
     try:
-        print(
-            download_historical_data(
-                ["BEL.NS", "ABB.NS"],
-                "1y",
-                "1d",
-                True,
-                True,
-                get_app_path('test'),
-            )
+        download_historical_data(
+            tickers=["BEL.NS", "ABB.NS"],
+            period="1mo",
+            interval="15m",
+            as_csv=True,
+            destination=get_app_path("test"),
         )
     except Exception as e:
         print(e.args)

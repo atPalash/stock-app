@@ -72,9 +72,16 @@ class YahooScheduler(Scheduler):
             # elif interval == 'minute5':
             #     scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*/5',
             #                       day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-            # elif interval == 'minute15':
-            #     scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*/15',
-            #                       day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
+            elif interval == "minute15":
+                scheduler.add_job(
+                    self.__periodic_download,
+                    "cron",
+                    hour="9-16",
+                    minute="*/15",
+                    day_of_week="mon-fri",
+                    timezone=pytz.timezone("Asia/Kolkata"),
+                    args=[interval],
+                )
             elif interval == "minute30":
                 scheduler.add_job(
                     self.__periodic_download,
@@ -99,11 +106,11 @@ class YahooScheduler(Scheduler):
         scheduler.start()
 
     def forceDownload(self, inter=""):
-        # if inter == "":
-        #     for interval in self.indicator_config["indicator"]["data"]:
-        #         self.__periodic_download(interval=interval)
-        # else:
-        #     self.__periodic_download(interval=inter)
+        if inter == "":
+            for interval in self.indicator_config["indicator"]["data"]:
+                self.__periodic_download(interval=interval)
+        else:
+            self.__periodic_download(interval=inter)
         self.__weekly_fundamental_download()
 
     def __periodic_download(self, interval: str):
@@ -137,8 +144,8 @@ class YahooScheduler(Scheduler):
 if __name__ == "__main__":
     from stock_app_py.utility.src.yaml_parser import read_config
 
-    config = read_config(get_app_path('config.yaml'))
-    indicator_config_yaml = get_app_path('indicator.yaml')
-    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
+    config = read_config(get_app_path("config.yaml"))
+    indicator_config_yaml = get_app_path("indicator.yaml")
+    selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
     scheduler.forceDownload()
