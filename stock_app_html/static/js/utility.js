@@ -28,9 +28,12 @@ async function apiGet(endPoint) {
 function convertToUtc(time) {
     if (time.includes(":")) {
         // This offset will change based on the source data and client
-        // time zone, also when DST is applied
+        // time zone, also when DST is applied. Also strip the timezone 
+        // part kindoff a hacky way since the yfinance data in hour has
+        // time zone but the 30m ,15m charts have no time zone. Here, we remove
+        // the timezone part if any.
         const offset = 10800
-        return Date.parse(time) / 1000 + offset
+        return Date.parse(time.substring(0, 19)) / 1000 + offset
     }
     return time
 }
