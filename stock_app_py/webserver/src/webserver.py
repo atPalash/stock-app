@@ -3,6 +3,7 @@ import json
 
 from stock_app_py.utility.src.message_parser import parse_message
 from stock_app_py.system.src.command_handler import CommandHandler
+from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src.server import Server
 
 
@@ -17,8 +18,8 @@ class Webserver(Server):
         super().__init__(port, master_server_port, None)
         self.app = Flask(
             __name__,
-            static_folder="/home/palash/stock-app/stock_app_html/static",
-            template_folder="/home/palash/stock-app/stock_app_html/templates",
+            static_folder=get_app_path('static'),
+            template_folder=get_app_path('templates'),
         )
         self.system_command_handler = CommandHandler(
             indicator_config_yaml=indicator_config_file,
@@ -70,7 +71,7 @@ class Webserver(Server):
             return f"Hello, {__name__}"
 
     def config(self, req: request):
-        user_config = "/home/palash/dev/stock-app/stock_app/user_config.json"
+        user_config = get_app_path('user_config.json')
         if request.method == "POST":
             try:
                 # Open a file for writing

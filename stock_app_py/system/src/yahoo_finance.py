@@ -101,7 +101,6 @@ class YahooFinance(System):
 
         return RetVal(obj=df, obj_as_str="pandas dataframe downloaded", errors=err)
 
-    @DeprecationWarning
     def __get_fundamentals(self, debug_tickers: list = []) -> RetVal:
         """Used to download fundamentals as csv all the selected stocks. Index don't have
         any fundamental data as a whole.
@@ -176,8 +175,8 @@ class YahooFinance(System):
 
 if __name__ == "__main__":
     configFolder = "stock-app/configuration/"
-    indicator_config_yaml = configFolder + "indicator.yaml"
-    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    indicator_config_yaml = get_app_path('indicator.yaml')
+    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
     yf = YahooFinance(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,

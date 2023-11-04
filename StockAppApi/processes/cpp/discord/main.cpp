@@ -22,7 +22,7 @@ int main()
     std::cout << "Hello Discord!" << std::endl;
 
     std::string configFolder = "configuration/";
-    YAML::Node config = Base::Src::parseYaml(configFolder + "config.yaml");
+    YAML::Node config = Base::Src::parseYaml(get_app_path('config.yaml'));
     int serverPort = config["port"]["discord"].as<int>();
     int masterServerPort =  config["port"]["master"].as<int>();
 

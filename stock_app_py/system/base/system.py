@@ -1,4 +1,5 @@
 from stock_app_py.system.interface.system_if import SystemIf
+from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src.yaml_parser import read_config
 
 
@@ -31,11 +32,11 @@ class System(SystemIf):
             "condition": parameter.get("condition", ""),
             "csv": int(parameter.get("csv", "0")),
             "config_dir": parameter.get(
-                "config_dir", "/home/palash/dev/stock-app/stock_app"
+                "config_dir", get_app_path('configuration')
             ),
             "do": parameter.get("do", "get"),
             "database_dir": parameter.get(
-                "config_dir", "/home/palash/dev/stock-app/stock_app_nse/database"
+                "database_dir", get_app_path('database')
             ),
             "gherkin": parameter.get("gherkin", ""),
             "indicator": parameter.get("indicator", "ema"),

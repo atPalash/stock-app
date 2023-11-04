@@ -3,6 +3,7 @@ import pytz
 
 from stock_app_py.scheduler.base.scheduler import Scheduler
 from stock_app_py.system.src.command_handler import CommandHandler
+from stock_app_py.utility.src.path_helper import get_app_path
 
 
 class YahooScheduler(Scheduler):
@@ -136,9 +137,8 @@ class YahooScheduler(Scheduler):
 if __name__ == "__main__":
     from stock_app_py.utility.src.yaml_parser import read_config
 
-    configFolder = "/home/palash/stock_app/configuration/"
-    config = read_config(configFolder + "config.yaml")
-    indicator_config_yaml = configFolder + "indicator.yaml"
-    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    config = read_config(get_app_path('config.yaml'))
+    indicator_config_yaml = get_app_path('indicator.yaml')
+    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
     scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
-    scheduler.forceDownload("month")
+    scheduler.forceDownload()

@@ -3,6 +3,8 @@ from stock_app_py.system.interface.system_if import RetVal
 from stock_app_py.utility.src.candle_plotter import plot
 import pandas
 
+from stock_app_py.utility.src.path_helper import get_app_path
+
 
 class MacdHistogramDivergenceScanner(System):
     def __init__(
@@ -174,9 +176,8 @@ class MacdHistogramDivergenceScanner(System):
 if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
-    configFolder = "/home/palash/stock-app/configuration/"
-    indicator_config_yaml = configFolder + "indicator.yaml"
-    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    indicator_config_yaml = get_app_path('indicator.yaml')
+    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
     commandHandler = CommandHandler(
         selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml
     )

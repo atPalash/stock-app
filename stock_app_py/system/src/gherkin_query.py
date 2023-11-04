@@ -8,6 +8,7 @@ from stock_app_py.system.base.system import System
 from stock_app_py.system.interface.system_if import RetVal
 from stock_app_py.utility.src import gherkin_parser
 from stock_app_py.system.src.steps import given, when, then
+from stock_app_py.utility.src.path_helper import get_app_path
 
 
 class GherkinQuery(System):
@@ -75,9 +76,9 @@ class GherkinQuery(System):
             for regex, func in supported_steps.items():
                 self.steps[regex] = func
 
-        add_steps(given.given.get_steps())
-        add_steps(when.when.get_steps())
-        add_steps(then.then.get_steps())
+        add_steps(given.get_steps())
+        add_steps(when.get_steps())
+        add_steps(then.get_steps())
 
     def __call_if_step_matched(self, rule: str):
         result = {"matched": False, "match": None, "func": None}
@@ -314,9 +315,8 @@ Then get list of stocks with signals
 """
 
     start = time.time()
-    configFolder = "/home/palash/stock-app/configuration/"
-    indicator_config_yaml = configFolder + "indicator.yaml"
-    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    indicator_config_yaml = get_app_path('indicator.yaml')
+    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
     commandHandler = CommandHandler(
         selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml
     )

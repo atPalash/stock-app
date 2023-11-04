@@ -35,12 +35,12 @@ int main()
     std::cout << "Hello News!";
 
     std::string configFolder = "configuration/";
-    YAML::Node config = Base::Src::parseYaml(configFolder + "config.yaml");
+    YAML::Node config = Base::Src::parseYaml(get_app_path('config.yaml'));
     int serverPort = config["port"]["news"].as<int>();
     int masterServerPort =  config["port"]["master"].as<int>();
 
     // Initialize the logger from news server
-    std::string selectedStocksYaml{configFolder + "selected_stocks.yaml"};
+    std::string selectedStocksYaml{get_app_path('selected_stocks.yaml')};
     Base::Src::Log::Init("News");
     auto commandHandler = std::make_unique<News::Src::CommandHandler>(selectedStocksYaml);
     Base::Src::Server server(serverPort, masterServerPort, std::move(commandHandler));

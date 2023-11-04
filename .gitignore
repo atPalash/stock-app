@@ -1,5 +1,5 @@
 build/*
 dockerfiles
 .vscode
-database
+database/
 *__pycache__

@@ -6,6 +6,7 @@ import re
 from typing import Callable
 import datetime
 from stock_app_py.utility.src import date_helper
+from stock_app_py.utility.src.path_helper import get_app_path
 
 from stock_app_py.utility.src.yaml_parser import read_config
 from stock_app_py.system.src.rs_rating import RsRating
@@ -817,9 +818,8 @@ def get_steps():
 
 
 if __name__ == "__main__":
-    configFolder = "/home/palash/stock-app/configuration/"
-    indicator_config_yaml = configFolder + "indicator.yaml"
-    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    indicator_config_yaml = get_app_path('indicator.yaml')
+    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
     ticker = "LT"
     # query = "relative strength > 20"
     query = "backtest for last 10 ticks | relative strength > 20"

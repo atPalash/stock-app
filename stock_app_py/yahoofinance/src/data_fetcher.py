@@ -6,6 +6,7 @@ from inspect import currentframe, getframeinfo
 from yahoofinancials import YahooFinancials
 
 from stock_app_py.utility.src import json_helper
+from stock_app_py.utility.src.path_helper import get_app_path
 
 
 def __download_df_from_yahoo(tickers, period, interval):
@@ -178,7 +179,7 @@ if __name__ == "__main__":
                 "1d",
                 True,
                 True,
-                "/home/palash/stock_app/test",
+                get_app_path('test'),
             )
         )
     except Exception as e:

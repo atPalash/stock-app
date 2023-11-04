@@ -1,4 +1,5 @@
 import re
+from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src.steps import given
 from stock_app_py.system.base.system import System
 import stock_app_py.system.src.command_handler as executor
@@ -98,9 +99,8 @@ def __call_if_step_matched(rule: str):
 
 
 if __name__ == "__main__":
-    configFolder = "/home/palash/stock-app/configuration/"
-    indicator_config_yaml = configFolder + "indicator.yaml"
-    selected_stocks_yaml = configFolder + "selected_stocks.yaml"
+    indicator_config_yaml = get_app_path('indicator.yaml')
+    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
 
     query = f"stocks BAJAJ-AUTO"
     # query = f'all stocks'
