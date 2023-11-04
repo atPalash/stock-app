@@ -1,4 +1,5 @@
 # TODO
+- [ ] sync dev and dev-container MR #21 base commit
 - ![ mimic market smith](image.png)
 - [ ] containerize
 - [ ] Volume strategy

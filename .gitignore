@@ -1,7 +1,5 @@
 build/*
 dockerfiles
 .vscode
-StockAppApi/logs/*.log
-StockAppApi/venv/*
-StockAppApi/database/*
+database
 *__pycache__
