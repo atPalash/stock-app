@@ -24,4 +24,10 @@ function setPythonPackages() {
     pip install -r $STOCK_APP_DIR/requirements.txt
 }
 
+function makeDirs() {
+    cd $STOCK_APP_DIR
+    mkdir database && cd database
+    mkdir fundamentals ohlc plot
+    cd ohlc && mkdir day hour minute minute5 minute15 minute30 month week
+}
 "$@"
