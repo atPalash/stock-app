@@ -107,6 +107,7 @@ class NseStockList(System):
             + esm_surveillance["Symbol"].tolist()
             + gsm_surveillance["SYMBOL \n"].tolist()
         )
+        ret = [x for x in ret if str(x) != "nan"]
         return RetVal(obj=ret, obj_as_str="surveillance stock list", errors="")
 
     def __create_yaml(self):
