@@ -192,28 +192,37 @@ class GherkinQuery(System):
                                 current_keyword == "When "
                                 and keyword in conjunction_keyword
                             ):
+                                given_tickers = []
+                                for rslt in step_results:
+                                    if (
+                                        rslt["type"] == "Given "
+                                        or rslt["parent"] == "given"
+                                    ):
+                                        if "ignore stocks" in rslt["step"]:
+                                            for tick in rslt["result"]["tickers"]:
+                                                if tick in given_tickers:
+                                                    given_tickers.remove(tick)
+                                        else:
+                                            for tick in rslt["result"]["tickers"]:
+                                                if tick not in given_tickers:
+                                                    given_tickers.append(tick)
+
                                 # 2nd step -> compute the condition
                                 # get the context from given above and generate result
                                 # based on the condition
-                                def execute_when(errors: str, when_tickers: list = []):
+                                def execute_when(
+                                    errors: str,
+                                    when_tickers: list = [],
+                                    given_tickers: list = [],
+                                ):
                                     errors = ""
                                     valid_tickers_list = []
                                     valid_tickers = []
-                                    given_tickers = []
                                     filter_when_tickers = (
                                         len(when_tickers) != 0 and all_match
                                     )
                                     if filter_when_tickers:
                                         given_tickers = when_tickers
-                                    else:
-                                        for rslt in step_results:
-                                            if (
-                                                rslt["type"] == "Given "
-                                                or rslt["parent"] == "given"
-                                            ):
-                                                for tick in rslt["result"]["tickers"]:
-                                                    if tick not in given_tickers:
-                                                        given_tickers.append(tick)
 
                                     args = []
                                     for ticker in given_tickers:
@@ -262,7 +271,9 @@ class GherkinQuery(System):
                                     step_result["result"],
                                     step_result["errors"],
                                 ) = execute_when(
-                                    errors=errors, when_tickers=last_when_tickers
+                                    errors=errors,
+                                    when_tickers=last_when_tickers,
+                                    given_tickers=given_tickers,
                                 )
                                 current_keyword = "When "
                                 step_results.append(step_result)
@@ -309,7 +320,8 @@ if __name__ == "__main__":
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
-Given all stocks exclude surveillance stocks
+Given all stocks
+* ignore stocks under surveillance
 When relative strength > 90 
 * day close ma 50 < close
 * day close ma 150 < close
