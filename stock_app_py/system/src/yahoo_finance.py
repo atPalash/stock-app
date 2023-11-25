@@ -1,6 +1,7 @@
 from datetime import datetime
 import pandas
 from stock_app_py.utility.src.json_helper import read_json
+from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src.yaml_parser import read_config
 from collections import OrderedDict
 
@@ -175,8 +176,8 @@ class YahooFinance(System):
 
 if __name__ == "__main__":
     configFolder = "stock-app/configuration/"
-    indicator_config_yaml = get_app_path('indicator.yaml')
-    selected_stocks_yaml = get_app_path('selected_stocks.yaml')
+    indicator_config_yaml = get_app_path("indicator.yaml")
+    selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     yf = YahooFinance(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,

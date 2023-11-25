@@ -48,20 +48,12 @@ def get_index_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
         _type_: _description_
     """
     try:
-        exclude = ""
-        if len(groups) == 2:
-            index, exclude = groups
-        else:
-            index = groups[0]
+        index = groups[0]
         command_handler = executor.CommandHandler(
             selected_stocks_yaml, indicator_config_yaml
         )
         ret = command_handler.execute("nsestocklist --do get", is_rest=False).obj
-        surveillance_stocks = command_handler.execute(
-            "nsestocklist --do surveillance_stocks", is_rest=False
-        ).obj
 
-        tickers_list = []
         if index == "all":
             all_tickers = []
             for index, tickers in ret.items():
@@ -69,25 +61,42 @@ def get_index_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
                     if ticker not in all_tickers:
                         all_tickers.append(ticker)
             all_tickers.sort()
-            tickers_list = all_tickers
-        else:
-            tickers_list = ret[index]
+            return {"tickers": all_tickers, "exception": None}
 
-        # Remove the surveillance stocks if requested
-        if exclude == "exclude":
-            tickers_list = [
-                element
-                for element in tickers_list
-                if element not in surveillance_stocks
-            ]
-
-        return {"tickers": tickers_list, "exception": None}
+        return {"tickers": ret[index], "exception": None}
     except Exception as e:
         return {"tickers": None, "exception": e.args}
 
 
 def get_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
-    ticker_str = groups[0].replace(" ", "")
+    return __extract_stock_list(groups[0])
+
+
+def ignore_stocks(selected_stocks_yaml, indicator_config_yaml, groups):
+    if groups[0] == "under surveillance":
+        return __get_surveillance_stocks(selected_stocks_yaml, indicator_config_yaml)
+    else:
+        return __extract_stock_list(groups[0])
+
+
+def __get_surveillance_stocks(
+    selected_stocks_yaml,
+    indicator_config_yaml,
+):
+    try:
+        command_handler = executor.CommandHandler(
+            selected_stocks_yaml, indicator_config_yaml
+        )
+        surveillance_stocks = command_handler.execute(
+            "nsestocklist --do surveillance_stocks", is_rest=False
+        ).obj
+        return {"tickers": surveillance_stocks, "exception": None}
+    except Exception as e:
+        return {"tickers": None, "exception": e.args}
+
+
+def __extract_stock_list(stock_list: str):
+    ticker_str = stock_list.replace(" ", "")
     return {
         "tickers": ticker_str.split(",") if "," in ticker_str else [ticker_str],
         "exception": None,
@@ -98,8 +107,8 @@ def get_steps():
     return {
         # r'^(\w+)\s+(\d+)\s+stocks$': get_stocks_in_index,
         r"^(\w+)\s+stocks$": get_index_stocks,
-        r"^(\w+)\s+stocks (\w+) surveillance stocks$": get_index_stocks,
         r"^stocks (\w+(?:,*\s*\w*)*)$": get_stocks,
+        r"^ignore\s+stocks\s+(\w+(?:,*\s*\w*)*)$": ignore_stocks
         # r'^indexes (\w+(?:,*\s*\w*)*)$': get_stocks
     }
 
@@ -120,7 +129,7 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
 
-    query = f"niftymicroca stocks exclude surveillance stocks"
+    query = f"ignore stocks under surveillance"
     # query = f'all stocks'
     # query = "day close > high of last 20 ticks"
     matched_step = __call_if_step_matched(query)
@@ -130,8 +139,8 @@ if __name__ == "__main__":
     print(result)
     # import re
 
-    # text = "fruits apple, banana, orange"
-    # pattern = r"fruits (\w+(?:,*\s*\w*)*)"
+    # text = "ignore ABB, BEL,TCS stocks"
+    # pattern = r"^ignore (\w+(?:,*\s*\w*)*) stocks$"
 
     # match = re.search(pattern, text)
     # if match:

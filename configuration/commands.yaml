@@ -94,4 +94,43 @@ Given niftyauto stocks
 When backtest for last 100 ticks with signal color green | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
 Then get list of stocks with signals
 "
+User:
+"
+Feature: Stage2 all
+Scenario: Stage2 all
+Given all stocks
+When relative strength > 90 
+* day close ma 50 < close
+* day close ma 150 < close
+* day close ma 200 < close
+* day close ma 50 > day close ma 150
+* day close ma 50 > day close ma 200
+* day close ma 150 > day close ma 200
+* day close ma 200 in uptrend for 60 days
+* 1.25 of 52 week low < close
+* 0.75 of 52 week high < close
+Then get list of all match
+
+Feature: Stage2 nifty100
+I want to query to get a list of turtle S1 stocks      
+Scenario: Stage2 nifty100
+Given nifty100 stocks
+When relative strength > 70
+* day close ma 50 < close
+* day close ma 150 < close
+* day close ma 200 < close
+* day close ma 50 > day close ma 150
+* day close ma 50 > day close ma 200
+* day close ma 150 > day close ma 200
+* day close ma 200 in uptrend for 60 days
+* 1.25 of 52 week low < close
+* 0.75 of 52 week high < close
+Then get list of all match
+
+Feature: turtle S1 all stocks     
+Scenario: turtle S1 all stocks
+Given all stocks
+When day close > high of last 20 ticks
+Then get list of all match
+"
 
