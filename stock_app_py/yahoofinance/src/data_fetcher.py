@@ -33,8 +33,9 @@ def __get_csv_from_yahoo(ticker, period, interval, destination):
         data = __download_df_from_yahoo(
             tickers=ticker, period=period, interval=interval
         )
-        csv_name = "{}/{}".format(destination, ticker.split(".")[0])
-        data.to_csv(csv_name + ".csv")
+        if not data.empty:
+            csv_name = "{}/{}".format(destination, ticker.split(".")[0])
+            data.to_csv(csv_name + ".csv")
     except Exception as e:
         raise
 
@@ -169,14 +170,14 @@ def download_stock_stats(tickers: list, destination):
 if __name__ == "__main__":
     try:
         download_historical_data(
-            tickers=["BEL.NS", "ABB.NS"],
-            period="1mo",
-            interval="15m",
+            tickers=["63MOONS.NS"],
+            period="5y",
+            interval="1d",
             as_csv=True,
-            destination=get_app_path("test"),
+            destination="/home/palash/stock-app/test",
         )
     except Exception as e:
-        print(e.args)
+        print("ERROR", e.args)
 """
         frequencies = ['quaterly', 'annual']
         statements = ['income', 'balance', 'cash']
