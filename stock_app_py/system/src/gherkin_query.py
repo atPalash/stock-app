@@ -2,12 +2,12 @@ import multiprocessing
 import time
 import re
 
-import pandas
-
 from stock_app_py.system.base.system import System
 from stock_app_py.system.interface.system_if import RetVal
 from stock_app_py.utility.src import gherkin_parser
-from stock_app_py.system.src.steps import given, when, then
+import stock_app_py.system.src.steps.given.aggregator as given_aggregator
+import stock_app_py.system.src.steps.then.aggregator as then_aggregator
+import stock_app_py.system.src.steps.when.aggregator as when_aggregator
 from stock_app_py.utility.src.path_helper import get_app_path
 
 
@@ -76,9 +76,9 @@ class GherkinQuery(System):
             for regex, func in supported_steps.items():
                 self.steps[regex] = func
 
-        add_steps(given.get_steps())
-        add_steps(when.get_steps())
-        add_steps(then.get_steps())
+        add_steps(given_aggregator.get_steps())
+        add_steps(when_aggregator.get_steps())
+        add_steps(then_aggregator.get_steps())
 
     def __call_if_step_matched(self, rule: str):
         result = {"matched": False, "match": None, "func": None}

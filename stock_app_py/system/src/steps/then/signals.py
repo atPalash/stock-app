@@ -2,39 +2,6 @@ from stock_app_py.utility.src.steps import then
 
 
 @then
-def get_list(groups, steps):
-    try:
-        selector = groups[0]
-        ret = []
-        when_step_tickers = []
-        for step in steps:
-            if step["type"] == "When " or step["parent"] == "when":
-                step_tickers = []
-                for stp in step["result"]:
-                    step_tickers.append(stp["ticker"])
-                when_step_tickers.append(step_tickers)
-
-        if selector == "all":
-            ret = list(set.intersection(*map(set, when_step_tickers)))
-        elif selector == "any":
-            ret = list(set.union(*map(set, when_step_tickers)))
-        else:
-            raise Exception("Not valid selection")
-        ret.sort()
-        return {"selection": selector, "tickers": ret}
-    except Exception as e:
-        return {"selection": selector, "exception": e.args}
-
-
-@then
-def color_tickers(selector, steps):
-    try:
-        return {"selection": selector, "tickers": []}
-    except Exception as e:
-        return {"selection": selector, "exception": e.args}
-
-
-@then
 def list_stock_signals(groups, steps):
     """TODO
     After generating signals from the when step, the condition of each ticker
@@ -74,10 +41,3 @@ def list_stock_signals(groups, steps):
         return {"tickers": list(tickers_with_signal), "signals": tickers_with_signal}
     except Exception as e:
         return {"exception": e.args}
-
-
-def get_steps():
-    return {
-        r"^get list of (\w+) match$": get_list,
-        r"^get list of stocks with signals$": list_stock_signals,
-    }
