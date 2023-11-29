@@ -32,7 +32,7 @@ function convertToUtc(time) {
         // part kindoff a hacky way since the yfinance data in hour has
         // time zone but the 30m ,15m charts have no time zone. Here, we remove
         // the timezone part if any.
-        const offset = 10800
+        const offset = 10800 + 9000
         return Date.parse(time.substring(0, 19)) / 1000 + offset
     }
     return time
