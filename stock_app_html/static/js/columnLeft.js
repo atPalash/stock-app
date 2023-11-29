@@ -201,7 +201,7 @@ class ColumnLeft {
                     var steps = gherkin_response['gherkin'][feature][scenario]
                     steps.forEach(step => {
                         if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
-                            step['result']['tickers'].forEach(ticker => {
+                            step['result']['pipe_tickers'].forEach(ticker => {
                                 if (!then_steps_tickers.includes(ticker)) {
                                     then_steps_tickers.push(ticker)
                                 }
