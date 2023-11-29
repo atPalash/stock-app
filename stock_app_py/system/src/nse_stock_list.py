@@ -134,7 +134,8 @@ class NseStockList(System):
                     )
                     ret[index] = df["Symbol"].to_list()
             except Exception as e:
-                print("ERROR: ", file, e.args)
+                print("ERROR: ", self.__get_stocks_in_surveillance.__name__, e.args)
+                continue
         save_config(ret, f'{self.parameter["config_dir"]}/index_stock.yaml')
         self.index_stock_map = ret
 
