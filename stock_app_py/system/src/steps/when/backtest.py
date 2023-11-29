@@ -44,9 +44,7 @@ def backtest(selected_stocks_yaml, indicator_config_yaml, ticker, groups):
         else:
             raise Exception("Backtest query format error")
 
-        matched_step = common.call_if_step_matched(
-            signal_condition, aggregator.get_steps()
-        )
+        matched_step = common.get_matched_step(signal_condition, aggregator.get_steps())
         if matched_step["matched"]:
             ret = matched_step["func"](
                 selected_stocks_yaml,
