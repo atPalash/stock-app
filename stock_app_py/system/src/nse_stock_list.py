@@ -25,7 +25,7 @@ class NseStockList(System):
         - ABB
         - BEL
 
-        e.g. nsestocklist --do get, nsestocklist --do get
+        e.g. nsestocklist --do get, nsestocklist --do update
         Args:
             indicator_config_file (str): indicator configuration
             selected_stocks_config_file (str): selected stocks list

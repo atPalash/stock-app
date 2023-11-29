@@ -1,1 +1,114 @@
-{"column-left": {"input-gherkin-query-0-0-0": "Feature: Stage2 all\nScenario: Stage2 all\nGiven all stocks\n* remove stocks under surveillance\n* remove stocks AGI, ASTRAMICRO, ARVIND, CARTRADE, CIGNITITEC, DBL, ELECTCAST, GMDCLTD, GOKEX, ICIL, INOXWIND, ITDCEM, ITI, JPASSOCIAT, JPPOWER, MANINFRA, MARKSANS, RAMKY, RATEGAIN, RTNINDIA, SWANENERGY, WABAG, WELCORP, WELSPUNIND, WONDERLA\nWhen relative strength > 90 \n* day close ma 50 < close\n* day close ma 150 < close\n* day close ma 200 < close\n* day close ma 50 > day close ma 150\n* day close ma 50 > day close ma 200\n* day close ma 150 > day close ma 200\n* day close ma 200 in uptrend for 60 days\n* 1.25 of 52 week low < close\n* 0.75 of 52 week high < close\nThen get list", "input-gherkin-query-1-0-0": "Feature: Stage2 nifty100\nI want to query to get a list of turtle S1 stocks      \nScenario: Stage2 nifty100\nGiven nifty100 stocks\n* remove stocks under surveillance\nWhen relative strength > 70\n* day close ma 50 < close\n* day close ma 150 < close\n* day close ma 200 < close\n* day close ma 50 > day close ma 150\n* day close ma 50 > day close ma 200\n* day close ma 150 > day close ma 200\n* day close ma 200 in uptrend for 60 days\n* 1.25 of 52 week low < close\n* 0.75 of 52 week high < close\nThen get list"}, "column-right": {"chart-container-0-0": {"indicators": {"div-ema-indicator-0-0-#0": {"window": 9, "type": "ema", "color": "#00ff00"}, "div-volume-indicator0-0-#1": {"type": "volume"}}, "^NSEI": {}, "tvChart": {}, "interval": "week", "BAJAJ-AUTO": {}, "HEROMOTOCO": {}, "HAL": {}, "KPITTECH": {}, "BHEL": {}, "TITAGARH": {}, "ANGELONE": {}, "ARVIND": {}, "BRIGADE": {}, "BSOFT": {}, "CHENNPETRO": {}, "CREDITACC": {}, "ELECON": {}, "GABRIEL": {}, "GICRE": {}, "IRCON": {}, "JYOTHYLAB": {}, "MAHSEAMLES": {}, "MCX": {}, "MOIL": {}, "NIACL": {}, "ORIENTCEM": {}, "PFC": {}, "PGEL": {}, "PRESTIGE": {}, "RAILTEL": {}, "RATNAMANI": {}, "RECLTD": {}, "SAFARI": {}, "TECHNOE": {}, "THOMASCOOK": {}, "TI": {}, "VOLTAMP": {}, "ZENSARTECH": {}, "COALINDIA": {}, "APOLLOHOSP": {}, "AXISBANK": {}, "BEL": {}}, "chart-container-0-1": {"indicators": {"div-ema-indicator-0-1-#0": {"window": 9, "type": "ema", "color": "#00ff00"}, "div-volume-indicator0-1-#1": {"type": "volume"}}, "^NSEI": {}, "tvChart": {}, "interval": "day", "BAJAJ-AUTO": {}, "HEROMOTOCO": {}, "HAL": {}, "KPITTECH": {}, "BHEL": {}, "TITAGARH": {}, "ANGELONE": {}, "ARVIND": {}, "BRIGADE": {}, "BSOFT": {}, "CHENNPETRO": {}, "CREDITACC": {}, "ELECON": {}, "GABRIEL": {}, "GICRE": {}, "IRCON": {}, "JYOTHYLAB": {}, "MAHSEAMLES": {}, "MCX": {}, "MOIL": {}, "NIACL": {}, "ORIENTCEM": {}, "PFC": {}, "PGEL": {}, "PRESTIGE": {}, "RAILTEL": {}, "RATNAMANI": {}, "RECLTD": {}, "SAFARI": {}, "TECHNOE": {}, "THOMASCOOK": {}, "TI": {}, "VOLTAMP": {}, "ZENSARTECH": {}, "COALINDIA": {}, "APOLLOHOSP": {}, "AXISBANK": {}, "BEL": {}}}}
+{
+    "column-left": {
+        "input-gherkin-query-0-0-0": "Feature: Stage2 all\nScenario: Stage2 all\nGiven all stocks\n* remove stocks under surveillance\n* remove stocks AGI, ASTRAMICRO, ARVIND, CARTRADE, CIGNITITEC, DBL, ELECTCAST, GMDCLTD, GOKEX, ICIL, INOXWIND, ITDCEM, ITI, JPASSOCIAT, JPPOWER, MANINFRA, MARKSANS, RAMKY, RATEGAIN, RTNINDIA, SWANENERGY, WABAG, WELCORP, WELSPUNIND, WONDERLA\nWhen relative strength > 90 \n* day close ma 50 < close\n* day close ma 150 < close\n* day close ma 200 < close\n* day close ma 50 > day close ma 150\n* day close ma 50 > day close ma 200\n* day close ma 150 > day close ma 200\n* day close ma 200 in uptrend for 60 days\n* 1.25 of 52 week low < close\n* 0.75 of 52 week high < close\nThen get list",
+        "input-gherkin-query-1-0-0": "Feature: Stage2 nifty100\nI want to query to get a list of turtle S1 stocks      \nScenario: Stage2 nifty100\nGiven nifty100 stocks\n* remove stocks under surveillance\nWhen relative strength > 70\n* day close ma 50 < close\n* day close ma 150 < close\n* day close ma 200 < close\n* day close ma 50 > day close ma 150\n* day close ma 50 > day close ma 200\n* day close ma 150 > day close ma 200\n* day close ma 200 in uptrend for 60 days\n* 1.25 of 52 week low < close\n* 0.75 of 52 week high < close\nThen get list"
+    },
+    "column-right": {
+        "chart-container-0-0": {
+            "indicators": {
+                "div-ema-indicator-0-0-#0": {
+                    "window": 9,
+                    "type": "ema",
+                    "color": "#00ff00"
+                },
+                "div-volume-indicator0-0-#1": {
+                    "type": "volume"
+                }
+            },
+            "^NSEI": {},
+            "tvChart": {},
+            "interval": "week",
+            "BAJAJ-AUTO": {},
+            "HEROMOTOCO": {},
+            "HAL": {},
+            "KPITTECH": {},
+            "BHEL": {},
+            "TITAGARH": {},
+            "ANGELONE": {},
+            "ARVIND": {},
+            "BRIGADE": {},
+            "BSOFT": {},
+            "CHENNPETRO": {},
+            "CREDITACC": {},
+            "ELECON": {},
+            "GABRIEL": {},
+            "GICRE": {},
+            "IRCON": {},
+            "JYOTHYLAB": {},
+            "MAHSEAMLES": {},
+            "MCX": {},
+            "MOIL": {},
+            "NIACL": {},
+            "ORIENTCEM": {},
+            "PFC": {},
+            "PGEL": {},
+            "PRESTIGE": {},
+            "RAILTEL": {},
+            "RATNAMANI": {},
+            "RECLTD": {},
+            "SAFARI": {},
+            "TECHNOE": {},
+            "THOMASCOOK": {},
+            "TI": {},
+            "VOLTAMP": {},
+            "ZENSARTECH": {},
+            "COALINDIA": {},
+            "APOLLOHOSP": {},
+            "AXISBANK": {},
+            "BEL": {}
+        },
+        "chart-container-0-1": {
+            "indicators": {
+                "div-ema-indicator-0-1-#0": {
+                    "window": 9,
+                    "type": "ema",
+                    "color": "#00ff00"
+                },
+                "div-volume-indicator0-1-#1": {
+                    "type": "volume"
+                }
+            },
+            "^NSEI": {},
+            "tvChart": {},
+            "interval": "day",
+            "BAJAJ-AUTO": {},
+            "HEROMOTOCO": {},
+            "HAL": {},
+            "KPITTECH": {},
+            "BHEL": {},
+            "TITAGARH": {},
+            "ANGELONE": {},
+            "ARVIND": {},
+            "BRIGADE": {},
+            "BSOFT": {},
+            "CHENNPETRO": {},
+            "CREDITACC": {},
+            "ELECON": {},
+            "GABRIEL": {},
+            "GICRE": {},
+            "IRCON": {},
+            "JYOTHYLAB": {},
+            "MAHSEAMLES": {},
+            "MCX": {},
+            "MOIL": {},
+            "NIACL": {},
+            "ORIENTCEM": {},
+            "PFC": {},
+            "PGEL": {},
+            "PRESTIGE": {},
+            "RAILTEL": {},
+            "RATNAMANI": {},
+            "RECLTD": {},
+            "SAFARI": {},
+            "TECHNOE": {},
+            "THOMASCOOK": {},
+            "TI": {},
+            "VOLTAMP": {},
+            "ZENSARTECH": {},
+            "COALINDIA": {},
+            "APOLLOHOSP": {},
+            "AXISBANK": {},
+            "BEL": {}
+        }
+    }
+}
