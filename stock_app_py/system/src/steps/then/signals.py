@@ -1,16 +1,16 @@
 from stock_app_py.utility.src.steps import then
+from stock_app_py.system.src.steps import common
 
 
 @then
-def list_stock_signals(groups, steps):
-    """TODO
+def list_stock_signals(all_steps: list) -> dict:
+    """
     After generating signals from the when step, the condition of each ticker
     is filled with index and a boolean value signifying when the condition matches
     Here go through all the tickers and select those which satisfy the condition.
 
     Args:
-        groups (_type_): matched groups, is empty for this function
-        steps (_type_): previous steps
+        all_steps (list): all previous steps, will filter signals in each step.
 
     Returns:
         ret: {
@@ -22,9 +22,9 @@ def list_stock_signals(groups, steps):
     try:
         ret = []
         tickers_with_signal = {}
-        for step in steps:
-            if step["type"] == "When " or step["parent"] == "when":
-                for stp in step["result"]:
+        for step in all_steps:
+            if step.type == "When " or step.parent == "when":
+                for stp in step.result.data:
                     if any(
                         isinstance(item, tuple) and item[1] for item in stp["condition"]
                     ):
@@ -32,7 +32,7 @@ def list_stock_signals(groups, steps):
                             "signal": stp["condition"],
                             "color": stp["color"],
                             "interval": stp["interval"],
-                            "step": step["step"],
+                            "step": step.step,
                         }
                         if stp["ticker"] not in tickers_with_signal:
                             tickers_with_signal[stp["ticker"]] = [temp]
