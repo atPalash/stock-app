@@ -8,6 +8,10 @@ from stock_app_py.utility.src import gherkin_parser
 import stock_app_py.system.src.steps.given.aggregator as given_aggregator
 import stock_app_py.system.src.steps.then.aggregator as then_aggregator
 import stock_app_py.system.src.steps.when.aggregator as when_aggregator
+import stock_app_py.system.src.steps.given.given as given_step
+import stock_app_py.system.src.steps.when.when as when_step
+import stock_app_py.system.src.steps.then.then as then_step
+from stock_app_py.system.src.steps.common import GherkinQueryRet, PipeType
 from stock_app_py.utility.src.path_helper import get_app_path
 
 
@@ -80,7 +84,7 @@ class GherkinQuery(System):
         add_steps(when_aggregator.get_steps())
         add_steps(then_aggregator.get_steps())
 
-    def __call_if_step_matched(self, rule: str):
+    def __get_matched_step(self, rule: str):
         result = {"matched": False, "match": None, "func": None}
         for pattern, func in self.steps.items():
             match = re.search(pattern, rule)
@@ -146,149 +150,77 @@ class GherkinQuery(System):
             scenario_results = {}
             for scenario in check["scenarios"]:
                 step_results = []
-                # populate the given, when, then keywords to make further query
-                current_keyword = ""
-                all_match = False
-                for step in check["scenarios"][scenario]:
-                    keyword = step["keyword"]
-                    if keyword == "Then " or (
-                        current_keyword == "Then " and keyword in conjunction_keyword
-                    ):
-                        if "all match" in step["text"]:
-                            all_match = True
-
-                last_when_tickers = []
                 for step in check["scenarios"][scenario]:
                     try:
                         errors = ""
                         keyword = step["keyword"]
                         step_text = step["text"]
-                        matched_step = self.__call_if_step_matched(step_text)
-                        step_result = {
-                            "parent": "",
-                            "type": keyword,
-                            "step": step_text,
-                            "result": "",
-                            "errors": "",
-                        }
+                        matched_step = self.__get_matched_step(step_text)
+                        step_result = GherkinQueryRet(
+                            parent="",
+                            type=keyword,
+                            step=step_text,
+                            errors="",
+                            result=None,
+                        )
                         if matched_step["matched"]:
+                            pipe_type = PipeType.AND
+                            if "remove" in step_text:
+                                pipe_type = PipeType.NOT
+                            elif "add" in step_text or len(step_results) == 0:
+                                pipe_type = PipeType.OR
+
                             if keyword == "Given " or (
                                 current_keyword == "Given "
                                 and keyword in conjunction_keyword
                             ):
                                 # 1st step -> read the context
                                 # e.g. set the interval, selected stock etc.
-                                step_result["parent"] = (
+                                current_keyword = "Given "
+                                step_result.parent = (
                                     "" if keyword == "Given " else "given"
                                 )
-                                step_result["result"] = matched_step["func"](
+                                step_result.result = given_step.execute(
+                                    matched_step,
+                                    step_results[-1] if len(step_results) > 0 else None,
+                                    pipe_type,
                                     self.selected_stocks_config_file,
                                     self.indicator_config_file,
-                                    matched_step["match"].groups(),
                                 )
-                                current_keyword = "Given "
                                 step_results.append(step_result)
                             elif keyword == "When " or (
                                 current_keyword == "When "
                                 and keyword in conjunction_keyword
                             ):
-                                given_tickers = []
-                                for rslt in step_results:
-                                    if (
-                                        rslt["type"] == "Given "
-                                        or rslt["parent"] == "given"
-                                    ):
-                                        if "ignore stocks" in rslt["step"]:
-                                            for tick in rslt["result"]["tickers"]:
-                                                if tick in given_tickers:
-                                                    given_tickers.remove(tick)
-                                        else:
-                                            for tick in rslt["result"]["tickers"]:
-                                                if tick not in given_tickers:
-                                                    given_tickers.append(tick)
-
                                 # 2nd step -> compute the condition
                                 # get the context from given above and generate result
                                 # based on the condition
-                                def execute_when(
-                                    errors: str,
-                                    when_tickers: list = [],
-                                    given_tickers: list = [],
-                                ):
-                                    errors = ""
-                                    valid_tickers_list = []
-                                    valid_tickers = []
-                                    filter_when_tickers = (
-                                        len(when_tickers) != 0 and all_match
-                                    )
-                                    if filter_when_tickers:
-                                        given_tickers = when_tickers
-
-                                    args = []
-                                    for ticker in given_tickers:
-                                        args.append(
-                                            (
-                                                self.selected_stocks_config_file,
-                                                self.indicator_config_file,
-                                                ticker,
-                                                matched_step["match"].groups(),
-                                            )
-                                        )
-
-                                    multi_results = None
-                                    with multiprocessing.Pool() as pool:
-                                        try:
-                                            multi_results = pool.starmap(
-                                                matched_step["func"], args
-                                            )
-                                        except Exception as e:
-                                            errors += f"{e.args}"
-
-                                    for result in multi_results:
-                                        if result["exception"] is None:
-                                            satisfies = False
-                                            if isinstance(result["condition"], bool):
-                                                satisfies = result["condition"]
-                                            if isinstance(result["condition"], list):
-                                                satisfies = any(result["condition"])
-                                            if satisfies:
-                                                valid_tickers.append(result)
-                                                valid_tickers_list.append(
-                                                    result["ticker"]
-                                                )
-                                        else:
-                                            errors += f'{result["ticker"]} -> {result["exception"]} \n'
-                                    valid_tickers.sort(
-                                        key=lambda stock: stock["ticker"]
-                                    )
-                                    return valid_tickers_list, valid_tickers, errors
-
-                                step_result["parent"] = (
+                                current_keyword = "When "
+                                step_result.parent = (
                                     "" if keyword == "When " else "when"
                                 )
-                                (
-                                    last_when_tickers,
-                                    step_result["result"],
-                                    step_result["errors"],
-                                ) = execute_when(
-                                    errors=errors,
-                                    when_tickers=last_when_tickers,
-                                    given_tickers=given_tickers,
+                                step_result.result = when_step.execute(
+                                    matched_step,
+                                    step_results[-1] if len(step_results) > 0 else None,
+                                    pipe_type,
+                                    self.selected_stocks_config_file,
+                                    self.indicator_config_file,
                                 )
-                                current_keyword = "When "
                                 step_results.append(step_result)
                             elif keyword == "Then " or (
                                 current_keyword == "Then "
                                 and keyword in conjunction_keyword
                             ):
                                 # 3rd step -> data presentation
-                                step_result["parent"] = (
+                                current_keyword = "Then "
+                                step_result.parent = (
                                     "" if keyword == "Then " else "then"
                                 )
-                                step_result["result"] = matched_step["func"](
-                                    matched_step["match"].groups(), step_results
+                                step_result.result = then_step.execute(
+                                    matched_step,
+                                    step_results,
+                                    PipeType.PASS,
                                 )
-                                current_keyword = "Then "
                                 step_results.append(step_result)
                             else:
                                 raise Exception(
@@ -300,7 +232,7 @@ class GherkinQuery(System):
                         errors += f"{step}->{e.args}\n"
                         step_result["errors"] = errors
                         raise Exception(errors)
-                scenario_results[scenario] = step_results
+                scenario_results[scenario] = self.__convertToDict(step_results)
             return RetVal(
                 obj={check["feature"]: scenario_results},
                 obj_as_str="a dict of when given then result",
@@ -312,27 +244,27 @@ class GherkinQuery(System):
                 errors=f"{self.parameter['ticker']}->{e.args}",
             )
 
+    def __convertToDict(self, step_results: list) -> list:
+        ret = []
+        for step in step_results:
+            temp = vars(step)
+            temp["result"] = vars(step.result)
+            temp["result"]["pipe_type"] = step.result["pipe_type"].name
+            ret.append(temp)
+        return ret
+
 
 if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
-    g_query = """
+    g_query = """Backtest:ABB
 Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
 Given all stocks
-* ignore stocks under surveillance
 When relative strength > 90 
 * day close ma 50 < close
-* day close ma 150 < close
-* day close ma 200 < close
-* day close ma 50 > day close ma 150
-* day close ma 50 > day close ma 200
-* day close ma 150 > day close ma 200
-* day close ma 200 in uptrend for 60 days
-* 1.25 of 52 week low < close
-* 0.75 of 52 week high < close
-Then get list of all match
+Then get list
 """
 
     start = time.time()
