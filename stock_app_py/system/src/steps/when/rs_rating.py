@@ -81,7 +81,14 @@ def rs_rating(
                 "exception": None,
             }
         except Exception as e:
-            raise
+            return {
+                "ticker": ticker,
+                "query": "rs_rating",
+                "interval": "month",
+                "condition": False,
+                "value": -1,
+                "exception": e.args,
+            }
 
     if lookback_window < 0:
         command_handler = executor.CommandHandler(
