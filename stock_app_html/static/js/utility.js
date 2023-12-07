@@ -1,5 +1,5 @@
 async function apiPost(endPoint, query) {
-    var response = await fetch(`http://localhost:8087/${endPoint}`, {
+    var response = await fetch(`https://communal-vocal-mayfly.ngrok-free.app/${endPoint}`, {
         method: 'POST',
         body: JSON.stringify(query),
         headers: {
@@ -13,7 +13,7 @@ async function apiPost(endPoint, query) {
 }
 
 async function apiGet(endPoint) {
-    var response = await fetch(`http://localhost:8087/${endPoint}`, {
+    var response = await fetch(`https://communal-vocal-mayfly.ngrok-free.app/${endPoint}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'

@@ -1,5 +1,6 @@
 from flask import jsonify, render_template, request, Flask
 import json
+from flask_cors import CORS
 
 from stock_app_py.utility.src.message_parser import parse_message
 from stock_app_py.system.src.command_handler import CommandHandler
@@ -18,9 +19,10 @@ class Webserver(Server):
         super().__init__(port, master_server_port, None)
         self.app = Flask(
             __name__,
-            static_folder=get_app_path('static'),
-            template_folder=get_app_path('templates'),
+            static_folder=get_app_path("static"),
+            template_folder=get_app_path("templates"),
         )
+        CORS(self.app)
         self.system_command_handler = CommandHandler(
             indicator_config_yaml=indicator_config_file,
             selected_stocks_yaml=selected_stocks_config_file,
@@ -71,7 +73,7 @@ class Webserver(Server):
             return f"Hello, {__name__}"
 
     def config(self, req: request):
-        user_config = get_app_path('user_config.json')
+        user_config = get_app_path("user_config.json")
         if request.method == "POST":
             try:
                 # Open a file for writing
