@@ -93,22 +93,26 @@ class NseStockList(System):
         Returns:
             list: list of all in surveillance stocks
         """
-        asm_surveillance = pandas.read_csv(
-            f'{self.parameter["config_dir"]}/asm.csv', encoding="utf-8"
-        )
-        esm_surveillance = pandas.read_csv(
-            f'{self.parameter["config_dir"]}/esm.csv', encoding="ISO-8859-1"
-        )
-        gsm_surveillance = pandas.read_csv(
-            f'{self.parameter["config_dir"]}/gsm.csv', encoding="utf-8"
-        )
-        ret = (
-            asm_surveillance["SYMBOL \n"].tolist()
-            + esm_surveillance["Symbol"].tolist()
-            + gsm_surveillance["SYMBOL \n"].tolist()
-        )
-        ret = [x for x in ret if str(x) != "nan"]
-        return RetVal(obj=ret, obj_as_str="surveillance stock list", errors="")
+        try:
+            asm_surveillance = pandas.read_csv(
+                f'{self.parameter["config_dir"]}/asm.csv', encoding="utf-8"
+            )
+            esm_surveillance = pandas.read_csv(
+                f'{self.parameter["config_dir"]}/esm.csv', encoding="utf-8"
+            )
+            gsm_surveillance = pandas.read_csv(
+                f'{self.parameter["config_dir"]}/gsm.csv', encoding="utf-8"
+            )
+            ret = (
+                asm_surveillance["SYMBOL \n"].tolist()
+                + esm_surveillance["SYMBOL \n"].tolist()
+                + gsm_surveillance["SYMBOL \n"].tolist()
+            )
+            ret = [x for x in ret if str(x) != "nan"]
+            return RetVal(obj=ret, obj_as_str="surveillance stock list", errors="")
+        except Exception as e:
+            print(e.args)
+            raise
 
     def __create_yaml(self):
         """Creates a stock config yaml based on the index csvs present in config_dir.
@@ -182,7 +186,7 @@ class NseStockList(System):
             return False
 
     def debug(self):
-        return self.__update()
+        return self.__get_stocks_in_surveillance()
 
 
 if __name__ == "__main__":
