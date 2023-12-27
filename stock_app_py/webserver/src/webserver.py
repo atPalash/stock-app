@@ -22,7 +22,7 @@ class Webserver(Server):
             static_folder=get_app_path("static"),
             template_folder=get_app_path("templates"),
         )
-        CORS(self.app)
+        # CORS(self.app)
         self.system_command_handler = CommandHandler(
             indicator_config_yaml=indicator_config_file,
             selected_stocks_yaml=selected_stocks_config_file,
