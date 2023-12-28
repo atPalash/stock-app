@@ -4,6 +4,7 @@ from stock_app_py.interface.commandHandlerIf import (
     Response,
     get_commands_as_str,
 )
+from stock_app_py.system.src.statement_list import StatementList
 from stock_app_py.utility.src.message_parser import parse_message
 from stock_app_py.system.src.elder_impulse import ElderImpulse
 from stock_app_py.system.src.gherkin_query import GherkinQuery
@@ -34,6 +35,7 @@ class CommandHandler(CommandHandlerIf):
             "gherkinquery": GherkinQuery,
             "nsestocklist": NseStockList,
             "rsrating": RsRating,
+            "statementlist": StatementList,
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml
