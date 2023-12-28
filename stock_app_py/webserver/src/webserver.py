@@ -2,7 +2,6 @@ from flask import jsonify, render_template, request, Flask
 import json
 from flask_cors import CORS
 
-from stock_app_py.utility.src.message_parser import parse_message
 from stock_app_py.system.src.command_handler import CommandHandler
 from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src.server import Server
@@ -57,6 +56,10 @@ class Webserver(Server):
 
         @self.app.route("/financials-query", methods=["GET", "POST"])
         def financials_query():
+            return self.handle_request(req=request)
+
+        @self.app.route("/statements-query", methods=["GET", "POST"])
+        def statements_query():
             return self.handle_request(req=request)
 
     def handle_request(self, req: request):
