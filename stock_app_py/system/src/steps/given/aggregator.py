@@ -1,11 +1,17 @@
 from stock_app_py.system.src.steps.given import stocks
+from stock_app_py.system.src.steps.common import StepData
 
 
 def get_steps():
     return {
-        # r'^(\w+)\s+(\d+)\s+stocks$': get_stocks_in_index,
-        r"^(\w+)\s+stocks$": stocks.get_index_stocks,
-        r"^stocks (\w+(?:,*\s*\w*)*)$": stocks.get_stocks,
-        r"^remove\s+stocks\s+(\w+(?:,*\s*\w*)*)$": stocks.get_stocks
-        # r'^indexes (\w+(?:,*\s*\w*)*)$': get_stocks
+        # r'^(\w+) (\d+) stocks$': get_stocks_in_index,
+        r"^(\w+) stocks$": StepData(
+            logic=stocks.get_index_stocks, variables={0: StepData.index}
+        ),
+        r"^stocks (\w+(?:,*\s*\w*)*)$": StepData(
+            logic=stocks.get_stocks, variables={1: StepData.list}
+        ),
+        r"^remove stocks (\w+(?:,*\s*\w*)*)$": StepData(
+            logic=stocks.get_stocks, variables={2: StepData.list}
+        ),
     }
