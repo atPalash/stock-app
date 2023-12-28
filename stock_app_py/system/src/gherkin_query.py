@@ -86,12 +86,12 @@ class GherkinQuery(System):
 
     def __get_matched_step(self, rule: str):
         result = {"matched": False, "match": None, "func": None}
-        for pattern, func in self.steps.items():
+        for pattern, step_data in self.steps.items():
             match = re.search(pattern, rule)
             if match:
                 result["matched"] = True
                 result["match"] = match
-                result["func"] = func
+                result["func"] = step_data.logic
                 break
         return result
 
@@ -257,13 +257,19 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
-    g_query = """Backtest:ABB
-Feature: test
+    g_query = """Feature: test
 I want to query to get a list of turtle S1 stocks      
 Scenario: test
-Given all stocks
-When relative strength > 90 
-* day close ma 50 < close
+Given stocks ASAHIINDIA, ASTRAZEN, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,MAHABANK,NESTLEIND,PNB,PSB,SBIN, SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC
+When day close ma 50 < close
+* day close ma 150 < close
+* day close ma 200 < close
+* day close ma 50 > day close ma 150
+* day close ma 50 > day close ma 200
+* day close ma 150 > day close ma 200
+* day close ma 200 in uptrend for 60 days
+* 1.25 of 52 week low < close
+* 0.75 of 52 week high < close
 Then get list
 """
 
