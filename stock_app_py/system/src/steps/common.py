@@ -1,6 +1,7 @@
 import re
 
 from enum import Enum
+from typing import Callable
 
 
 class PipeType(Enum):
@@ -22,6 +23,21 @@ class StepRet:
         self.pipe_tickers = pipe_tickers
         self.pipe_type = pipe_type
         self.err = err
+
+
+class StepData:
+    condition = [">", "<", "!=", "==", ">=", "<="]
+    color = ["red", "green", "blue"]
+    empty = [""]
+    index = ["all", "nifty50", "nifty100"]
+    interval = ["day", "week", "hour"]
+    list = ["<list>"]
+    number = ["<number>"]
+    ohlc = ["close", "open", "high", "low"]
+
+    def __init__(self, logic=Callable, variables={}) -> None:
+        self.logic = logic
+        self.variables = variables
 
 
 class GherkinQueryRet:
@@ -86,11 +102,12 @@ def make_return(prev_step_result: GherkinQueryRet, curr_step_ret: StepRet) -> St
 
 def get_matched_step(rule: str, steps: dict):
     result = {"matched": False, "match": None, "func": None}
-    for pattern, func in steps.items():
+    for pattern, step_data in steps.items():
         match = re.search(pattern, rule)
         if match:
             result["matched"] = True
             result["match"] = match
-            result["func"] = func
+            result["func"] = step_data.logic
+            result["variables"] = step_data.variables
             break
     return result
