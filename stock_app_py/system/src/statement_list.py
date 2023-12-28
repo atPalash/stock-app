@@ -106,17 +106,20 @@ class StatementList(System):
                         temp_pos[position] = option
                         temp = " ".join(temp_pos)
                         make_statement(temp, options=options, position=position + 1)
-                        temp_statements.append(temp)
+                        if "(" not in temp or ")" not in temp:
+                            temp_statements.append(
+                                temp.replace("^", "").replace("$", "")
+                            )
                 else:
                     if position < len(option_pos):
                         make_statement(regex, options=options, position=position + 1)
 
-        def clean_statement():
-            clean = []
-            for statement in temp_statements:
-                if "(" not in statement or ")" not in statement:
-                    clean.append(statement.replace("^", "").replace("$", ""))
-            return clean
+        # def clean_statement():
+        #     clean = []
+        #     for statement in temp_statements:
+        #         if "(" not in statement or ")" not in statement:
+        #             clean.append(statement.replace("^", "").replace("$", ""))
+        #     return clean
 
         for regx, val in regex_dict.items():
             temp_statements.clear()
@@ -130,7 +133,8 @@ class StatementList(System):
                     self.statements.append(
                         {
                             "regex": regx,
-                            "statements": clean_statement(),
+                            "variables": val,
+                            "statements": temp_statements.copy(),
                         }
                     )
 
