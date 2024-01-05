@@ -1,6 +1,7 @@
 import os
 import re
 import subprocess
+import time
 import pandas
 import csv
 
@@ -77,7 +78,7 @@ class StatementList(System):
         make_regex_dict(then_aggregator.get_steps())
 
         temp_statements = []
-
+        added_keywords = []
         def make_statement(regex: str, options: dict, position: int):
             """Recursion to create a list of strings containing different combination
             of the options/variables defined.
@@ -104,25 +105,28 @@ class StatementList(System):
                     for option in options[position]:
                         temp_pos = option_pos
                         temp_pos[position] = option
-                        temp = " ".join(temp_pos)
-                        make_statement(temp, options=options, position=position + 1)
-                        if "(" not in temp or ")" not in temp:
-                            temp_statements.append(
-                                temp.replace("^", "").replace("$", "")
-                            )
+                        temp = " ".join(temp_pos).replace("^", "")
+                        if do_append(statement=temp):
+                            make_statement(temp, options=options, position=position + 1)
+                            if "(" not in temp or ")" not in temp:
+                                temp_statements.append(
+                                    temp.replace("$", "")
+                                )
                 else:
                     if position < len(option_pos):
                         make_statement(regex, options=options, position=position + 1)
-
-        # def clean_statement():
-        #     clean = []
-        #     for statement in temp_statements:
-        #         if "(" not in statement or ")" not in statement:
-        #             clean.append(statement.replace("^", "").replace("$", ""))
-        #     return clean
+                        
+        def do_append(statement:str)->bool:
+            key_word = statement.split()[0]
+            for step in temp_statements:
+                step_key_word = step.split()[0]
+                if key_word == step_key_word:
+                    return False
+            return True
 
         for regx, val in regex_dict.items():
             temp_statements.clear()
+            added_keywords.clear()
             # User queries for backtest for selected stock in context, not required
             # as an query statement.
             if "backtest" not in regx:
@@ -160,5 +164,7 @@ if __name__ == "__main__":
     # https://www.niftyindices.com/IndexConstituent/nifty_low_Volatility50_Index.csv
     # https://www.niftyindices.com/IndexConstituent/ind_niftyoilgaslist.csv
     # javascript:;
+    start_time = time.time()
     data = yf.debug()
-    print(data.obj)
+    print("--- %s seconds ---" % (time.time() - start_time))
+    # print(data.obj)
