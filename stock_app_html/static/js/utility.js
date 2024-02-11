@@ -1,5 +1,7 @@
+var url = 'https://gorgeous-turtle-loudly.ngrok-free.app'
+// var url = 'http://localhost:8087'
 async function apiPost(endPoint, query) {
-    var response = await fetch(`http://localhost:8087/${endPoint}`, {
+    var response = await fetch(`${url}/${endPoint}`, {
         method: 'POST',
         body: JSON.stringify(query),
         headers: {
@@ -13,7 +15,7 @@ async function apiPost(endPoint, query) {
 }
 
 async function apiGet(endPoint) {
-    var response = await fetch(`http://localhost:8087/${endPoint}`, {
+    var response = await fetch(`${url}/${endPoint}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -28,11 +30,11 @@ async function apiGet(endPoint) {
 function convertToUtc(time) {
     if (time.includes(":")) {
         // This offset will change based on the source data and client
-        // time zone, also when DST is applied. Also strip the timezone 
+        // time zone, also when DST is applied. Also strip the timezone
         // part kindoff a hacky way since the yfinance data in hour has
         // time zone but the 30m ,15m charts have no time zone. Here, we remove
         // the timezone part if any.
-        const offset = 10800 + 9000
+        const offset = 7200 // GMT + 2, Helsinki
         return Date.parse(time.substring(0, 19)) / 1000 + offset
     }
     return time
