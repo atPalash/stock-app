@@ -2,8 +2,12 @@
 
 HOME_DIR="/home/palash"
 STOCK_APP_DIR="/home/palash/stock-app"
-echo "Remember: \ 
+echo "Remember: \
 1. add <user> to sudo and set password from root in podman exec \
+```
+usermod -aG sudo <user>
+passwd <user>
+```
 2. install ifconfig sudo apt update && sudo apt install net-tools"
 
 function setEnv() {
