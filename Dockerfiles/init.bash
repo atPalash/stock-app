@@ -39,4 +39,12 @@ function makeDirs() {
     mkdir fundamentals ohlc plot
     cd ohlc && mkdir day hour minute minute5 minute15 minute30 month week
 }
+
+function ngrokConfig() {
+    curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" |   sudo tee /etc/apt/sources.list.d/ngrok.list &&   sudo apt update && sudo apt install ngrok
+    ngrok config add-authtoken 2btkdetrcNEwPXoXzKHHl2e3WMp_6dhVJQvMAn81XSH8VnhWa
+}
+function ngrokStart() {
+    ngrok http 8087 --oauth=google --oauth-allow-email=malahalder212@gmail.com,chaietofan@gmail.com --domain gorgeous-turtle-loudly.ngrok-free.app
+}
 "$@"
