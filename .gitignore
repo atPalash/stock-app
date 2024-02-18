@@ -4,4 +4,3 @@ dockerfiles
 database/
 *__pycache__
 stock_app_py.egg-info
-test
