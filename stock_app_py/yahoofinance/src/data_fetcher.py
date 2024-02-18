@@ -174,14 +174,14 @@ if __name__ == "__main__":
             period="5y",
             interval="1d",
             as_csv=True,
-            destination="/home/palash/stock-app/test",
+            destination="test",
         )
     except Exception as e:
         print("ERROR", e.args)
 """
         frequencies = ['quaterly', 'annual']
         statements = ['income', 'balance', 'cash']
-        
+
         for frequency in frequencies:
             for statement in statements:
                 insert_to_ret(yahoo_financials.get_financial_stmts(frequency, statement))
