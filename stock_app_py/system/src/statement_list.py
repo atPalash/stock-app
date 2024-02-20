@@ -98,7 +98,7 @@ class StatementList(System):
                 position (int): the current placeholder whose options are being checked.
             """
             if position < 0:
-                temp_statements.append(regex)
+                temp_statements.append(regex.replace("^", "").replace("$",""))
             else:
                 option_pos = regex.split(" ")
                 if position in options:
