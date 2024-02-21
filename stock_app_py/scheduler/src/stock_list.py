@@ -49,6 +49,7 @@ class StockList(Scheduler):
             add_latest (bool, optional): _description_. Defaults to False.
         """
         try:
+            print(f'DEBUG stock-list scheduler')
             query = f"nsestocklist --do update"
             ret = self.system_command_handler.execute(
                 message=query, is_rest=False

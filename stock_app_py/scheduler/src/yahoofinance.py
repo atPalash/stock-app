@@ -122,6 +122,7 @@ class YahooScheduler(Scheduler):
             add_latest (bool, optional): _description_. Defaults to False.
         """
         try:
+            print(f'DEBUG yahoo scheduler {interval}')
             query = f"yahoofinance --ticker all --interval {interval} --do get --pandas 0  --csv 1"
             # just download the data, only print the errors
             ret = self.system_command_handler.execute(message=query, is_rest=False)

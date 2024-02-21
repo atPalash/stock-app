@@ -43,6 +43,7 @@ class RsRating(Scheduler):
     def __periodic_download(self):
         """Create Rs rating csv file"""
         try:
+            print(f'DEBUG rs-rating scheduler')
             query = f"rsrating --do update"
             ret = self.system_command_handler.execute(
                 message=query, is_rest=False
