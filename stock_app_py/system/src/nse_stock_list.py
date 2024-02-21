@@ -124,7 +124,7 @@ class NseStockList(System):
         nifty100:
             -TATA
         Returns:
-            RetVal: selected stock config
+            RetVal: None
         """
         # create selected stocks config file
         ret = {}
@@ -149,20 +149,8 @@ class NseStockList(System):
             if "ind_nifty" in file and ".csv" in file:
                 os.remove(os.path.join(self.parameter["config_dir"], file))
 
-        # update the selected stock yaml
-        selected_stock = self.selected_stocks_config
-        for index, stocks in self.index_stock_map.items():
-            # TODO Check how to add index list
-            for stock in stocks:
-                if stock not in selected_stock["stock"]:
-                    selected_stock["stock"].append(stock)
-        selected_stock["stock"].sort()
-        save_config(
-            selected_stock, f'{self.parameter["config_dir"]}/selected_stocks.yaml'
-        )
-        
         # add other stocks
-        self.__add_other_stock()
+        self.__add_non_index_stock_and_make_all_stock_list()
 
     def __req_download(self, key: str):
         try:
@@ -188,21 +176,40 @@ class NseStockList(System):
         except Exception as e:
             return False
 
-    def __add_other_stock(self):
+    def __add_non_index_stock_and_make_all_stock_list(self):
+        """Add to previously created index stock yaml which includes the
+        stocks in index. This method is to add the non-index stocks. It assumes
+        the index stock yaml is created. Create the selected stock list and
+        update index stock list
+        e.g.
+        other:
+            -20MICRON
+        Returns:
+            RetVal: selected stock config
+        """
         all_stocks = pandas.read_csv(get_app_path("EQUITY_L.csv"))["SYMBOL"].to_list()
-        selected_stocks = read_config(get_app_path("selected_stocks.yaml"))
-        to_add = selected_stocks['stock']
+        index_stocks = read_config(get_app_path("index_stock.yaml"))
+        unique_index_stocks = set()
+        for lst in index_stocks.values():
+            unique_index_stocks.update(lst)
+        unique_index_stocks = list(unique_index_stocks)
+        non_index_stocks = []
         for stock in all_stocks:
-            if stock not in to_add:
-                to_add.append(stock)
-                
-        selected_stocks['stock'] = to_add
+            if stock not in unique_index_stocks and stock not in non_index_stocks:
+                non_index_stocks.append(stock)
+
+        # Add to index stock as other
+        index_stocks['other'] = non_index_stocks
+        save_config(index_stocks, get_app_path("index_stock.yaml"))
+
+        # Add to selected stock
+        selected_stocks = read_config(get_app_path("selected_stocks.yaml"))
+        selected_stocks['stock'] = unique_index_stocks + non_index_stocks
         selected_stocks['stock'].sort()
         save_config(selected_stocks, get_app_path("selected_stocks.yaml"))
-        
-        
+
     def debug(self):
-        return self.add_other_stock()
+        return self.__update()
 
 
 if __name__ == "__main__":
