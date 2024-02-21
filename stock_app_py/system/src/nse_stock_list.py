@@ -160,6 +160,9 @@ class NseStockList(System):
         save_config(
             selected_stock, f'{self.parameter["config_dir"]}/selected_stocks.yaml'
         )
+        
+        # add other stocks
+        self.__add_other_stock()
 
     def __req_download(self, key: str):
         try:
@@ -185,8 +188,21 @@ class NseStockList(System):
         except Exception as e:
             return False
 
+    def __add_other_stock(self):
+        all_stocks = pandas.read_csv(get_app_path("EQUITY_L.csv"))["SYMBOL"].to_list()
+        selected_stocks = read_config(get_app_path("selected_stocks.yaml"))
+        to_add = selected_stocks['stock']
+        for stock in all_stocks:
+            if stock not in to_add:
+                to_add.append(stock)
+                
+        selected_stocks['stock'] = to_add
+        selected_stocks['stock'].sort()
+        save_config(selected_stocks, get_app_path("selected_stocks.yaml"))
+        
+        
     def debug(self):
-        return self.__get_stocks_in_surveillance()
+        return self.add_other_stock()
 
 
 if __name__ == "__main__":

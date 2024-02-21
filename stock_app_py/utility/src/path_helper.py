@@ -35,7 +35,8 @@ mapped_config = {
     'configuration': __dir_path,
     'database': __dir_path,
     'static': __dir_path_html,
-    'templates': __dir_path_html
+    'templates': __dir_path_html,
+    'EQUITY_L.csv': __file_path
 }
 helper_file_path = Path(__file__)
     
