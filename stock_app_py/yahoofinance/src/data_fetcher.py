@@ -1,6 +1,6 @@
 import multiprocessing
 import yfinance as yf
-import pandas
+import logging
 import time
 from inspect import currentframe, getframeinfo
 from yahoofinancials import YahooFinancials
@@ -11,6 +11,7 @@ from stock_app_py.utility.src.path_helper import get_app_path
 
 def __download_df_from_yahoo(tickers, period, interval):
     try:
+        logging.getLogger('yfinance').setLevel(logging.ERROR)
         data = yf.download(
             tickers=tickers,
             period=period,
@@ -19,8 +20,7 @@ def __download_df_from_yahoo(tickers, period, interval):
             group_by="ticker",
             rounding=True,
             actions=True,
-            threads=10,
-            show_errors=True,
+            threads=10
         )
         data = data.dropna()
         return data
