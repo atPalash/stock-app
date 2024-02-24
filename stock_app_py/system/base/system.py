@@ -43,7 +43,7 @@ class System(SystemIf):
             "interval": parameter.get("interval", "day"),
             "index": parameter.get("index", "^NSEI"),
             "index_csv": parameter.get(
-                "index_csv", "MW-All-Indices-17-Sep-2023.csv"
+                "index_csv", "all-indices.csv"
             ),  # https://www.nseindia.com/market-data/live-market-indices
             "latest": int(parameter.get("latest", "0")),
             "macd_fast_period": int(parameter.get("macd_fast_period", "13")),
