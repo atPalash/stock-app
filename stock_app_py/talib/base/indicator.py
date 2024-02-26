@@ -27,14 +27,3 @@ class Indicator(IndicatorIf):
         """
         self._do_analysis(latest=with_latest_minute)
         return self.ohlc
-
-    def get_data(self, latest=True):
-        if latest == 1:
-            tickers = []
-            if "^" in self.ticker:  # index are with ^in yahoo
-                tickers = [self.ticker]
-            else:
-                tickers = [f"{self.ticker}.NS"]
-            last_minute_series = download_latest_data(tickers=tickers)
-            self.ohlc = pandas.concat([self.ohlc, last_minute_series])
-        return self.ohlc
