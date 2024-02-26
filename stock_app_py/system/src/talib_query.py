@@ -7,6 +7,7 @@ from stock_app_py.talib.src.macd import Macd
 from stock_app_py.talib.src.rsi import Rsi
 from stock_app_py.talib.src.rsi_line import RsiLine
 from stock_app_py.talib.src.ma import Ma
+from stock_app_py.talib.src.volatility import Volatility
 
 
 class TalibQuery(System):
@@ -50,6 +51,7 @@ class TalibQuery(System):
             "rsi": Rsi,
             "rsiline": RsiLine,
             "ma": Ma,
+            "volatility": Volatility
         }
 
         self.commands = {
@@ -98,3 +100,30 @@ class TalibQuery(System):
                 obj_as_str="ERROR",
                 errors=f"{self.parameter['ticker']}->{e.args}",
             )
+
+    def debug(self):
+        return self.__get()
+
+
+if __name__ == "__main__":
+    from stock_app_py.system.src.command_handler import CommandHandler
+    from stock_app_py.utility.src.path_helper import get_app_path
+
+    indicator_config_yaml = get_app_path("indicator.yaml")
+    selected_stocks_yaml = get_app_path("selected_stocks.yaml")
+    commandHandler = CommandHandler(
+        selected_stocks_yaml, indicator_config_yaml=indicator_config_yaml
+    )
+    yf = TalibQuery(
+        indicator_config_file=indicator_config_yaml,
+        selected_stocks_config_file=selected_stocks_yaml,
+        parameter={"indicator": "volatility", "do": "get", "ticker": "ABB"},
+        command_handler=commandHandler,
+        name="",
+    )
+    # https://www.niftyindices.com/IndexConstituent/ind_niftyautolist.csv
+    # https://www.niftyindices.com/IndexConstituent/nifty_low_Volatility50_Index.csv
+    # https://www.niftyindices.com/IndexConstituent/ind_niftyoilgaslist.csv
+    # javascript:;
+    data = yf.debug()
+    print(data.obj)
