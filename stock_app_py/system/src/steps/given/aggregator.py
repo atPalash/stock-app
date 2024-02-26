@@ -11,7 +11,7 @@ def get_steps():
         r"^stocks (\w+(?:,*\s*\w*)*)$": StepData(
             logic=stocks.get_stocks, variables={1: StepData.list}
         ),
-        r"^remove stocks (\w+(?:,*\s*\w*)*)$": StepData(
+        r"^stocks (\w+(?:,*\s*\w*)*)$": StepData(
             logic=stocks.get_stocks, variables={2: StepData.list}
         ),
     }

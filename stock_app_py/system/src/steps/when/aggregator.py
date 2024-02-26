@@ -137,7 +137,7 @@ def get_steps():
             },
         ),
         # day close shows macd divergence with fastperiod 13 slowperiod 26 signalperiod 9 window 20 in last 100 ticks
-        #    0    1    2     3     4          5    6      7      8         9       10       11      12         13   14  15   16    17
+        #    0    1    2     3     4        5    6         7      8      9       10     11  12   13 14  15   16   17
         r"^(\w+) (\w+) shows macd divergence with window (\d+) fastperiod (\d+) slowperiod (\d+) signalperiod (\d+) in last (\d+) ticks$": StepData(
             logic=macd.shows_macd_divergence,
             variables={
