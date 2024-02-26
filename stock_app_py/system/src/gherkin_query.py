@@ -11,6 +11,7 @@ import stock_app_py.system.src.steps.when.aggregator as when_aggregator
 import stock_app_py.system.src.steps.given.given as given_step
 import stock_app_py.system.src.steps.when.when as when_step
 import stock_app_py.system.src.steps.then.then as then_step
+from stock_app_py.system.src.steps import common
 from stock_app_py.system.src.steps.common import GherkinQueryRet, PipeType
 from stock_app_py.utility.src.path_helper import get_app_path
 
@@ -84,17 +85,6 @@ class GherkinQuery(System):
         add_steps(when_aggregator.get_steps())
         add_steps(then_aggregator.get_steps())
 
-    def __get_matched_step(self, rule: str):
-        result = {"matched": False, "match": None, "func": None}
-        for pattern, step_data in self.steps.items():
-            match = re.search(pattern, rule)
-            if match:
-                result["matched"] = True
-                result["match"] = match
-                result["func"] = step_data.logic
-                break
-        return result
-
     def __convertToBacktest(self, gherkin_query: str) -> dict:
         """Convert the gherkin query to backtest gherkin query. Ensure the keyword
         Backtest is in the top line.
@@ -155,7 +145,7 @@ class GherkinQuery(System):
                         errors = ""
                         keyword = step["keyword"]
                         step_text = step["text"]
-                        matched_step = self.__get_matched_step(step_text)
+                        matched_step = common.get_matched_step(step_text, self.steps)
                         step_result = GherkinQueryRet(
                             parent="",
                             type=keyword,
@@ -164,10 +154,9 @@ class GherkinQuery(System):
                             result=None,
                         )
                         if matched_step["matched"]:
-                            pipe_type = PipeType.AND
-                            if "remove" in step_text:
-                                pipe_type = PipeType.NOT
-                            elif "add" in step_text or len(step_results) == 0:
+                            pipe_type = matched_step["pipe"]
+                            # First statement pipe is OR, i.e all result are allowed
+                            if len(step_results) == 0:
                                 pipe_type = PipeType.OR
 
                             if keyword == "Given " or (
@@ -258,21 +247,12 @@ if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
     g_query = """Feature: test
-I want to query to get a list of turtle S1 stocks      
+I want to query to get a list of turtle S1 stocks
 Scenario: test
-Given all stocks
+Given nifty100 stocks
 * remove stocks under surveillance
-* remove stocks AGI, ASTRAMICRO, ARVIND, CARTRADE, CIGNITITEC, DBL, ELECTCAST, GMDCLTD, GOKEX, ICIL, INOXWIND, ITDCEM, ITI, JPASSOCIAT, JPPOWER, JISLJALEQS, ISGEC, MANINFRA, MARKSANS, NH, OLECTRA, RAMKY, RATEGAIN, RTNINDIA, SWANENERGY, TI, WABAG, WELCORP, WONDERLA, SYRMA, LGBBROSLTD, HCC, AHLUCONT, ANANTRAJ, IFCI, WOCKPHARMA, ALOKINDS, BALMLAWRIE, TDPOWERSYS, TEGA
-When relative strength > 85
-* day close ma 50 < close
-* day close ma 150 < close
-* day close ma 200 < close
-* day close ma 50 > day close ma 150
-* day close ma 50 > day close ma 200
-* day close ma 150 > day close ma 200
-* day close ma 200 in uptrend for 60 days
-* 1.25 of 52 week low < close
-* 0.75 of 52 week high < close
+When relative strength > 80
+* remove relative strength > 90
 Then get list
 """
 
@@ -319,54 +299,54 @@ Feature: Back test day turtle S1
     When backtest for last 100 ticks with signal color green | day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
     Then get list of stocks with signals
 Feature: Stocks with MACD divergence
-    I want to query to get a list of macd divergence stocks      
+    I want to query to get a list of macd divergence stocks
     Scenario: list stocks showing macd divergence
     Given nifty 50 stocks
     When day close shows macd divergence with window 20 in last 40 ticks
     Then get list of stocks with signals
     Feature: Query
-    I want to query to get a list of matches      
-        Scenario: filter for ema and ma 
+    I want to query to get a list of matches
+        Scenario: filter for ema and ma
         Given nifty 50 stocks
         When <interval> <ohlc source> <indicator> <window> <condition> <ohlc>
         And hour close ma 100 < hour open ma 20
         Then get list of top 20
 
         Examples:
-        | interval  | ohlc source       | indicator     | window    | condition     | ohlc      |   
+        | interval  | ohlc source       | indicator     | window    | condition     | ohlc      |
         | day       | close             | ema           | 20        | >             | open      |
-        | week      | open              | ma            | 60        | >             | close     | 
-        
+        | week      | open              | ma            | 60        | >             | close     |
+
         Scenario: check ema50
         Given nifty 100 stocks
         When week close ema 50 > open
         Then get list of top 10
-        
+
         Scenario: check ema70
         Given nifty 200 stocks
         When week close ema 70 > day open ma 20
         Then get list of top 10
     """
 """
-    g_query = 
+    g_query =
     Feature: Query
-    I want to query to get a list of matches      
-        Scenario: filter for ema and ma 
+    I want to query to get a list of matches
+        Scenario: filter for ema and ma
         Given nifty 50 stocks
         When <interval> <ohlc source> <indicator> <window> <condition> <ohlc>
         And hour close ma 100 < hour open ma 20
         Then get list of top 20
 
         Examples:
-        | interval  | ohlc source       | indicator     | window    | condition     | ohlc      |   
+        | interval  | ohlc source       | indicator     | window    | condition     | ohlc      |
         | day       | close             | ema           | 20        | >             | open      |
-        | week      | open              | ma            | 60        | >             | close     | 
-        
+        | week      | open              | ma            | 60        | >             | close     |
+
         Scenario: check ema50
         Given nifty 100 stocks
         When week close ema 50 > open
         Then get list of top 10
-        
+
         Scenario: check ema70
         Given nifty 200 stocks
         When week close ema 70 > close

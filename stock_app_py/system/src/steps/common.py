@@ -99,15 +99,29 @@ def make_return(prev_step_result: GherkinQueryRet, curr_step_ret: StepRet) -> St
         ret.pipe_tickers = curr_step_ret.pipe_tickers
     return ret
 
+def get_matched_step(rule: str, steps: dict) -> dict:
+    """Find the step which matches rule from steps.
 
-def get_matched_step(rule: str, steps: dict):
-    result = {"matched": False, "match": None, "func": None}
+    Args:
+        rule (str): string to match.
+        steps (dict): allowed dict of steps e.g steps in given.
+
+    Returns:
+        dict: return result as dict which consists of matched func and pipe type.
+    """
+    result = {"matched": False, "match": None, "func": None, "pipe": PipeType.AND}
+    if "remove" in rule:
+        result["pipe"] = PipeType.NOT
+        rule = rule.replace("remove", "").strip()
+    if "add" in rule:
+        result["pipe"] = PipeType.OR
+        rule = rule.replace("add", "").strip()
+
     for pattern, step_data in steps.items():
         match = re.search(pattern, rule)
         if match:
             result["matched"] = True
             result["match"] = match
             result["func"] = step_data.logic
-            result["variables"] = step_data.variables
             break
     return result
