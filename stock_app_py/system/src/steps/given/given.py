@@ -1,3 +1,4 @@
+import pandas
 from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.system.src.steps import common
 from stock_app_py.system.src.steps.given import aggregator
@@ -10,23 +11,29 @@ def execute(
     pipe_type: PipeType,
     selected_stocks_config_file: str,
     indicator_config_file: str,
-) -> StepRet:
+    step_version: str = 'v1',
+    query_df: pandas.DataFrame = None
+):
     func_ret = matched_step["func"](
-        selected_stocks_config_file,
-        indicator_config_file,
-        matched_step["match"].groups(),
-    )
+            selected_stocks_config_file,
+            indicator_config_file,
+            matched_step["match"].groups(),
+        )
+    if step_version == 'v2':
+        piped_tickers = common.pipe_ticker_list(query_df['ticker'].tolist(), func_ret, pipe_type)
+        query_df = common.update_df(query_df, piped_tickers, pipe_type)
+        return query_df
+    else:
+        curr_step_ret = common.StepRet(
+            data=func_ret,
+            pipe_tickers=func_ret,
+            pipe_type=pipe_type,
+            err="",
+        )
 
-    curr_step_ret = common.StepRet(
-        data=func_ret,
-        pipe_tickers=func_ret,
-        pipe_type=pipe_type,
-        err="",
-    )
-
-    return common.make_return(
-        prev_step_result=prev_step_result, curr_step_ret=curr_step_ret
-    )
+        return common.make_return(
+            prev_step_result=prev_step_result, curr_step_ret=curr_step_ret
+        )
 
 
 if __name__ == "__main__":
