@@ -82,3 +82,33 @@ def ohlc_window_compare(
         )
     except Exception as e:
         return {"ticker": ticker, "exception": e.args}
+
+@when
+def calculate(
+    selected_stocks_yaml,
+    indicator_config_yaml,
+    ticker,
+    groups,
+    lookback_window: int = -1,
+):
+    variable_id, operator, query_span, interval, ohlc_source = groups
+    query_span = int(query_span)
+    ticker_ohlc_csv_path = f'{read_config(indicator_config_yaml)["indicator"]["data"][interval]}/{ticker}.csv'
+    ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
+    ticker_df[variable_id] = ticker_df[ohlc_source.capitalize()]
+    ticker_df = (
+        ticker_df.tail(query_span)
+        .reset_index(drop=True)
+        .rename(columns={ticker_df.columns[-1]: variable_id})
+    )
+    return {
+        "ticker": ticker,
+        "interval": interval,
+        "query": "ohlc csv read",
+        "condition": True,
+        f"{variable_id}_df": ticker_df,
+        "variable_id": variable_id,
+        "operator": operator,
+        "span": query_span,
+        "exception": None,
+    }

@@ -1,3 +1,4 @@
+from stock_app_py.system.src.steps.common import StepData
 from stock_app_py.utility.src.steps import when
 import stock_app_py.system.src.command_handler as executor
 from stock_app_py.system.src.steps.when import aggregator
@@ -153,3 +154,39 @@ def indicator_slope_compare_value(
         )
     except Exception as e:
         return {"ticker": ticker, "exception": e.args}
+
+
+@when
+def calculate(
+    selected_stocks_yaml,
+    indicator_config_yaml,
+    ticker,
+    groups,
+    lookback_window: int = -1,
+) -> dict:
+    command_handler = executor.CommandHandler(
+        selected_stocks_yaml, indicator_config_yaml
+    )
+    variable_id, operator, query_span, interval, ohlc_source, indicator, window = groups
+    query_span = int(query_span)
+    indicator_query = f"talibquery --ticker {ticker} \
+                --interval {interval} --do get --csv 0 \
+                --indicator {indicator} --window {window} --n 1000 \
+                --ohlc {ohlc_source.capitalize()}"
+    ticker_df = command_handler.execute(indicator_query, is_rest=False).obj
+    ticker_df = (
+        ticker_df.tail(query_span)
+        .reset_index(drop=True)
+        .rename(columns={ticker_df.columns[-1]: variable_id})
+    )
+    return {
+        "ticker": ticker,
+        "interval": interval,
+        "query": indicator_query,
+        "condition": True,
+        f"{variable_id}_df": ticker_df,
+        "variable_id": variable_id,
+        "operator": operator,
+        "span": query_span,
+        "exception": None,
+    }
