@@ -246,13 +246,13 @@ class GherkinQuery(System):
 if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
-    g_query = """Feature: test
+    g_query = """Feature: v1
 I want to query to get a list of turtle S1 stocks
 Scenario: test
-Given nifty100 stocks
-* remove stocks under surveillance
-When relative strength > 80
-* remove relative strength > 90
+Given nifty50 stocks
+When day close ma 50 > day close ma 150
+* day close ma 50 > day close ma 200
+* day close ma 150 > day close ma 200
 Then get list
 """
 
@@ -271,7 +271,7 @@ Then get list
     )
 
     check = parser.execute()
-    print(check.obj["test"])
+    print(check.obj["v1"]["test"])
     print("elasped time", time.time() - start)
 
 """
