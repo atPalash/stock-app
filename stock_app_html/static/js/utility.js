@@ -74,7 +74,7 @@ function addListToDiv(parentId, ticker_list, clickHandler = null, contextHandler
     // Create the unordered list element
     const ul = document.createElement('ul');
     ul.setAttribute('id', `${parentId}-list`)
-    ul.setAttribute('style', "margin-top: 0; margin-bottom: 0;")
+    ul.setAttribute('style', "margin-top: 0; margin-bottom: 0; max-height: 450px; overflow-y: scroll; background-color: #f0f0f0; scrollbar-color: rebeccapurple green; scrollbar-width: thin;")
 
     ticker_list.forEach(ticker => {
         const li = document.createElement('li');
