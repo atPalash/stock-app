@@ -210,4 +210,30 @@ def get_steps():
                 3: StepData.number,
             },
         ),
+        #  let ema20 = latest in  5    day  close  ema   50
+        r"^let (\w+) = (\w+) in (\d+) (\w+) (\w+) (\w+) (\d+)$": StepData(
+            logic=indicator.calculate,
+            variables={
+                1: StepData.word,
+                3: StepData.operator,
+                5: StepData.number,
+                6: StepData.interval,
+                7: StepData.ohlc,
+                8: StepData.indicator,
+                9: StepData.number,
+            },
+            step_version='v2'
+        ),
+        #  let close = latest in  5    day  close
+        r"^let (\w+) = (\w+) in (\d+) (\w+) (\w+)$": StepData(
+            logic=ohlc.calculate,
+            variables={
+                1: StepData.word,
+                3: StepData.operator,
+                5: StepData.number,
+                6: StepData.interval,
+                7: StepData.ohlc,
+            },
+            step_version='v2'
+        ),
     }
