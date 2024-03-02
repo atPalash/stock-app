@@ -51,7 +51,7 @@ class TalibQuery(System):
             "rsi": Rsi,
             "rsiline": RsiLine,
             "ma": Ma,
-            "volatility": Volatility
+            "atr": Volatility,
         }
 
         self.commands = {
