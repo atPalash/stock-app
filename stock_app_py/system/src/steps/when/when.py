@@ -1,4 +1,5 @@
 import pandas
+from stock_app_py.system.src.steps.when import rs_rating
 from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.system.src.steps.when import aggregator
 from stock_app_py.system.src.steps import common
@@ -85,16 +86,17 @@ def __execute_step_v2(
         return query_df
     else:
         step_data = common.StepData(logic=None, variables=None, step_version="v2")
-        query_df[multi_results[0]["variable_id"]] = 0.0
+        variable_id = multi_results[0]["variable_id"]
+        query_df[variable_id] = 0.0
         for res in multi_results:
             try:
                 operated_value = step_data.eval_operator(
                     res["operator"],
                     res["span"],
-                    res[f'{res["variable_id"]}_df'][f'{res["variable_id"]}'].to_numpy(),
+                    res[f'{variable_id}_df'][f'{variable_id}'].to_numpy(),
                 )
                 query_df.loc[
-                    query_df["ticker"] == res["ticker"], f'{res["variable_id"]}'
+                    query_df["ticker"] == res["ticker"], f'{variable_id}'
                 ] = operated_value
                 temp_error = query_df.loc[query_df["ticker"] == res["ticker"], "error"]
                 query_df.loc[query_df["ticker"] == res["ticker"], "error"] = (
@@ -105,7 +107,11 @@ def __execute_step_v2(
                     query_df.loc[query_df["ticker"] == res["ticker"], "error"]
                     + f"when.calculate:{e.args}"
                 )
-
+        if matched_step['func'] == rs_rating.calculate:
+            rs_id, _, _, _, _ = matched_step['match'].groups()
+            groups = (rs_id, variable_id)
+            query_df = matched_step['func'](groups=groups, df=query_df)[f'{rs_id}_df']
+    query_df = query_df.round(2)
     return query_df
 
 
@@ -141,7 +147,7 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     ticker = "LT"
-    query = "let ema10 = latest in 5 day close ema 10"
+    query = "let rr = latest in 60 day close rs_rating"
     # query = "relative strength > 20"
     # query = "backtest for last 10 ticks | relative strength > 20"
     # query = "backtest for last 100 ticks | day close ma 200 in uptrend for 60 days"

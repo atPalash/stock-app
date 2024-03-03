@@ -249,10 +249,16 @@ if __name__ == "__main__":
     g_query = """Feature: v1
 I want to query to get a list of turtle S1 stocks
 Scenario: test
-Given nifty50 stocks
-When day close ma 50 > day close ma 150
+Given nifty100 stocks
+When day close ma 50 < close
+* day close ma 150 < close
+* day close ma 200 < close
+* day close ma 50 > day close ma 150
 * day close ma 50 > day close ma 200
 * day close ma 150 > day close ma 200
+* day close ma 200 in uptrend for 60 days
+* 1.25 of 52 week low < close
+* 0.75 of 52 week high < close
 Then get list
 """
 
@@ -275,7 +281,7 @@ Then get list
     print("elasped time", time.time() - start)
 
 """
-Given stocks ASAHIINDIA, ASTRAZEN, BANKBARODA, BANKINDIA, BARBEQUE, CANBK, CENTRALBK,DBREALTY, DEN,EASEMYTRIP,FINEORG,GRAVITA,HEROMOTOCO,ICICIPRULI,IOB,MAHABANK,NESTLEIND,PNB,PSB,SBIN, SOUTHBANK,SUNTECK,TATAINVEST,TATAMOTORS,THYROCARE,TITAN,TVSMOTOR,UCOBANK,UNIONBANK,VARROC
+Given nifty100 stocks
 When day close ma 50 < close
 * day close ma 150 < close
 * day close ma 200 < close

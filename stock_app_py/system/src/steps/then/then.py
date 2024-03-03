@@ -21,7 +21,7 @@ def __execute_step_v1(
 
 
 def __execute_step_v2(matched_step: dict, query_df: pandas.DataFrame):
-    query_df = matched_step["func"](matched_step['match'].groups()[0], query_df)
+    query_df = matched_step["func"](matched_step['match'].groups(), query_df)
     return query_df
 
 def execute(

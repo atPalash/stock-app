@@ -95,7 +95,7 @@ class GherkinGenericQuery(System):
             conjunction_keyword = ["And ", "* "]
             # scenario_results = {}
             for scenario in check["scenarios"]:
-                query_df = pandas.DataFrame(columns=['ticker', 'error'])
+                query_df = pandas.DataFrame(columns=["ticker", "error"])
                 for step in check["scenarios"][scenario]:
                     try:
                         errors = ""
@@ -122,7 +122,7 @@ class GherkinGenericQuery(System):
                                     self.selected_stocks_config_file,
                                     self.indicator_config_file,
                                     step_version=self.step_version,
-                                    query_df=query_df
+                                    query_df=query_df,
                                 )
 
                             elif keyword == "When " or (
@@ -132,7 +132,9 @@ class GherkinGenericQuery(System):
                                 # 2nd step -> compute the condition
                                 # get the context from given above and generate result
                                 # based on the condition
-                                pipe_type = PipeType.PASS # Will not edit the pipe tickers
+                                pipe_type = (
+                                    PipeType.PASS
+                                )  # Will not edit the pipe tickers
                                 current_keyword = "When "
                                 query_df = when_step.execute(
                                     matched_step,
@@ -141,7 +143,7 @@ class GherkinGenericQuery(System):
                                     self.selected_stocks_config_file,
                                     self.indicator_config_file,
                                     step_version=self.step_version,
-                                    query_df=query_df
+                                    query_df=query_df,
                                 )
 
                             elif keyword == "Then " or (
@@ -156,7 +158,7 @@ class GherkinGenericQuery(System):
                                     None,
                                     pipe_type=pipe_type,
                                     step_version=self.step_version,
-                                    query_df=query_df
+                                    query_df=query_df,
                                 )
                             else:
                                 raise Exception(
@@ -167,10 +169,18 @@ class GherkinGenericQuery(System):
                     except Exception as e:
                         errors += f"{step}->{e.args}\n"
                         raise Exception(errors)
-                self.query_df_dict[scenario] = query_df
+
+                # Get the last column which is the combination of logic and get tickers
+                # which satisfy.
+                self.query_df_dict[scenario] = {
+                    "query_df": query_df,
+                    "tickers": query_df[query_df['logic']][
+                        "ticker"
+                    ].to_list(),
+                }
             return RetVal(
                 obj={check["feature"]: self.query_df_dict},
-                obj_as_str="a dict of scanario and pandas df",
+                obj_as_str="a dict of scanario and pandas df and tickers list",
             )
         except Exception as e:
             return RetVal(
@@ -182,38 +192,13 @@ class GherkinGenericQuery(System):
 
 if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
-#         g_query = """Feature: v2
-# I want to query to get a list of turtle S1 stocks
-# Scenario: test
-# Given nifty50 stocks
-# When let ma150 = latest in 1 day close ma 150
-# * let ema20 = latest in 5 day close ema 20
-# Then get tickers with ma150 > ema20
-# """
-#     """
-#     When day close ma 50 < close
-# * day close ma 150 < close
-# * day close ma 200 < close
-# * day close ma 50 > day close ma 150
-# * day close ma 50 > day close ma 200
-# * day close ma 150 > day close ma 200
-# * day close ma 200 in uptrend for 60 days
-# * 1.25 of 52 week low < close
-# * 0.75 of 52 week high < close
-# Then get list of all match
-    # """
     g_query = """Feature: v2
 I want to query to get a list of turtle S1 stocks
 Scenario: test
 Given nifty50 stocks
-When let close = latest in 5 day close
-* let atr14 = latest in 1 day close atr 14
-* let ma150 = latest in 1 day close ma 150
-* let ma200 = latest in 1 day close ma 200
-* let ma50 = latest in 1 day close ma 50
-Then get tickers with ma50 > ma150
-* get tickers with ma50 > ma200
-* get tickers with ma150 > ma200
+When let rs = latest in 60 day close rs_rating
+Then let rs_top_10 = rs > 0.9
+* get tickers with rs_top_10
 """
 
     start = time.time()
@@ -231,7 +216,8 @@ Then get tickers with ma50 > ma150
     )
 
     check = parser.execute()
-    print(check.obj["v2"]['test'])
+    print(check.obj["v2"]['test']['query_df'])
+    print(check.obj["v2"]['test']['tickers'])
     print("elasped time", time.time() - start)
 
 """I want to query to get a list of turtle S1 stocks
