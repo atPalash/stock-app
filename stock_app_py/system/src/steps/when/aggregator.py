@@ -236,4 +236,16 @@ def get_steps():
             },
             step_version='v2'
         ),
+        #  let rs    = latest in  60   day  close rs_rating
+        r"^let (\w+) = (\w+) in (\d+) (\w+) (\w+) rs_rating$": StepData(
+            logic=rs_rating.calculate,
+            variables={
+                1: StepData.word,
+                3: StepData.operator,
+                5: StepData.number,
+                6: StepData.interval,
+                7: StepData.ohlc,
+            },
+            step_version='v2'
+        ),
     }
