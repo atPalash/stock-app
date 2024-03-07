@@ -1,11 +1,13 @@
 # TODO
-- [ ] Propagate backend errors to frontenf 
+- [ ] optimize v2 steps. Create a squashed query for let statments for when and then
+instead of repeatedly reading from csv file.
+- [ ] Propagate backend errors to frontenf
 - [ ] sync dev and dev-container MR #21 base commit
 - ![mimic market smith](image.png)
 - [ ] containerize
 - [ ] Volume strategy
 - [ ] Scan for pivot points
-- [ ] Implement config in client side else default config 
+- [ ] Implement config in client side else default config
 - [ ] show Macd hist
 - [ ] Implement fundamentals data
 - [ ] Fetch latest headlines
@@ -18,13 +20,13 @@
 # Aborted
 - [x] VCP pattern -> check BB contraction
 # Done
-- [x] Optimise search for all match filter out stocks that are already not satisfying 
+- [x] Optimise search for all match filter out stocks that are already not satisfying
 condition from previous step
 
 - [x] Backtest capability
 - [x] Fix date for minute hour data in tv
 - [x] Download minute data - use for intra-day short
-- [x] Optimize bdd query 
+- [x] Optimize bdd query
 - [x] Implement bdd query
 - [x] Click to select ticker from MACD Div list or Stage2
 - [x] Stage2Scanner from Mark Minervini
@@ -39,5 +41,5 @@ condition from previous step
 - [x] BUG Why refresh when pressed enter
 - [x] BUG why color change and updates are not happening with click
 - [x] Read from a common config file to set default indicator and configs
-- [x] Add volume 
+- [x] Add volume
 

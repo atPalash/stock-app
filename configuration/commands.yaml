@@ -8,7 +8,7 @@ process:
     format: download --stock ${stockname} --interval ${interval} --csv ${as_csv_int} # period is set to max
 
 gherkin:
-  stage2: | 
+  stage2: |
 "
 Feature: Stage2 stocks
 I want to query to get a list of stage 2 stocks
@@ -28,13 +28,13 @@ Then get list of all match
 macd_divergence:
 "
 Feature: Stocks with MACD divergence
-I want to query to get a list of macd divergence stocks      
+I want to query to get a list of macd divergence stocks
 Scenario: list stocks showing macd divergence
 Given nifty 50 stocks
 When day close shows macd divergence with window 20 fastperiod 12 slowperiod 26 signalperiod 9 in last 40 ticks
 Then get list of all match
 "
-stage2ema: 
+stage2ema:
 "
 Feature: Stage2 stocks ema
 I want to query to get a list of stage 2 stocks
@@ -49,19 +49,19 @@ When day close ema 150 < close
 * day close ema 50 < close
 Then get list of all match
 "
-turtleS1LongEnter: 
+turtleS1LongEnter:
 "
 Feature: turtle S1 stocks long enter
-I want to query to get a list of turtle S1 stocks      
+I want to query to get a list of turtle S1 stocks
 Scenario: list stocks with turtle S1 enter
 Given nifty 50 stocks
 When day high > high of last 20 ticks
 Then get list of all match
 "
-turtleS1LongExit: 
+turtleS1LongExit:
 "
 Feature: turtle S1 stocks long exit
-I want to query to get a list of turtle S1 stocks      
+I want to query to get a list of turtle S1 stocks
 Scenario: list stocks with turtle S1 exit
 Given nifty 50 stocks
 *
@@ -69,19 +69,19 @@ When day low < low of last 10 ticks
 *
 Then get list of all match
 "
-turtleS2LongEnter: 
+turtleS2LongEnter:
 "
 Feature: turtle S2 stocks long enter
-I want to query to get a list of turtle S1 stocks      
+I want to query to get a list of turtle S1 stocks
 Scenario: list stocks with turtle S2 enter
 Given nifty 50 stocks
 When day high > high of last 55 ticks
 Then get list of all match
 "
-turtleS2LongEnter: 
+turtleS2LongEnter:
 "
 Feature: turtle S2 stocks long exit
-I want to query to get a list of turtle S2 stocks      
+I want to query to get a list of turtle S2 stocks
 Scenario: list stocks with turtle S2 exit
 Given nifty 50 stocks
 When day low < low of last 20 ticks
@@ -101,7 +101,7 @@ User:
 Feature: Stage2 all
 Scenario: Stage2 all
 Given all stocks
-When relative strength > 90 
+When relative strength > 90
 * day close ma 50 < close
 * day close ma 150 < close
 * day close ma 200 < close
@@ -114,7 +114,7 @@ When relative strength > 90
 Then get list of all match
 
 Feature: Stage2 nifty100
-I want to query to get a list of turtle S1 stocks      
+I want to query to get a list of turtle S1 stocks
 Scenario: Stage2 nifty100
 Given nifty100 stocks
 When relative strength > 70
@@ -129,10 +129,37 @@ When relative strength > 70
 * 0.75 of 52 week high < close
 Then get list of all match
 
-Feature: turtle S1 all stocks     
+Feature: turtle S1 all stocks
 Scenario: turtle S1 all stocks
 Given all stocks
 When day close > high of last 20 ticks
 Then get list of all match
 "
+v2:
+"
+Feature: something
+I want to query to get a list of turtle S1 stocks
+Scenario: test
+Given nifty50 stocks
+When let rel_str = latest in 60 day close rs_rating
+Then get tickers with rel_str > 0.9
+When let atr = latest in 1 day close atr 14
+* let close = latest in 1 day close
+* let ma150 = latest in 1 day close ma 150
+* let ma200 = latest in 1 day close ma 200
+* let ma50 = latest in 1 day close ma 50
+* let rate_ma200 = rate in 60 day close ma 200
+* let wk_52low = minimum in 52 week close
+* let wk_52high = maximum in 52 week close
+Then let close_ma50 = close > ma50
+* let close_ma150 = close > ma150
+* let close_ma200 = close > ma200
+* let ma50_ma150 = ma50 > ma150
+* let ma50_ma200 = ma50 > ma200
+* let ma150_ma200 = ma150 > ma200
+* let uptrend200 = rate_ma200 > 0
+* let close_52wklow = close > 1.25 * wk_52low
+* let close_52wkhigh = close > 0.75 * wk_52high
+* get tickers with close_ma50 and close_ma150 and close_ma200 and ma50_ma150 and ma50_ma200 and ma150_ma200 and uptrend200 and close_52wklow and close_52wkhigh
 
+"
