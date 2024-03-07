@@ -68,6 +68,7 @@ def __execute_step_v2(
     selected_stocks_config_file: str,
     indicator_config_file: str,
     query_df: pandas.DataFrame,
+    tickers_df_dict: dict,
     backtest: bool = False,
 ):
     args = [
@@ -76,6 +77,8 @@ def __execute_step_v2(
             indicator_config_file,
             ticker,
             matched_step["match"].groups(),
+            query_df,
+            tickers_df_dict[ticker]
         )
         for ticker in query_df["ticker"].tolist()
     ]
@@ -110,7 +113,7 @@ def __execute_step_v2(
         if matched_step['func'] == rs_rating.calculate:
             rs_id, _, _, _, _ = matched_step['match'].groups()
             groups = (rs_id, variable_id)
-            query_df = matched_step['func'](groups=groups, df=query_df)[f'{rs_id}_df']
+            query_df = matched_step['func'](groups=groups, query_df=query_df)[f'{rs_id}_df']
     query_df = query_df.round(2)
     return query_df
 
@@ -123,6 +126,7 @@ def execute(
     indicator_config_file: str,
     step_version: str = "v1",
     query_df: pandas.DataFrame = None,
+    tickers_df_dict: dict = None
 ) -> common.StepRet:
     if step_version == "v1":
         return __execute_step_v1(
@@ -138,6 +142,7 @@ def execute(
             selected_stocks_config_file=selected_stocks_config_file,
             indicator_config_file=indicator_config_file,
             query_df=query_df,
+            tickers_df_dict=tickers_df_dict
         )
     else:
         raise Exception(f"Invalid step version {step_version}")
