@@ -8,7 +8,7 @@ class ColumnLeft {
     #config
     #queryCount
     #contextElement
-    // #tvCharts 
+    // #tvCharts
     constructor(num, tickers, height, width) {
         this.#row = num;
         this.#col = 0;
@@ -89,8 +89,8 @@ class ColumnLeft {
                 <button id=button-dropdown-${divId} style="margin-left: 10px">&#x25BE</button>
                 <button id=button-delete-${divId} style="margin-left: 10px">&#x2421</button>
                 <div class=btn-popup id=popup-${divId} style="display: none; z-index: 999; background-color: darkgoldenrod; position: relative;">
-                    <textarea id=input-${divId} class="input-query" type="text" placeholder="Enter your gherkin query here" 
-                    style="position: absolute; top: 0; left: 100%; margin-left: 10px; height: 50vh; 
+                    <textarea id=input-${divId} class="input-query" type="text" placeholder="Enter your gherkin query here"
+                    style="position: absolute; top: 0; left: 100%; margin-left: 10px; height: 50vh;
                     width: 30vw; overflow: scroll;">${textQuery}</textarea>
                 </div>
                 <div class=chart-popup id=chart-popup-${divId} style="display: none; z-index: 999; background-color: darkgoldenrod; position: relative;">
@@ -191,25 +191,11 @@ class ColumnLeft {
                     "query": `webserver --gherkin ${query} --indicator gherkin`
                 });
                 // console.log(query, "took", (performance.now() - startTime)*0.001)
-
+                gherkin_response = JSON.parse(gherkin_response['gherkin'])
                 // User must define one feature per query
-                var feature = Object.keys(gherkin_response["gherkin"])[0]
+                var feature = Object.keys(gherkin_response)[0]
                 document.getElementById(`label-${divId}`).innerText = feature
-                var then_steps_tickers = []
-                for (var scenario in gherkin_response['gherkin'][feature]) {
-                    var current_keyword = ""
-                    var steps = gherkin_response['gherkin'][feature][scenario]
-                    steps.forEach(step => {
-                        if (step['type'] == 'Then ' || (current_keyword == 'Then ' && keyword in conjunction_keyword)) {
-                            step['result']['pipe_tickers'].forEach(ticker => {
-                                if (!then_steps_tickers.includes(ticker)) {
-                                    then_steps_tickers.push(ticker)
-                                }
-                            })
-                            current_keyword = 'Then '
-                        }
-                    });
-                }
+                var then_steps_tickers = gherkin_response[feature]['tickers']
 
                 var list = document.getElementById(`${divId}-list`)
                 if (list != null) {
