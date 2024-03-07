@@ -73,6 +73,17 @@ class YahooFinance(System):
             "week": "10y",
             "month": "10y",
         }
+        # 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
+        self.duration = {
+            "minute": 1,
+            "minute5": 5,
+            "minute15": 15,
+            "minute30": 30,
+            "day": 1440,
+            "hour": 60,
+            "week": 10080,
+            "month": 40320,
+        }
 
     def __get(self) -> RetVal:
         """Used to download ohlc data as csv for all the selected stocks and indexes.
@@ -169,6 +180,14 @@ class YahooFinance(System):
             )
         except Exception as e:
             raise
+
+    def get_intervals_duration(self)->list:
+        return self.duration
+
+    def read_ohlc(self, interval:str, ticker:str)->RetVal:
+        self.parameter["interval"] = interval
+        self.parameter["ticker"] = ticker
+        return self.__get_ohlc()
 
     def debug_get(self):
         return self.__get_ohlc().obj
