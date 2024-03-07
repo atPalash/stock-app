@@ -51,7 +51,7 @@ class TalibQuery(System):
             "rsi": Rsi,
             "rsiline": RsiLine,
             "ma": Ma,
-            "atr": Volatility,
+            "atr": Volatility, # TODO rename
         }
 
         self.commands = {
@@ -60,8 +60,10 @@ class TalibQuery(System):
         }
 
     def __call_indicator(self) -> pandas.DataFrame:
-        ticker_ohlc_csv_path = f"{self.indicator_config['indicator']['data'][self.parameter['interval']]}/{self.parameter['ticker']}.csv"
-        ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
+        ticker_df = self.parameter.get('ticker_df')
+        if ticker_df is None:
+            ticker_ohlc_csv_path = f"{self.indicator_config['indicator']['data'][self.parameter['interval']]}/{self.parameter['ticker']}.csv"
+            ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
         indicator = self.indicators[self.parameter["indicator"]](
             ohlc=ticker_df, parameter=self.parameter, ticker=self.parameter["ticker"]
         )

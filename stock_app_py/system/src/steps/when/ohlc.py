@@ -89,24 +89,28 @@ def calculate(
     indicator_config_yaml,
     ticker,
     groups,
+    query_df=None,
+    ticker_df=None,
     lookback_window: int = -1,
 ):
     variable_id, operator, query_span, interval, ohlc_source = groups
     query_span = int(query_span)
-    ticker_ohlc_csv_path = f'{read_config(indicator_config_yaml)["indicator"]["data"][interval]}/{ticker}.csv'
-    ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
-    ticker_df[variable_id] = ticker_df[ohlc_source.capitalize()]
-    ticker_df = (
-        ticker_df.tail(query_span)
+    temp_df = ticker_df
+    if temp_df is None:
+        ticker_ohlc_csv_path = f'{read_config(indicator_config_yaml)["indicator"]["data"][interval]}/{ticker}.csv'
+        temp_df = pandas.read_csv(ticker_ohlc_csv_path)
+    temp_df[variable_id] = temp_df[ohlc_source.capitalize()]
+    temp_df = (
+        temp_df.tail(query_span)
         .reset_index(drop=True)
-        .rename(columns={ticker_df.columns[-1]: variable_id})
+        .rename(columns={temp_df.columns[-1]: variable_id})
     )
     return {
         "ticker": ticker,
         "interval": interval,
         "query": "ohlc csv read",
         "condition": True,
-        f"{variable_id}_df": ticker_df,
+        f"{variable_id}_df": temp_df,
         "variable_id": variable_id,
         "operator": operator,
         "span": query_span,

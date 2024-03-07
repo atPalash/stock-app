@@ -170,6 +170,7 @@ def __calculate_growth_rate(
     indicator_config_yaml,
     ticker,
     groups,
+    ticker_df,
     lookback_window: int = -1,
 ) -> dict:
     variable_id, _,query_span, interval, ohlc_source = groups
@@ -177,37 +178,38 @@ def __calculate_growth_rate(
     query_span = int(query_span)
     # the operator is a placeholder here we only need the ohlc data
     ohlc_groups = (variable_id, "latest", query_span * 2, interval, ohlc_source)
-    ticker_df = ohlc.calculate(
+    temp_df = ohlc.calculate(
         selected_stocks_yaml=selected_stocks_yaml,
         indicator_config_yaml=indicator_config_yaml,
         ticker=ticker,
         groups=ohlc_groups,
+        ticker_df=ticker_df,
         lookback_window=lookback_window,
     )[f'{variable_id}_df']
 
     ohlc_caps = ohlc_source.capitalize()
-    ticker_df[variable_id] = ticker_df[ohlc_caps]
-    ticker_df = (
+    temp_df[variable_id] = temp_df[ohlc_caps]
+    temp_df = (
         ticker_df.tail(query_span * 2)
         .reset_index(drop=True)
-        .rename(columns={ticker_df.columns[-1]: variable_id})
+        .rename(columns={temp_df.columns[-1]: variable_id})
     )
-    ticker_df[variable_id] = (
-        ticker_df[ohlc_caps] - ticker_df[ohlc_caps].shift(query_span)
-    ) / ticker_df[ohlc_caps].shift(query_span)
+    temp_df[variable_id] = (
+        temp_df[ohlc_caps] - temp_df[ohlc_caps].shift(query_span)
+    ) / temp_df[ohlc_caps].shift(query_span)
     return {
         "ticker": ticker,
         "interval": interval,
         "query": "rs-rating-1-part",
         "condition": True,
-        f"{variable_id}_df": ticker_df,
+        f"{variable_id}_df": temp_df,
         "variable_id": variable_id,
         "operator": "latest",
         "span": query_span,
         "exception": None,
     }
 
-def __calculate_rs_rating(groups, df):
+def __calculate_rs_rating(groups, query_df):
     """Get the pandas dataframe which has growth rate calculated for all the selected
     ticker. The column name is growth and then we will create the relative strength
     of the ticker in this function.
@@ -221,11 +223,11 @@ def __calculate_rs_rating(groups, df):
     """
     # Calculate the percentile ranks for the growth rates
     rs_key, growth_key = groups
-    df[rs_key] = df[growth_key].rank(pct=True)
+    query_df[rs_key] = query_df[growth_key].rank(pct=True)
     return {
         "query": "rs-rating-2-part",
         "condition": True,
-        f"{rs_key}_df": df,
+        f"{rs_key}_df": query_df,
         "variable_id": rs_key,
         "operator": "latest",
         "exception": None,
@@ -237,7 +239,8 @@ def calculate(
     indicator_config_yaml = None,
     ticker = None,
     groups = None,
-    df: pandas.DataFrame = None,
+    query_df: pandas.DataFrame = None,
+    ticker_df:pandas.DataFrame = None,
     lookback_window: int = -1
 ) -> dict:
     """This is a step function call
@@ -262,9 +265,10 @@ def calculate(
             indicator_config_yaml=indicator_config_yaml,
             ticker=ticker,
             groups=groups,
+            ticker_df=ticker_df
         )
-    elif not df.empty:
-        return __calculate_rs_rating(groups, df)
+    elif not query_df.empty:
+        return __calculate_rs_rating(groups, query_df)
     else:
         raise Exception("rs_rating exception")
 

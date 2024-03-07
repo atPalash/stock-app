@@ -20,8 +20,9 @@ class System(SystemIf):
         self.parameter = self.__update_parameter_or_set_to_default(parameter=parameter)
         self.command_handler = command_handler
 
-    def execute(self):
+    def execute(self, ticker_df =None):
         try:
+            self.parameter['ticker_df']=ticker_df
             ret = self.commands[self.parameter["do"]]()
             return ret
         except Exception as e:
@@ -58,6 +59,7 @@ class System(SystemIf):
             "ticker": parameter.get("ticker", "all"),
             "window": int(parameter.get("window", "20")),
             "stage2scannertype": parameter.get("stage2scannertype", "ma"),
+            "ticker_df": parameter.get("ticker_df", None)
         }
 
         return parameters

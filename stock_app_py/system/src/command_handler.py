@@ -4,6 +4,7 @@ from stock_app_py.interface.commandHandlerIf import (
     Response,
     get_commands_as_str,
 )
+from stock_app_py.system.src.gherkin_generic_query import GherkinGenericQuery
 from stock_app_py.system.src.statement_list import StatementList
 from stock_app_py.utility.src.message_parser import parse_message
 from stock_app_py.system.src.elder_impulse import ElderImpulse
@@ -32,7 +33,7 @@ class CommandHandler(CommandHandlerIf):
             "canslim": Canslim,
             "webserver": Webserver,
             "stage2scan": Stage2Scanner,
-            "gherkinquery": GherkinQuery,
+            "gherkinquery": GherkinGenericQuery,
             "nsestocklist": NseStockList,
             "rsrating": RsRating,
             "statementlist": StatementList,
@@ -40,14 +41,14 @@ class CommandHandler(CommandHandlerIf):
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml
 
-    def execute(self, message: str, is_rest=False):
+    def execute(self, message: str, is_rest=False, ticker_df=None):
         try:
             arguments = parse_message(message=message)  # there will be no sub-command
             # command the system for analysis
             system = self.commands[arguments["command"]](
                 self.indicator_config_yaml, self.selected_stocks_yaml, arguments, self
             )  # the same command handler will handle calls from this system module
-            ret = system.execute()
+            ret = system.execute(ticker_df)
 
             if is_rest:
                 return Response(ret.obj, 200, ret.obj_as_string, True)
