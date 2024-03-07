@@ -72,7 +72,7 @@ class Webserver(System):
             gherkin_query = f'gherkinquery --gherkin {self.parameter["gherkin"]}'
             ret_df["gherkin"] = self.command_handler.execute(
                 gherkin_query, is_rest=False
-            ).obj
+            ).obj_as_string
         elif indicator == "financials":
             financials_query = (
                 f'yahoofinance --ticker {self.parameter["ticker"]} --do {indicator}'
@@ -166,10 +166,6 @@ class Webserver(System):
             --stage2scannertype {self.parameter["stage2scannertype"]}'
         df = self.command_handler.execute(query, is_rest=False).obj
         return df.iloc[df[df["stock"] == ticker].index[0]].to_json()
-
-    def __getGherkinQuery(self, gherkin_string: str):
-        check = self.command_handler.execute(gherkin_string).obj
-        return json.dumps({})
 
     def __getGherkinQuery(self, gherkin_string: str):
         check = self.command_handler.execute(gherkin_string).obj

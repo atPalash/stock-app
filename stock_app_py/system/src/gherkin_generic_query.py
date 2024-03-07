@@ -203,15 +203,18 @@ class GherkinGenericQuery(System):
 
                 # Get the last column which is the combination of logic and get tickers
                 # which satisfy.
+                ret_tickers = query_df[query_df["logic"]]["ticker"].to_list()
                 self.query_df_dict[scenario] = {
                     "query_df": query_df,
-                    "tickers": query_df[query_df['logic']][
-                        "ticker"
-                    ].to_list(),
+                    "tickers": ret_tickers,
+                }
+                self.query_df_json[scenario] = {
+                    "query_df": query_df.to_json(orient='records'),
+                    "tickers": ret_tickers,
                 }
             return RetVal(
                 obj={check["feature"]: self.query_df_dict},
-                obj_as_str="a dict of scanario and pandas df and tickers list",
+                obj_as_str=json.dumps(self.query_df_json),
             )
         except Exception as e:
             return RetVal(
