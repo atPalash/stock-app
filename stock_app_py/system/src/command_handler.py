@@ -4,26 +4,24 @@ from stock_app_py.interface.commandHandlerIf import (
     Response,
     get_commands_as_str,
 )
-from stock_app_py.system.src.gherkin_generic_query import GherkinGenericQuery
-from stock_app_py.system.src.statement_list import StatementList
-from stock_app_py.utility.src.message_parser import parse_message
-from stock_app_py.system.src.elder_impulse import ElderImpulse
-from stock_app_py.system.src.gherkin_query import GherkinQuery
-from stock_app_py.system.src.rs_rating import RsRating
-from stock_app_py.system.src.talib_query import TalibQuery
-from stock_app_py.system.src.yahoo_finance import YahooFinance
-from stock_app_py.system.src.macd_histogram_divergence_scanner import (
-    MacdHistogramDivergenceScanner,
-)
-from stock_app_py.system.src.canslim import Canslim
-from stock_app_py.system.src.webserver import Webserver
-from stock_app_py.system.src.stage2_scanner import Stage2Scanner
-from stock_app_py.system.src.nse_stock_list import NseStockList
-from stock_app_py.utility.src.yaml_parser import read_config
 
+from stock_app_py.utility.src.yaml_parser import read_config
+from stock_app_py.utility.src.message_parser import parse_message
 
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml, indicator_config_yaml) -> None:
+        from stock_app_py.system.src.gherkin_generic_query import GherkinGenericQuery
+        from stock_app_py.system.src.statement_list import StatementList
+        from stock_app_py.system.src.elder_impulse import ElderImpulse
+        from stock_app_py.system.src.gherkin_query import GherkinQuery
+        from stock_app_py.system.src.rs_rating import RsRating
+        from stock_app_py.system.src.talib_query import TalibQuery
+        from stock_app_py.system.src.yahoo_finance import YahooFinance
+        from stock_app_py.system.src.macd_histogram_divergence_scanner import MacdHistogramDivergenceScanner
+        from stock_app_py.system.src.canslim import Canslim
+        from stock_app_py.system.src.webserver import Webserver
+        from stock_app_py.system.src.stage2_scanner import Stage2Scanner
+        from stock_app_py.system.src.nse_stock_list import NseStockList
         super().__init__()
         self.commands = {
             "elderimpulse": ElderImpulse,
