@@ -1,0 +1,16 @@
+indicator:
+  data:
+    month: "database/test/ohlc/month"
+    day: "database/test/ohlc/day"
+    hour: "database/test/ohlc/hour"
+    week: "database/test/ohlc/week"
+    minute: "database/test/ohlc/minute"
+    minute5: "database/test/ohlc/minute5"
+    minute15: "database/test/ohlc/minute15"
+    minute30: "database/test/ohlc/minute30"
+  plot:
+    day: "database/plot/day"
+    hour: "database/plot/hour"
+    week: "database/plot/week"
+  fundamental: "database/fundamentals"
+
