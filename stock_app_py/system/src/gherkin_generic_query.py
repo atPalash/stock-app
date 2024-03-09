@@ -219,8 +219,8 @@ class GherkinGenericQuery(System):
         except Exception as e:
             return RetVal(
                 obj=None,
-                obj_as_str="ERROR",
-                errors=f"{self.parameter['ticker']}->{e.args}",
+                obj_as_str={'error': {'step': step['text']}},
+                errors=e.args[0],
             )
 
 
