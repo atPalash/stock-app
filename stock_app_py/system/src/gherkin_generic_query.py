@@ -111,8 +111,12 @@ class GherkinGenericQuery(System):
         try:
             check = gherkin_parser.parse(gherkin_string=self.parameter["gherkin"])
             conjunction_keyword = ["And", "*"]
-            # scenario_results = {}
-            for scenario in check["scenarios"]:
+
+            # It is possible to have 1 scenario per query
+            feature = check["feature"]
+            scenario = next(iter(check["scenarios"]))
+            # Make user name the scenario, unnamed scenario may causes issues
+            if scenario != "" and feature == "v2":
                 query_df = pandas.DataFrame(columns=["ticker", "error"])
                 current_keyword = ""
                 for step in check["scenarios"][scenario]:
@@ -204,23 +208,37 @@ class GherkinGenericQuery(System):
                 # Get the last column which is the combination of logic and get tickers
                 # which satisfy.
                 ret_tickers = query_df[query_df["logic"]]["ticker"].to_list()
+                errors = ""
+                if query_df["error"].values[0] != "":
+                    errors = query_df["error"].values[0].split(":")[1] # Assuming syntax errors
                 self.query_df_dict[scenario] = {
                     "query_df": query_df,
                     "tickers": ret_tickers,
+                    "errors": errors,
                 }
-                self.query_df_json[scenario] = {
-                    "query_df": query_df.to_json(orient='records'),
-                    "tickers": ret_tickers,
-                }
-            return RetVal(
-                obj={check["feature"]: self.query_df_dict},
-                obj_as_str=json.dumps(self.query_df_json),
-            )
+                self.query_df_json[scenario] = "None"
+                if errors == "":
+                    self.query_df_json[scenario] = {
+                        "query_df": query_df.to_json(orient="records"),
+                        "tickers": ret_tickers,
+                        "errors": errors,
+                    }
+                return RetVal(
+                    obj=self.query_df_dict,
+                    obj_as_str=self.query_df_json,
+                    errors={"error": errors},
+                )
+            else:
+                return RetVal(
+                    obj={scenario: None},
+                    obj_as_str={scenario: "None"},
+                    errors={"error": "Unnamed query are not allowed"},
+                )
         except Exception as e:
             return RetVal(
-                obj=None,
-                obj_as_str={'error': {'step': step['text']}},
-                errors=e.args[0],
+                obj={scenario: None},
+                obj_as_str={scenario: "None"},
+                errors={'error': {'step': step['text']}},
             )
 
 
@@ -230,7 +248,7 @@ if __name__ == "__main__":
     g_query = """Feature: v2
     I want to query to get a list of turtle S1 stocks
     Scenario: test
-    Given nifty50 stocks
+    Given stocks ABB, TCS
     When let rel_str = latest in 60 day close rs_rating
     Then get tickers with rel_str > 0.9
     When let atr = latest in 1 day close atr 14
@@ -252,18 +270,18 @@ if __name__ == "__main__":
     * let close_52wkhigh = close > 0.75 * wk_52high
     * get tickers with close_ma50 and close_ma150 and close_ma200 and ma50_ma150 and ma50_ma200 and ma150_ma200 and uptrend200 and close_52wklow and close_52wkhigh
     """
-#     g_query = """Feature: v2
-# I want to query to get a list of turtle S1 stocks
-# Scenario: test
-# Given stocks ABB, TCS
-# When let rel_str = latest in 60 day close rs_rating
-# Then get tickers with rel_str > 0.8
-# When let atr14 = latest in 1 day close atr 14
-# * let close = latest in 1 day close
-# * let ema10 = latest in 1 day close ema 10
-# * let ema20 = latest in 1 day close ema 20
-# Then get tickers with (ema10 - ema20) < atr14 * 0.5
-# """
+    #     g_query = """Feature: v2
+    # I want to query to get a list of turtle S1 stocks
+    # Scenario: test
+    # Given stocks ABB, TCS
+    # When let rel_str = latest in 60 day close rs_rating
+    # Then get tickers with rel_str > 0.8
+    # When let atr14 = latest in 1 day close atr 14
+    # * let close = latest in 1 day close
+    # * let ema10 = latest in 1 day close ema 10
+    # * let ema20 = latest in 1 day close ema 20
+    # Then get tickers with (ema10 - ema20) < atr14 * 0.5
+    # """
 
     start = time.time()
     indicator_config_yaml = get_app_path("indicator.yaml")
@@ -280,9 +298,9 @@ if __name__ == "__main__":
     )
 
     check = parser.execute()
-    check.obj["v2"]["test"]["query_df"].to_csv("query_df.csv", index=False)
+    check.obj["test"]["query_df"].to_csv("query_df.csv", index=False)
 
-    print(check.obj["v2"]["test"]["tickers"])
+    print(check.obj["test"]["tickers"])
     print("elasped time", time.time() - start)
 
 """I want to query to get a list of turtle S1 stocks
