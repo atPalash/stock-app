@@ -12,5 +12,5 @@ def calculate(groups, query_df: pandas.DataFrame) -> pandas.DataFrame:
             # Assume eval_expr is a string representing an evaluatable expression
             query_df.at[index, f'{key}'] = eval(logic, None, row.to_dict())
         except Exception as e:
-            query_df.at[index, 'error'] = query_df.at[index, "error"] + f"then.calculate:{e.args}"
+            query_df.at[index, 'error'] = query_df.at[index, "error"] + f"then.calculate:{e.args[0]}"
     return query_df

@@ -108,7 +108,7 @@ def __execute_step_v2(
             except Exception as e:
                 query_df.loc[query_df["ticker"] == res["ticker"], "error"] = (
                     query_df.loc[query_df["ticker"] == res["ticker"], "error"]
-                    + f"when.calculate:{e.args}"
+                    + f"when.calculate:{e.args[0]}"
                 )
         if matched_step['func'] == rs_rating.calculate:
             rs_id, _, _, _, _ = matched_step['match'].groups()
