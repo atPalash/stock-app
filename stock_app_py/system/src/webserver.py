@@ -62,29 +62,33 @@ class Webserver(System):
     def __get(self):
         """Get result of query received from HTML js. This"""
         tickers = self._get_tickers() + self._get_indices()
-        ret_df = {}
+        ret = {}
         indicator = self.parameter["indicator"]
         err = ""
         if indicator == "tickers":
             # return the indicator list
-            ret_df[indicator] = self.__get_tickers()
+            ret[indicator] = self.__get_tickers()
         elif indicator == "gherkin":
             gherkin_query = f'gherkinquery --gherkin {self.parameter["gherkin"]}'
-            ret_df["gherkin"] = self.command_handler.execute(
+            result = self.command_handler.execute(
                 gherkin_query, is_rest=False
-            ).obj_as_string
+            )
+            if result.errors == "":
+                ret["gherkin"] = result.obj_as_string
+            else:
+                ret["gherkin"] = result.errors
         elif indicator == "financials":
             financials_query = (
                 f'yahoofinance --ticker {self.parameter["ticker"]} --do {indicator}'
             )
-            ret_df[indicator] = self.command_handler.execute(
+            ret[indicator] = self.command_handler.execute(
                 financials_query, is_rest=False
             ).obj
         else:
             for ticker in tickers:
                 try:
                     if self.additional_indicators.get(indicator):
-                        ret_df[ticker] = self.additional_indicators[indicator](ticker)
+                        ret[ticker] = self.additional_indicators[indicator](ticker)
                     else:
                         talib_query = f'talibquery --ticker {ticker} --interval {self.parameter["interval"]} --do get --csv 0 \
                             --indicator {indicator} --window {self.parameter["window"]} --n {self.parameter["n"]}'
@@ -92,12 +96,12 @@ class Webserver(System):
                             talib_query, is_rest=False
                         ).obj
                         df.set_index(df.iloc[:, 0], inplace=True)
-                        ret_df[ticker] = df[indicator].to_json(orient="index")
+                        ret[ticker] = df[indicator].to_json(orient="index")
                 except Exception as e:
                     print("ERROR webserver __get")
                     err += e.args
         return RetVal(
-            obj=ret_df, obj_as_str="python dict with pandas dataframe json", errors=err
+            obj=ret, obj_as_str="python dict with pandas dataframe json", errors=err
         )
 
     def __get_tickers(self, *unused):
