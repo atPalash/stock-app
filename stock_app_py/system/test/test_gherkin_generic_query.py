@@ -22,8 +22,8 @@ def init(g_query:str):
     check = gherkin_query.execute()
     query_err = check.errors
     query_str = check.obj_as_string
-    if query_err == "":
-        query_df = check.obj["v2"]["test"]["query_df"]
+    if query_err['error'] == "":
+        query_df = check.obj["test"]["query_df"]
         abb_series = query_df[query_df["ticker"] == "ABB"]
         tcs_series = query_df[query_df["ticker"] == "TCS"]
     return (query_str, query_err, abb_series, tcs_series)
@@ -44,7 +44,9 @@ When let rel_str = latest in 60 day close rs_rating
 * let ema20 = latest in 1 day close ema 20
 Then get tickers with (ema10 - ema20) < atr14 * 0.5
 """
-    _, _, abb_series, tcs_series = init(g_query=g_query)
+    obj_str, err, abb_series, tcs_series = init(g_query=g_query)
+    assert obj_str['test'] != ""
+    assert err['error'] == ""
     assert abb_series["error"].values[0] == ""
     assert tcs_series["error"].values[0] == ""
     assert abb_series["growth"].values[0] == 0.21
@@ -77,8 +79,8 @@ When {err_step}
 Then get tickers with (ema10 - ema20) < atr14 * 0.5
 """
     obj_str, err, _, _ = init(g_query=g_query)
-    assert obj_str['error']['step'] == err_step
-    assert err != ""
+    assert obj_str['test'] == "None"
+    assert err['error']['step'] == err_step
 
 def test_gherkin_query_then_condition_extra_space():
     """Test an error in step statement
@@ -95,8 +97,8 @@ When let atr14 = latest in 1 day close atr 14
 Then {err_step}
 """
     obj_str, err, _, _ = init(g_query=g_query)
-    assert obj_str != ""
-    assert err == ""
+    assert obj_str['test'] != "None"
+    assert err['error'] == ""
 
 def test_gherkin_query_then_condition_error():
     """Test an error in step statement
@@ -112,9 +114,11 @@ When let atr14 = latest in 1 day close atr 14
 * let ema20 = latest in 1 day close ema 20
 Then {err_step}
 """
-    _, _, abb_series, tcs_series = init(g_query=g_query)
-    assert '(ema10 - ema20) <* atr14 * 0.5' in abb_series['error'].values[0]
-    assert '(ema10 - ema20) <* atr14 * 0.5' in tcs_series['error'].values[0]
+    obj_str, err, abb_series, tcs_series = init(g_query=g_query)
+    assert err['error'] == "('invalid syntax', ('<string>', 1, 18, '(ema10 - ema20) <* atr14 * 0.5', 1, 19))"
+    assert obj_str['test'] == "None"
+    assert len(abb_series) == 0
+    assert len(tcs_series) == 0
 
 def test_gherkin_query_missing_col_name():
     """Test an error in step statement
@@ -129,6 +133,29 @@ When let ema10 = latest in 1 day close ema 10
 * let ema20 = latest in 1 day close ema 20
 Then {err_step}
 """
-    _, _, abb_series, tcs_series = init(g_query=g_query)
-    assert "name 'atr14' is not defined" in abb_series['error'].values[0]
-    assert "name 'atr14' is not defined" in tcs_series['error'].values[0]
+    obj_str, err, abb_series, tcs_series = init(g_query=g_query)
+    assert err['error'] == '("name \'atr14\' is not defined",)'
+    assert obj_str['test'] == "None"
+    assert len(abb_series) == 0
+    assert len(tcs_series) == 0
+
+def test_gherkin_query_error_let():
+    """Test an error in then step statement
+    """
+    # extra space in condition should fetch result
+    err_step = "let ema1020 = ema10 -+ ema20"
+    g_query = f"""Feature: v2
+I want to query to get a list of turtle S1 stocks
+Scenario: test
+Given stocks ABB, TCS
+When let atr14 = latest in 1 day close atr 14
+* let ema10 = latest in 1 day close ema 10
+* let ema20 = latest in 1 day close ema 20
+Then {err_step}
+* get tickers with ema1020 < atr14 * 0.5"
+"""
+    obj_str, err, abb_series, tcs_series = init(g_query=g_query)
+    assert err['error'] == '(\'unterminated string literal (detected at line 1)\', (\'<string>\', 1, 22, \'ema1020 < atr14 * 0.5"\', 1, 22))'
+    assert obj_str['test'] == "None"
+    assert len(abb_series) == 0
+    assert len(tcs_series) == 0
