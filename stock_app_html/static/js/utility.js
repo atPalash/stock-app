@@ -198,3 +198,7 @@ function findNearestMarketOpenDate(datesArray, comparisonDate) {
 
     return closest;
 }
+
+function getValueOrDefault(obj, key, default_value) {
+    return obj.hasOwnProperty(key) ? obj[key] : default_value;
+}

@@ -166,6 +166,15 @@ class GherkinGenericQuery(System):
                                 current_keyword = "When"
                                 if "logic" in query_df.columns:
                                     query_df = query_df[query_df["logic"]]
+                                    # It seems we have filtered all the tickers just return
+                                    if len(query_df) == 0:
+                                        return RetVal(
+                                            obj={scenario: None},
+                                            obj_as_str={scenario: "None"},
+                                            errors={
+                                                "error": "Filtered out all tickers"
+                                            },
+                                        )
                                 ticker_df_map = self.fetch_gherkin_ohlc(
                                     matched_step["match"].groups(),
                                     query_df["ticker"].to_list(),
@@ -210,7 +219,9 @@ class GherkinGenericQuery(System):
                 ret_tickers = query_df[query_df["logic"]]["ticker"].to_list()
                 errors = ""
                 if query_df["error"].values[0] != "":
-                    errors = query_df["error"].values[0].split(":")[1] # Assuming syntax errors
+                    errors = (
+                        query_df["error"].values[0].split(":")[1]
+                    )  # Assuming syntax errors
                 self.query_df_dict[scenario] = {
                     "query_df": query_df,
                     "tickers": ret_tickers,
@@ -238,7 +249,7 @@ class GherkinGenericQuery(System):
             return RetVal(
                 obj={scenario: None},
                 obj_as_str={scenario: "None"},
-                errors={'error': {'step': step['text']}},
+                errors={"error": {"step": step["text"]}},
             )
 
 
@@ -246,13 +257,18 @@ if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
     g_query = """Feature: v2
-    I want to query to get a list of turtle S1 stocks
     Scenario: test
-    Given stocks ABB, TCS
-    When let rel_str = latest in 60 day close rs_rating
-    Then get tickers with rel_str > 0.9
-    When let atr = latest in 1 day close atr 14
+    Given nifty50 stocks
+    * remove stocks under surveillance
+    * remove other stocks
+    When let ema10_change = change in 30 day close ema 10
+    Then get tickers with ema10_change > 0.1
+    When let ema10 = latest in 1 day close ema 10
+    * let ema20 = latest in 1 day close ema 20
+    * let low = latest in 1 day low
+    * let high = latest in 1 day high
     * let close = latest in 1 day close
+    * let atr = latest in 1 day close atr 14
     * let ma150 = latest in 1 day close ma 150
     * let ma200 = latest in 1 day close ma 200
     * let ma50 = latest in 1 day close ma 50
@@ -270,17 +286,12 @@ if __name__ == "__main__":
     * let close_52wkhigh = close > 0.75 * wk_52high
     * get tickers with close_ma50 and close_ma150 and close_ma200 and ma50_ma150 and ma50_ma200 and ma150_ma200 and uptrend200 and close_52wklow and close_52wkhigh
     """
-    #     g_query = """Feature: v2
+    # g_query = """Feature: v2
     # I want to query to get a list of turtle S1 stocks
     # Scenario: test
-    # Given stocks ABB, TCS
-    # When let rel_str = latest in 60 day close rs_rating
-    # Then get tickers with rel_str > 0.8
-    # When let atr14 = latest in 1 day close atr 14
-    # * let close = latest in 1 day close
-    # * let ema10 = latest in 1 day close ema 10
-    # * let ema20 = latest in 1 day close ema 20
-    # Then get tickers with (ema10 - ema20) < atr14 * 0.5
+    # Given stocks ABB, TRENT
+    # When let ema10_change = change in 30 day close ema 10
+    # Then get tickers with ema10_change > 0.25
     # """
 
     start = time.time()
@@ -298,8 +309,8 @@ if __name__ == "__main__":
     )
 
     check = parser.execute()
-    check.obj["test"]["query_df"].to_csv("query_df.csv", index=False)
-
+    # check.obj["test"]["query_df"].to_csv("query_df.csv", index=False)
+    print(check.errors)
     print(check.obj["test"]["tickers"])
     print("elasped time", time.time() - start)
 

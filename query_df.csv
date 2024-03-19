@@ -1,0 +1,3 @@
+ticker,error,growth,rel_str,logic,ema10,ema10_rate,ema20,ema20_rate,low,high,close,atr,vcp,ma150,ma200,ma50,rate_ma200,wk_52low,wk_52high,atr14,close_ma50,close_ma150,close_ma200,ma50_ma150,ma50_ma200,ma150_ma200,uptrend200,close_52wklow,close_52wkhigh
+BEL,,0.27,0.8,False,198.12,0.0,198.13,0.0,187.05,192.0,189.9,7.88,True,159.9,150.65,191.49,0.44,97.55,215.2,False,False,True,True,True,True,True,True,True,True
+TRENT,,0.4,1.0,True,3981.37,0.0,3899.03,0.0,4005.9,4084.0,4071.05,142.87,True,2738.13,2473.85,3556.88,10.28,1361.8,4081.1,False,True,True,True,True,True,True,True,True,True

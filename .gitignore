@@ -1,7 +1,7 @@
 build/*
 dockerfiles
 .vscode
-database/
+database/fundamentals
+database/ohlc
 *__pycache__
 stock_app_py.egg-info
-test

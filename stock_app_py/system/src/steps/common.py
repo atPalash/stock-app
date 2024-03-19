@@ -22,7 +22,7 @@ class StepRet:
         result_df: pandas.DataFrame = None,
         pipe_tickers: list = [],
         pipe_type: PipeType = PipeType.AND,
-        variable_id:str="",
+        variable_id: str = "",
         err: str = "",
     ) -> None:
         self.data = data
@@ -31,6 +31,7 @@ class StepRet:
         self.pipe_type = pipe_type
         self.variable_id = variable_id
         self.err = err
+
 
 class StepData:
     condition = [">", "<", "!=", "==", ">=", "<="]
@@ -43,9 +44,9 @@ class StepData:
     ohlc = ["close", "open", "high", "low"]
     indicator = ["ma", "ema"]
     word = ["<word>"]
-    operator = ["latest", "oldest", "minimum", "maximum", "average", "rate"]
+    operator = ["latest", "oldest", "minimum", "maximum", "average", "rate", "change"]
 
-    def __init__(self, logic=Callable, variables={}, step_version='v1') -> None:
+    def __init__(self, logic=Callable, variables={}, step_version="v1") -> None:
         self.logic = logic
         self.variables = variables
         self.step_version = step_version
@@ -64,6 +65,8 @@ class StepData:
                 return round(numpy.mean(data), 2)
             elif operator == "rate":
                 return round((data[-1] - data[0]) / span, 2)
+            elif operator == "change":
+                return round((data[-1] - data[0]) / data[0], 2)
         else:
             raise Exception(f"No matching operator found {operator}")
 
@@ -77,7 +80,7 @@ class GherkinQueryRet:
         errors: str,
         result: StepRet,
         meta: dict = {},
-        step_version: str="v1"
+        step_version: str = "v1",
     ) -> None:
         self.parent = parent
         self.type = type
@@ -99,6 +102,7 @@ def make_return(prev_step_result: GherkinQueryRet, curr_step_ret: StepRet) -> St
     ret = StepRet(data=curr_step_ret.data, err=curr_step_ret.err, pipe_type=pipe_type)
     ret.pipe_tickers = pipe_ticker_list(curr_step_tickers, prev_step_tickers, pipe_type)
     return ret
+
 
 def get_matched_step(rule: str, steps: dict) -> dict:
     """Find the step which matches rule from steps.
@@ -127,7 +131,8 @@ def get_matched_step(rule: str, steps: dict) -> dict:
             break
     return result
 
-def pipe_ticker_list(current_ticker_list, update_ticker_list, pipe_type:PipeType):
+
+def pipe_ticker_list(current_ticker_list, update_ticker_list, pipe_type: PipeType):
     # Update the piped tickers
     pipe_tickers = []
     if pipe_type == PipeType.OR:
@@ -160,9 +165,12 @@ def pipe_ticker_list(current_ticker_list, update_ticker_list, pipe_type:PipeType
         pipe_tickers = pipe_tickers
     return pipe_tickers
 
-def update_df(df:pandas.DataFrame, ticker_update_list:list, pipe_type:PipeType) -> pandas.DataFrame:
+
+def update_df(
+    df: pandas.DataFrame, ticker_update_list: list, pipe_type: PipeType
+) -> pandas.DataFrame:
     def ticker_add_to_df(ticker_list):
-        ticker_to_add = pandas.DataFrame(ticker_list, columns=['ticker'])
+        ticker_to_add = pandas.DataFrame(ticker_list, columns=["ticker"])
         # Set the other columns of the new DataFrame to 0
         for column in df.columns:
             if column not in ticker_to_add.columns:
@@ -170,9 +178,10 @@ def update_df(df:pandas.DataFrame, ticker_update_list:list, pipe_type:PipeType) 
             # Reorder the new rows columns to match the original DataFrame
         ticker_to_add = ticker_to_add[df.columns]
         ret = pandas.concat([df, ticker_to_add], ignore_index=True)
-        ret = ret.sort_values(by='ticker')
+        ret = ret.sort_values(by="ticker")
         ret = ret.reset_index(drop=True)
         return ret
+
     if len(df) == 0:
         """Add the update list ticker to df
 
@@ -180,9 +189,11 @@ def update_df(df:pandas.DataFrame, ticker_update_list:list, pipe_type:PipeType) 
             pandas.Dataframe: of tickers
         """
         return ticker_add_to_df(ticker_update_list)
-    elif pipe_type==PipeType.OR:
-        existing_tickers = df['ticker'].to_list()
-        ticker_to_add = [item for item in ticker_update_list if item not in existing_tickers]
+    elif pipe_type == PipeType.OR:
+        existing_tickers = df["ticker"].to_list()
+        ticker_to_add = [
+            item for item in ticker_update_list if item not in existing_tickers
+        ]
         return ticker_add_to_df(ticker_to_add)
     elif pipe_type == PipeType.AND or pipe_type == PipeType.NOT:
         """Remove the tickers that are not present in df['ticker'] & update list
@@ -190,7 +201,7 @@ def update_df(df:pandas.DataFrame, ticker_update_list:list, pipe_type:PipeType) 
         Returns:
             pandas.Dataframe: of tickers
         """
-        ret = df[df['ticker'].isin(ticker_update_list)]
+        ret = df[df["ticker"].isin(ticker_update_list)]
         ret = ret.reset_index(drop=True)
     elif pipe_type == PipeType.PASS:
         ret = df

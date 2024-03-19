@@ -62,6 +62,10 @@ class Webserver(Server):
         def statements_query():
             return self.handle_request(req=request)
 
+        @self.app.route("/save-layout", methods=["GET", "POST"])
+        def save_layout():
+            return self.config(req=request)
+
     def handle_request(self, req: request):
         if request.method == "POST":
             try:
@@ -77,21 +81,41 @@ class Webserver(Server):
 
     def config(self, req: request):
         user_config = get_app_path("user_config.json")
-        if request.method == "POST":
-            try:
-                # Open a file for writing
-                with open(user_config, "w") as f:
-                    # Write the JSON data to the file
-                    json.dump(req.json, f)
-                return jsonify("Ok"), 200
-            except Exception as e:
-                return e.args, 400
-        elif request.method == "GET":
-            try:
-                with open(user_config, "r") as f:
-                    # Write the JSON data to the file
-                    return jsonify(f.read()), 200
-            except:
-                return jsonify("Error"), 400
+        if request.path == "/save-layout":
+            if request.method == "POST":
+                try:
+                    # Open a file for writing
+                    with open(user_config, "r+") as f:
+                        config = json.load(f)
+                        config["react"] = req.json
+                        f.seek(0)
+                        json.dump(config, f, indent=4)
+                    return jsonify("Ok"), 200
+                except Exception as e:
+                    return e.args, 400
+            elif request.method == "GET":
+                try:
+                    with open(user_config, "r") as f:
+                        # Write the JSON data to the file
+                        config = json.loads(f)
+                        return jsonify(config["react"]), 200
+                except:
+                    return jsonify("Error"), 400
         else:
-            return jsonify("Method not allowed"), 405
+            # TODO fix DRY here, the entire html part will be replaced by react
+            if request.method == "POST":
+                try:
+                    # Open a file for writing
+                    with open(user_config, "w") as f:
+                        # Write the JSON data to the file
+                        json.dump(req.json, f)
+                    return jsonify("Ok"), 200
+                except Exception as e:
+                    return e.args, 400
+            elif request.method == "GET":
+                try:
+                    with open(user_config, "r") as f:
+                        # Write the JSON data to the file
+                        return jsonify(f.read()), 200
+                except:
+                    return jsonify("Error"), 400

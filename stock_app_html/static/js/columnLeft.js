@@ -186,23 +186,29 @@ class ColumnLeft {
         var conjunction_keyword = ['And ', '* ']
         if (query != "" && query != undefined) {
             try {
-                // const startTime = performance.now();
+                const startTime = performance.now();
                 var gherkin_response = await apiPost(`gherkin-query`, {
                     "query": `webserver --gherkin ${query} --indicator gherkin`
                 });
-                // console.log(query, "took", (performance.now() - startTime)*0.001)
-                gherkin_response = JSON.parse(gherkin_response['gherkin'])
+                var queryTime = Math.round((performance.now() - startTime) * 0.001)
+                gherkin_response = gherkin_response['gherkin']
+
                 // User must define one feature per query
-                var feature = Object.keys(gherkin_response)[0]
-                document.getElementById(`label-${divId}`).innerText = feature
-                var then_steps_tickers = gherkin_response[feature]['tickers']
+                var scenario = Object.keys(gherkin_response)[0]
+                var error = getValueOrDefault(gherkin_response, 'error', '')
 
                 var list = document.getElementById(`${divId}-list`)
                 if (list != null) {
                     list.remove()
                 }
-
-                addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker, this.#rightClickToContext, context_menu_query_id)
+                var then_steps_tickers = []
+                if (error == '') {
+                    document.getElementById(`label-${divId}`).innerText = `${scenario}->${queryTime}s`
+                    then_steps_tickers = gherkin_response[scenario]['tickers']
+                    addListToDiv(divId, then_steps_tickers, this.#clickToSelectTicker, this.#rightClickToContext, context_menu_query_id)
+                } else {
+                    document.getElementById(`label-${divId}`).innerText = `${scenario}:"${error}"->${queryTime}s`
+                }
             } catch (error) {
                 console.error('An error occurred during gherkin query', error);
             }

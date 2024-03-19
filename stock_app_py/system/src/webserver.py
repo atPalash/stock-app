@@ -73,7 +73,7 @@ class Webserver(System):
             result = self.command_handler.execute(
                 gherkin_query, is_rest=False
             )
-            if result.errors == "":
+            if result.errors['error'] == "":
                 ret["gherkin"] = result.obj_as_string
             else:
                 ret["gherkin"] = result.errors

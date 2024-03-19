@@ -173,30 +173,25 @@ def __calculate_growth_rate(
     ticker_df,
     lookback_window: int = -1,
 ) -> dict:
-    variable_id, _,query_span, interval, ohlc_source = groups
+    variable_id, _, query_span, interval, ohlc_source, indicator, window = groups
     variable_id = "growth"
     query_span = int(query_span)
-    # the operator is a placeholder here we only need the ohlc data
-    ohlc_groups = (variable_id, "latest", query_span * 2, interval, ohlc_source)
-    temp_df = ohlc.calculate(
-        selected_stocks_yaml=selected_stocks_yaml,
-        indicator_config_yaml=indicator_config_yaml,
-        ticker=ticker,
-        groups=ohlc_groups,
-        ticker_df=ticker_df,
-        lookback_window=lookback_window,
-    )[f'{variable_id}_df']
-
-    ohlc_caps = ohlc_source.capitalize()
-    temp_df[variable_id] = temp_df[ohlc_caps]
-    temp_df = (
-        ticker_df.tail(query_span * 2)
-        .reset_index(drop=True)
-        .rename(columns={temp_df.columns[-1]: variable_id})
+    command_handler = executor.CommandHandler(
+        selected_stocks_yaml, indicator_config_yaml
     )
-    temp_df[variable_id] = (
-        temp_df[ohlc_caps] - temp_df[ohlc_caps].shift(query_span)
-    ) / temp_df[ohlc_caps].shift(query_span)
+    indicator_query = f"talibquery --ticker {ticker} \
+                --interval {interval} --do get --csv 0 \
+                --indicator {indicator} --window {window} --n {query_span * 2} \
+                --ohlc {ohlc_source.capitalize()}"
+    temp_df = command_handler.execute(
+        indicator_query, is_rest=False, ticker_df=ticker_df
+    ).obj
+    temp_df = temp_df.rename(columns={temp_df.columns[-1]: variable_id}).tail(
+        query_span
+    )
+    ref_val = temp_df[variable_id].iloc[0]
+    temp_df[variable_id] = round((temp_df[variable_id] - ref_val) / ref_val, 2)
+
     return {
         "ticker": ticker,
         "interval": interval,
@@ -208,6 +203,7 @@ def __calculate_growth_rate(
         "span": query_span,
         "exception": None,
     }
+
 
 def __calculate_rs_rating(groups, query_df):
     """Get the pandas dataframe which has growth rate calculated for all the selected
@@ -233,15 +229,16 @@ def __calculate_rs_rating(groups, query_df):
         "exception": None,
     }
 
+
 @when
 def calculate(
-    selected_stocks_yaml = None,
-    indicator_config_yaml = None,
-    ticker = None,
-    groups = None,
+    selected_stocks_yaml=None,
+    indicator_config_yaml=None,
+    ticker=None,
+    groups=None,
     query_df: pandas.DataFrame = None,
-    ticker_df:pandas.DataFrame = None,
-    lookback_window: int = -1
+    ticker_df: pandas.DataFrame = None,
+    lookback_window: int = -1,
 ) -> dict:
     """This is a step function call
     1. It calls growth to assign growth rate of each stock which is called for
@@ -259,16 +256,15 @@ def calculate(
     Returns:
         dict: dict of result
     """
-    if groups != None  and len(groups) == 5:
+    if groups != None and len(groups) == 7:
         return __calculate_growth_rate(
             selected_stocks_yaml=selected_stocks_yaml,
             indicator_config_yaml=indicator_config_yaml,
             ticker=ticker,
             groups=groups,
-            ticker_df=ticker_df
+            ticker_df=ticker_df,
         )
     elif not query_df.empty:
         return __calculate_rs_rating(groups, query_df)
     else:
         raise Exception("rs_rating exception")
-

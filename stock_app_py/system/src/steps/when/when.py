@@ -78,7 +78,7 @@ def __execute_step_v2(
             ticker,
             matched_step["match"].groups(),
             query_df,
-            tickers_df_dict[ticker]
+            tickers_df_dict[ticker],
         )
         for ticker in query_df["ticker"].tolist()
     ]
@@ -96,11 +96,11 @@ def __execute_step_v2(
                 operated_value = step_data.eval_operator(
                     res["operator"],
                     res["span"],
-                    res[f'{variable_id}_df'][f'{variable_id}'].to_numpy(),
+                    res[f"{variable_id}_df"][f"{variable_id}"].to_numpy(),
                 )
-                query_df.loc[
-                    query_df["ticker"] == res["ticker"], f'{variable_id}'
-                ] = operated_value
+                query_df.loc[query_df["ticker"] == res["ticker"], f"{variable_id}"] = (
+                    operated_value
+                )
                 temp_error = query_df.loc[query_df["ticker"] == res["ticker"], "error"]
                 query_df.loc[query_df["ticker"] == res["ticker"], "error"] = (
                     "" if res["exception"] == None else res["exception"] + temp_error
@@ -108,12 +108,14 @@ def __execute_step_v2(
             except Exception as e:
                 query_df.loc[query_df["ticker"] == res["ticker"], "error"] = (
                     query_df.loc[query_df["ticker"] == res["ticker"], "error"]
-                    + f"when.calculate:{e.args[0]}"
+                    + f" when.calculate:{e.args}"
                 )
-        if matched_step['func'] == rs_rating.calculate:
-            rs_id, _, _, _, _ = matched_step['match'].groups()
+        if matched_step["func"] == rs_rating.calculate:
+            rs_id = matched_step["match"].groups()[0]
             groups = (rs_id, variable_id)
-            query_df = matched_step['func'](groups=groups, query_df=query_df)[f'{rs_id}_df']
+            query_df = matched_step["func"](groups=groups, query_df=query_df)[
+                f"{rs_id}_df"
+            ]
     query_df = query_df.round(2)
     return query_df
 
@@ -126,7 +128,7 @@ def execute(
     indicator_config_file: str,
     step_version: str = "v1",
     query_df: pandas.DataFrame = None,
-    tickers_df_dict: dict = None
+    tickers_df_dict: dict = None,
 ) -> common.StepRet:
     if step_version == "v1":
         return __execute_step_v1(
@@ -142,7 +144,7 @@ def execute(
             selected_stocks_config_file=selected_stocks_config_file,
             indicator_config_file=indicator_config_file,
             query_df=query_df,
-            tickers_df_dict=tickers_df_dict
+            tickers_df_dict=tickers_df_dict,
         )
     else:
         raise Exception(f"Invalid step version {step_version}")

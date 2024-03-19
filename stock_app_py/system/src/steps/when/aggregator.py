@@ -222,7 +222,7 @@ def get_steps():
                 8: StepData.indicator,
                 9: StepData.number,
             },
-            step_version='v2'
+            step_version="v2",
         ),
         #  let close = latest in  5    day  close
         r"^let (\w+) = (\w+) in (\d+) (\w+) (\w+)$": StepData(
@@ -234,10 +234,10 @@ def get_steps():
                 6: StepData.interval,
                 7: StepData.ohlc,
             },
-            step_version='v2'
+            step_version="v2",
         ),
-        #  let rs    = latest in  60   day  close rs_rating
-        r"^let (\w+) = (\w+) in (\d+) (\w+) (\w+) rs_rating$": StepData(
+        #  let rs    = latest in 30    day  close  ma     5   based rs_rating
+        r"^let (\w+) = (\w+) in (\d+) (\w+) (\w+) (\w+) (\d+) based rs_rating$": StepData(
             logic=rs_rating.calculate,
             variables={
                 1: StepData.word,
@@ -245,7 +245,9 @@ def get_steps():
                 5: StepData.number,
                 6: StepData.interval,
                 7: StepData.ohlc,
+                9: ["ma", "ema"],
+                10: StepData.number,
             },
-            step_version='v2'
+            step_version="v2",
         ),
     }
