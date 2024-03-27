@@ -87,8 +87,8 @@ class Webserver(Server):
                     # Open a file for writing
                     with open(user_config, "r+") as f:
                         config = json.load(f)
-                        config["react"] = req.json
-                        f.seek(0)
+                        layout_id = next(iter(req.json))
+                        config["react"][layout_id] = req.json[layout_id]
                         json.dump(config, f, indent=4)
                     return jsonify("Ok"), 200
                 except Exception as e:
@@ -96,10 +96,11 @@ class Webserver(Server):
             elif request.method == "GET":
                 try:
                     with open(user_config, "r") as f:
-                        # Write the JSON data to the file
-                        config = json.loads(f)
-                        return jsonify(config["react"]), 200
-                except:
+                        # Read file
+                        data = f.read()
+                    config = json.loads(data)
+                    return jsonify(config["react"]), 200
+                except Exception as e:
                     return jsonify("Error"), 400
         else:
             # TODO fix DRY here, the entire html part will be replaced by react
