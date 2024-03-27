@@ -15,7 +15,7 @@ from stock_app_py.system.src.steps.then import aggregator as then_aggregator
 
 
 class StatementList(System):
-    cached_statement = []
+    cached_statement = {"Given": [], "When": [], "Then": []}
 
     def __init__(
         self,
@@ -49,16 +49,17 @@ class StatementList(System):
             "get": self.__get,
             "update": self.__update,
         }
-        self.statements = []
+        # self.statements = []
+        self.statement_map = {"Given": [], "When": [], "Then": []}
 
     def __get(self) -> RetVal:
         """Return dict with regex and it's possible statements.
         Returns:
             RetVal: return object to be send to client
         """
-        if len(StatementList.cached_statement) == 0:
+        if len(StatementList.cached_statement["Given"]) == 0:
             self.__update()
-            StatementList.cached_statement = self.statements
+            StatementList.cached_statement = self.statement_map
         return RetVal(
             obj=StatementList.cached_statement,
             obj_as_str="list of regex and its statements",
@@ -69,16 +70,17 @@ class StatementList(System):
         """Update the regex and its statements."""
         regex_dict = {}
 
-        def make_regex_dict(steps: dict):
+        def make_regex_dict(steps: dict, stepType: str):
             for regex, val in steps.items():
-                regex_dict[regex] = val.variables
+                regex_dict[regex] = {"type": stepType, "variables": val.variables}
 
-        make_regex_dict(given_aggregator.get_steps())
-        make_regex_dict(when_aggregator.get_steps())
-        make_regex_dict(then_aggregator.get_steps())
+        make_regex_dict(given_aggregator.get_steps(), "given")
+        make_regex_dict(when_aggregator.get_steps(), "when")
+        make_regex_dict(then_aggregator.get_steps(), "then")
 
         temp_statements = []
         added_keywords = []
+
         def make_statement(regex: str, options: dict, position: int):
             """Recursion to create a list of strings containing different combination
             of the options/variables defined.
@@ -98,7 +100,7 @@ class StatementList(System):
                 position (int): the current placeholder whose options are being checked.
             """
             if position < 0:
-                temp_statements.append(regex.replace("^", "").replace("$",""))
+                temp_statements.append(regex.replace("^", "").replace("$", ""))
             else:
                 option_pos = regex.split(" ")
                 if position in options:
@@ -109,14 +111,12 @@ class StatementList(System):
                         if do_append(statement=temp):
                             make_statement(temp, options=options, position=position + 1)
                             if "(" not in temp or ")" not in temp:
-                                temp_statements.append(
-                                    temp.replace("$", "")
-                                )
+                                temp_statements.append(temp.replace("$", ""))
                 else:
                     if position < len(option_pos):
                         make_statement(regex, options=options, position=position + 1)
-                        
-        def do_append(statement:str)->bool:
+
+        def do_append(statement: str) -> bool:
             key_word = statement.split()[0]
             for step in temp_statements:
                 step_key_word = step.split()[0]
@@ -124,17 +124,18 @@ class StatementList(System):
                     return False
             return True
 
-        for regx, val in regex_dict.items():
+        for regx, values in regex_dict.items():
             temp_statements.clear()
             added_keywords.clear()
             # User queries for backtest for selected stock in context, not required
             # as an query statement.
             if "backtest" not in regx:
+                val = values["variables"]
                 if len(val.keys()) > 0:
                     make_statement(
                         regex=regx, options=val, position=list(val.keys())[0]
                     )
-                    self.statements.append(
+                    self.statement_map[values["type"].capitalize()].append(
                         {
                             "regex": regx,
                             "variables": val,
