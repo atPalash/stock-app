@@ -20,9 +20,9 @@ class System(SystemIf):
         self.parameter = self.__update_parameter_or_set_to_default(parameter=parameter)
         self.command_handler = command_handler
 
-    def execute(self, ticker_df =None):
+    def execute(self, ticker_df=None):
         try:
-            self.parameter['ticker_df']=ticker_df
+            self.parameter["ticker_df"] = ticker_df
             ret = self.commands[self.parameter["do"]]()
             return ret
         except Exception as e:
@@ -32,13 +32,9 @@ class System(SystemIf):
         parameters = {
             "condition": parameter.get("condition", ""),
             "csv": int(parameter.get("csv", "0")),
-            "config_dir": parameter.get(
-                "config_dir", get_app_path('configuration')
-            ),
+            "config_dir": parameter.get("config_dir", get_app_path("configuration")),
             "do": parameter.get("do", "get"),
-            "database_dir": parameter.get(
-                "database_dir", get_app_path('database')
-            ),
+            "database_dir": parameter.get("database_dir", get_app_path("database")),
             "gherkin": parameter.get("gherkin", ""),
             "indicator": parameter.get("indicator", "ema"),
             "interval": parameter.get("interval", "day"),
@@ -46,6 +42,7 @@ class System(SystemIf):
             "index_csv": parameter.get(
                 "index_csv", "all-indices.csv"
             ),  # https://www.nseindia.com/market-data/live-market-indices
+            "json": parameter.get("json", ""),
             "latest": int(parameter.get("latest", "0")),
             "macd_fast_period": int(parameter.get("macd_fast_period", "13")),
             "macd_slow_period": int(parameter.get("macd_slow_period", "26")),
@@ -59,7 +56,7 @@ class System(SystemIf):
             "ticker": parameter.get("ticker", "all"),
             "window": int(parameter.get("window", "20")),
             "stage2scannertype": parameter.get("stage2scannertype", "ma"),
-            "ticker_df": parameter.get("ticker_df", None)
+            "ticker_df": parameter.get("ticker_df", None),
         }
 
         return parameters

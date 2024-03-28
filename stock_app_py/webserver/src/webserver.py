@@ -62,9 +62,9 @@ class Webserver(Server):
         def statements_query():
             return self.handle_request(req=request)
 
-        @self.app.route("/save-layout", methods=["GET", "POST"])
-        def save_layout():
-            return self.config(req=request)
+        @self.app.route("/user-config", methods=["GET", "POST"])
+        def user_config():
+            return self.handle_request(req=request)
 
     def handle_request(self, req: request):
         if request.method == "POST":

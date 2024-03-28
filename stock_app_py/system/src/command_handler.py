@@ -8,6 +8,7 @@ from stock_app_py.interface.commandHandlerIf import (
 from stock_app_py.utility.src.yaml_parser import read_config
 from stock_app_py.utility.src.message_parser import parse_message
 
+
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml, indicator_config_yaml) -> None:
         from stock_app_py.system.src.gherkin_generic_query import GherkinGenericQuery
@@ -17,11 +18,15 @@ class CommandHandler(CommandHandlerIf):
         from stock_app_py.system.src.rs_rating import RsRating
         from stock_app_py.system.src.talib_query import TalibQuery
         from stock_app_py.system.src.yahoo_finance import YahooFinance
-        from stock_app_py.system.src.macd_histogram_divergence_scanner import MacdHistogramDivergenceScanner
+        from stock_app_py.system.src.macd_histogram_divergence_scanner import (
+            MacdHistogramDivergenceScanner,
+        )
         from stock_app_py.system.src.canslim import Canslim
         from stock_app_py.system.src.webserver import Webserver
         from stock_app_py.system.src.stage2_scanner import Stage2Scanner
         from stock_app_py.system.src.nse_stock_list import NseStockList
+        from stock_app_py.system.src.user_config import UserConfig
+
         super().__init__()
         self.commands = {
             "elderimpulse": ElderImpulse,
@@ -35,6 +40,7 @@ class CommandHandler(CommandHandlerIf):
             "nsestocklist": NseStockList,
             "rsrating": RsRating,
             "statementlist": StatementList,
+            "userconfig": UserConfig,
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml
