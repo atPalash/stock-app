@@ -12,6 +12,7 @@ class Ema(Indicator):
         )
 
     def _do_analysis(self, latest=1):
+        self.parse_indicator_setting(self.parameter["indicator_setting"], ["window"])
         ema = talib.EMA(
             self.ohlc[self.parameter["ohlc"]], timeperiod=int(self.parameter["window"])
         )

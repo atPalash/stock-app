@@ -34,6 +34,7 @@ mapped_config = {
     "indicator.yaml": __file_path,
     "selected_stocks.yaml": __file_path,
     "user_config.json": __file_path,
+    "users_config.json": __file_path,
     "rs_rating.csv": __file_path,
     "configuration": __dir_path,
     "database": __dir_path,

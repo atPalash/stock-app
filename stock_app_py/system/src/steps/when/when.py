@@ -1,3 +1,4 @@
+import logging
 import pandas
 from stock_app_py.system.src.steps.when import rs_rating
 from stock_app_py.utility.src.path_helper import get_app_path
@@ -7,13 +8,35 @@ from stock_app_py.system.src.steps import common
 import multiprocessing
 
 
+# Function to handle worker execution with error capture
+def worker_function(func, *args):
+    try:
+        result = func(*args)
+        return result, None
+    except Exception as e:
+        return None, str(e)
+
+
 def __execute_subprocess(matched_step, args):
     multi_results = []
+    errors = []
+
     with multiprocessing.Pool() as pool:
         try:
-            multi_results = pool.starmap(matched_step["func"], args)
+            # Prepare arguments for starmap
+            starmap_args = [(matched_step["func"], *arg) for arg in args]
+            results = pool.starmap(worker_function, starmap_args)
+
+            for result, error in results:
+                if error:
+                    errors.append(error)
+                else:
+                    multi_results.append(result)
         except Exception as e:
-            errors += f"{e.args}"
+            logging.error(f"General error in parallel execution: {e}")
+            errors.append(f"{e}")
+    if errors:
+        logging.error(f"Errors during parallel execution: {', '.join(errors)}")
     return multi_results
 
 
@@ -84,13 +107,40 @@ def __execute_step_v2(
     ]
 
     multi_results = __execute_subprocess(matched_step, args)
-    if backtest:
-        # TODO
-        return query_df
-    else:
+    variable_id = multi_results[0]["variable_id"]
+    if matched_step["query_type"] in ["chart"]:
+        try:
+            # This path is when the query asks for series of calculations. The calculation length are always the same.
+            # Here, add the calculations as columns. e.g. dataframe. For chart/backtest we will have onlu 1 row
+            # | ticker  | series                |
+            # | ABB     | <pandas dataframe>    |
+            # The first dataframe is with OHLC data, for the next indicator the indicator data is added as a column.
+            if "series" not in query_df.columns:
+                query_df["series"] = (
+                    None  # We will send a series of data can be indicator data
+                )
+
+            for res in multi_results:
+                series_df = query_df.at[
+                    query_df[query_df["ticker"] == res["ticker"]].index[0], "series"
+                ]
+                if series_df is None:
+                    series_df = res[f"{variable_id}_df"]
+                else:
+                    series_df[variable_id] = res[f"{variable_id}_df"][variable_id]
+                query_df.at[
+                    query_df[query_df["ticker"] == res["ticker"]].index[0], "series"
+                ] = series_df
+            return query_df
+        except Exception as e:
+            query_df.loc[query_df["ticker"] == res["ticker"], "error"] = (
+                query_df.loc[query_df["ticker"] == res["ticker"], "error"]
+                + f" when.calculate:{e.args}"
+            )
+    elif matched_step["query_type"] in ["query"]:
         step_data = common.StepData(logic=None, variables=None, step_version="v2")
-        variable_id = multi_results[0]["variable_id"]
-        query_df[variable_id] = 0.0
+
+        query_df.loc[:, variable_id] = 0.0
         for res in multi_results:
             try:
                 operated_value = step_data.eval_operator(
@@ -116,6 +166,8 @@ def __execute_step_v2(
             query_df = matched_step["func"](groups=groups, query_df=query_df)[
                 f"{rs_id}_df"
             ]
+    else:
+        raise Exception("No valid query type found ", matched_step)
     query_df = query_df.round(2)
     return query_df
 
@@ -154,7 +206,7 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     ticker = "LT"
-    query = "let rr = latest in 60 day close rs_rating"
+    query = "let atr14 = latest in 1 samples of day close atr 14"
     # query = "relative strength > 20"
     # query = "backtest for last 10 ticks | relative strength > 20"
     # query = "backtest for last 100 ticks | day close ma 200 in uptrend for 60 days"

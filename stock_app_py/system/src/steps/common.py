@@ -6,6 +6,9 @@ import numpy
 
 import pandas
 
+from stock_app_py.utility.src.path_helper import get_app_path
+from stock_app_py.utility.src.yaml_parser import read_config
+
 
 class PipeType(Enum):
     OR = 1
@@ -13,6 +16,20 @@ class PipeType(Enum):
     NOT = 3
     PASS = 4
     COL = 5
+
+
+class VariablePlaceholder(Enum):
+    KEYWORD = "keyword"
+    MULTISELECTION = "multiselection"
+    SELECTION = "selection"
+    NUMBER = "number"
+    LIST = "list"
+
+
+class QueryType(Enum):
+    QUERY = "query"  # query to filter stocks
+    CHART = "chart"  # query to make to a selected ticker chart
+    ANY = "any"
 
 
 class StepRet:
@@ -33,29 +50,59 @@ class StepRet:
         self.err = err
 
 
+class VariableTypes(Enum):
+    NAME = "name"
+    OPERATOR = "operator"
+    SAMPLES = "samples"
+    INTERVAL = "interval"
+    OHLC = "ohlc"
+    INDICATOR = "indicator"
+    WINDOW = "window"
+    CONDITION = "condition"
+    TICKER = "ticker"
+    INDEX = "index"
+
+
 class StepData:
     condition = [">", "<", "!=", "==", ">=", "<="]
     color = ["red", "green", "blue"]
     empty = [""]
-    index = ["all", "nifty50", "nifty100"]
-    interval = ["day", "week", "hour"]
+    index = list(read_config(get_app_path("index_stock.yaml")).keys())
+    stocks = read_config(get_app_path("selected_stocks.yaml"))["stock"]
+    interval = list(
+        read_config(get_app_path("indicator.yaml"))["indicator"]["data"].keys()
+    )
     list = ["<list>"]
     number = ["<number>"]
     ohlc = ["close", "open", "high", "low"]
-    indicator = ["ma", "ema"]
+    indicator = ["ma", "ema", "atr", "rsi"]
+    bbands = ["upperbband", "lowerbband", "middlebband"]
     word = ["<word>"]
+    condition = ["<condition>"]  # multiline condition
     operator = ["latest", "oldest", "minimum", "maximum", "average", "rate", "change"]
+    series = ["<series>"]
 
-    def __init__(self, logic=Callable, variables={}, step_version="v1") -> None:
+    def __init__(
+        self,
+        logic=Callable,
+        variables={},
+        step_version="v2",
+        placeholders={},
+        query_type=QueryType.QUERY,
+        meta={},
+    ) -> None:
         self.logic = logic
         self.variables = variables
         self.step_version = step_version
+        self.placeholders = placeholders
+        self.query_type = query_type
+        self.meta = meta
 
     def eval_operator(self, operator, span: int, data: numpy.array):
         if operator in self.operator:
             if operator == "latest":
                 return data[-1]
-            elif operator == "first":
+            elif operator == "oldest":
                 return data[0]
             elif operator == "minimum":
                 return numpy.min(data)
@@ -128,6 +175,8 @@ def get_matched_step(rule: str, steps: dict) -> dict:
             result["matched"] = True
             result["match"] = match
             result["func"] = step_data.logic
+            result["query_type"] = step_data.query_type.value
+            result["meta"] = step_data.meta
             break
     return result
 
@@ -206,3 +255,8 @@ def update_df(
     elif pipe_type == PipeType.PASS:
         ret = df
     return ret
+
+
+if __name__ == "__main__":
+    ch = StepData.stocks
+    print(ch)

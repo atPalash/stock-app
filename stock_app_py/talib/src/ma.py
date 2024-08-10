@@ -13,6 +13,7 @@ class Ma(Indicator):
         )
 
     def _do_analysis(self, latest=1):
+        self.parse_indicator_setting(self.parameter["indicator_setting"], ["window"])
         ma = talib.MA(
             self.ohlc[self.parameter["ohlc"]], timeperiod=int(self.parameter["window"])
         )

@@ -37,6 +37,9 @@ class System(SystemIf):
             "database_dir": parameter.get("database_dir", get_app_path("database")),
             "gherkin": parameter.get("gherkin", ""),
             "indicator": parameter.get("indicator", "ema"),
+            "indicator_setting": parameter.get(
+                "indicator_setting", ""
+            ),  # comma separated config
             "interval": parameter.get("interval", "day"),
             "index": parameter.get("index", "^NSEI"),
             "index_csv": parameter.get(
@@ -47,6 +50,7 @@ class System(SystemIf):
             "macd_fast_period": int(parameter.get("macd_fast_period", "13")),
             "macd_slow_period": int(parameter.get("macd_slow_period", "26")),
             "macd_signal_period": int(parameter.get("macd_signal_period", "9")),
+            "ma_type": int(parameter.get("ma_type", "0")),  # bb ma type
             "n": int(parameter.get("n", "10")),
             "ohlc": parameter.get("ohlc", "Close"),
             "panda": int(parameter.get("panda", "0")),
@@ -56,7 +60,9 @@ class System(SystemIf):
             "ticker": parameter.get("ticker", "all"),
             "window": int(parameter.get("window", "20")),
             "stage2scannertype": parameter.get("stage2scannertype", "ma"),
+            "std_deviation": int(parameter.get("std_deviation", 5)),  # bb std deviation
             "ticker_df": parameter.get("ticker_df", None),
+            "username": parameter.get("username", ""),
         }
 
         return parameters

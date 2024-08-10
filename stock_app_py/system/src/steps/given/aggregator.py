@@ -1,17 +1,30 @@
 from stock_app_py.system.src.steps.given import stocks
-from stock_app_py.system.src.steps.common import StepData
+from stock_app_py.system.src.steps.common import (
+    QueryType,
+    StepData,
+    VariablePlaceholder,
+    VariableTypes,
+)
 
 
 def get_steps():
     return {
-        # r'^(\w+) (\d+) stocks$': get_stocks_in_index,
-        r"^(\w+) stocks$": StepData(
-            logic=stocks.get_index_stocks, variables={0: StepData.index}
+        r"^stocks from index (\w+(?:,*\s*\w*)*)$": StepData(
+            logic=stocks.get_stocks,
+            variables={3: StepData.index},
+            placeholders={3: VariablePlaceholder.MULTISELECTION.value},
+            query_type=QueryType.ANY,
+            meta={
+                3: {"type": VariableTypes.INDEX.value},
+            },
         ),
-        r"^stocks (\w+(?:,*\s*\w*)*)$": StepData(
-            logic=stocks.get_stocks, variables={1: StepData.list}
-        ),
-        r"^stocks (\w+(?:,*\s*\w*)*)$": StepData(
-            logic=stocks.get_stocks, variables={1: StepData.list}
+        r"^stocks from list (\w+(?:,*\s*\w*)*)$": StepData(
+            logic=stocks.get_stocks,
+            variables={3: StepData.stocks},
+            placeholders={3: VariablePlaceholder.MULTISELECTION.value},
+            query_type=QueryType.ANY,
+            meta={
+                3: {"type": VariableTypes.TICKER.value},
+            },
         ),
     }

@@ -105,15 +105,15 @@ class YahooScheduler(Scheduler):
         )
         scheduler.start()
 
-    def forceDownload(self, inter=""):
+    def forceDownload(self, inter="", ticker="all"):
         if inter == "":
             for interval in self.indicator_config["indicator"]["data"]:
-                self.__periodic_download(interval=interval)
+                self.__periodic_download(interval=interval, ticker=ticker)
         else:
-            self.__periodic_download(interval=inter)
+            self.__periodic_download(interval=inter, ticker=ticker)
         # self.__weekly_fundamental_download()
 
-    def __periodic_download(self, interval: str):
+    def __periodic_download(self, interval: str, ticker="all"):
         """Analysis method will include all the possible combination of the indicators.
         Donot call this method directly to avoid confusion, use the above methods.
 
@@ -122,8 +122,8 @@ class YahooScheduler(Scheduler):
             add_latest (bool, optional): _description_. Defaults to False.
         """
         try:
-            print(f'DEBUG yahoo scheduler {interval}')
-            query = f"yahoofinance --ticker all --interval {interval} --do get --pandas 0  --csv 1"
+            print(f"DEBUG yahoo scheduler {interval}")
+            query = f"yahoofinance --ticker {ticker} --interval {interval} --do get --pandas 0  --csv 1"
             # just download the data, only print the errors
             ret = self.system_command_handler.execute(message=query, is_rest=False)
             if ret.errors != "":
@@ -149,4 +149,4 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
-    scheduler.forceDownload()
+    scheduler.forceDownload(inter="day")

@@ -2,6 +2,7 @@ import pandas
 
 from stock_app_py.system.base.system import System
 from stock_app_py.system.interface.system_if import RetVal
+from stock_app_py.talib.src.bbands import Bbands
 from stock_app_py.talib.src.ema import Ema
 from stock_app_py.talib.src.macd import Macd
 from stock_app_py.talib.src.rsi import Rsi
@@ -51,7 +52,11 @@ class TalibQuery(System):
             "rsi": Rsi,
             "rsiline": RsiLine,
             "ma": Ma,
-            "atr": Volatility, # TODO rename
+            "atr": Volatility,  # TODO rename
+            "bbands": Bbands,
+            "upperbband": Bbands,
+            "lowerbband": Bbands,
+            "middlebband": Bbands,
         }
 
         self.commands = {
@@ -60,7 +65,7 @@ class TalibQuery(System):
         }
 
     def __call_indicator(self) -> pandas.DataFrame:
-        ticker_df = self.parameter.get('ticker_df')
+        ticker_df = self.parameter.get("ticker_df")
         if ticker_df is None:
             ticker_ohlc_csv_path = f"{self.indicator_config['indicator']['data'][self.parameter['interval']]}/{self.parameter['ticker']}.csv"
             ticker_df = pandas.read_csv(ticker_ohlc_csv_path)
@@ -119,7 +124,12 @@ if __name__ == "__main__":
     yf = TalibQuery(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,
-        parameter={"indicator": "volatility", "do": "get", "ticker": "ABB"},
+        parameter={
+            "indicator": "upperbband",
+            "do": "get",
+            "ticker": "TATAMOTORS",
+            "window": 20,
+        },
         command_handler=commandHandler,
         name="",
     )

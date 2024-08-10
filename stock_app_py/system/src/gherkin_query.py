@@ -118,9 +118,9 @@ class GherkinQuery(System):
                         hard_coded_tick_count = 20
                     if "relative" in step["text"]:
                         hard_coded_tick_count = 5
-                    step[
-                        "text"
-                    ] = f"backtest for last {hard_coded_tick_count} ticks | {step_text}"
+                    step["text"] = (
+                        f"backtest for last {hard_coded_tick_count} ticks | {step_text}"
+                    )
                     current_keyword = "When "
                 elif keyword == "Then " or (
                     current_keyword == "Then " and keyword in conjunction_keyword
@@ -249,7 +249,7 @@ if __name__ == "__main__":
     g_query = """Feature: v1
 I want to query to get a list of turtle S1 stocks
 Scenario: test
-Given nifty100 stocks
+Given stocks from index nifty100
 When day close ma 50 < close
 * day close ma 150 < close
 * day close ma 200 < close
@@ -281,7 +281,7 @@ Then get list
     print("elasped time", time.time() - start)
 
 """
-Given nifty100 stocks
+Given stocks from index nifty100
 When day close ma 50 < close
 * day close ma 150 < close
 * day close ma 200 < close

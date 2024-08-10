@@ -1,8 +1,4 @@
-import json
-import multiprocessing
 import time
-import re
-
 import pandas
 
 from stock_app_py.system.base.system import System
@@ -44,7 +40,7 @@ class GherkinGenericQuery(System):
 
         e.g.
         #1 create the stock list
-        Given nifty100 stocks -> selects stocks
+        Given stocks from index nifty100 -> selects stocks
         * remove stocks under surveillance -> filters stocks
         #1 -------------------------------------> create a dict with ticker + ohlc data
 
@@ -107,6 +103,7 @@ class GherkinGenericQuery(System):
                 )
         return {}
 
+    # @profile
     def __get(self) -> RetVal:
         try:
             check = gherkin_parser.parse(gherkin_string=self.parameter["gherkin"])
@@ -119,12 +116,16 @@ class GherkinGenericQuery(System):
             if scenario != "" and feature == "v2":
                 query_df = pandas.DataFrame(columns=["ticker", "error"])
                 current_keyword = ""
+                then_logic_names = []
                 for step in check["scenarios"][scenario]:
                     try:
+                        if query_df["error"].apply(lambda x: x != "").any():
+                            break
                         errors = ""
                         keyword = step["keyword"].strip()
                         step_text = step["text"]
                         regex_steps = []
+
                         if keyword in conjunction_keyword:
                             regex_steps = self.steps[current_keyword]
                         else:
@@ -179,6 +180,11 @@ class GherkinGenericQuery(System):
                                     matched_step["match"].groups(),
                                     query_df["ticker"].to_list(),
                                 )
+                                # hack hack hack
+                                for k in list(ticker_df_map.keys()):
+                                    if ticker_df_map[k] is None:
+                                        query_df = query_df[query_df["ticker"] != k]
+                                        del ticker_df_map[k]
                                 query_df = when_step.execute(
                                     matched_step,
                                     None,
@@ -204,6 +210,11 @@ class GherkinGenericQuery(System):
                                     step_version=self.step_version,
                                     query_df=query_df,
                                 )
+                                # add then list statement as logic
+                                if "list" in matched_step["match"].string:
+                                    then_logic_names.append(
+                                        matched_step["match"].groups()[0]
+                                    )
                             else:
                                 raise Exception(
                                     f"Exception in matching keyword {keyword}"
@@ -216,22 +227,41 @@ class GherkinGenericQuery(System):
 
                 # Get the last column which is the combination of logic and get tickers
                 # which satisfy.
-                ret_tickers = query_df[query_df["logic"]]["ticker"].to_list()
+                ret_tickers = []
                 errors = ""
+                ret_logic_tickers = {}
                 if query_df["error"].values[0] != "":
                     errors = (
                         query_df["error"].values[0].split(":")[1]
                     )  # Assuming syntax errors
+                elif "series" in query_df.columns:
+                    # A series of data signifying condition check and indicator data
+                    ret_tickers = query_df["ticker"][0]
+                elif len(then_logic_names) > 0:
+                    temp = set()
+                    for logic in then_logic_names:
+                        tickers = query_df[query_df[logic]]["ticker"].to_list()
+                        temp.update(tickers)
+                        ret_logic_tickers[logic] = tickers
+                    ret_tickers = list(sorted(temp))
+                else:
+                    ret_tickers = query_df[query_df["logic"]]["ticker"].to_list()
                 self.query_df_dict[scenario] = {
                     "query_df": query_df,
                     "tickers": ret_tickers,
+                    "logic_tickers": ret_logic_tickers,
                     "errors": errors,
                 }
                 self.query_df_json[scenario] = "None"
                 if errors == "":
                     self.query_df_json[scenario] = {
-                        "query_df": query_df.to_json(orient="records"),
+                        "query_df": (
+                            query_df["series"][0].to_json(orient="records")
+                            if "series" in query_df.columns
+                            else query_df.to_json(orient="records")
+                        ),
                         "tickers": ret_tickers,
+                        "logic_tickers": ret_logic_tickers,
                         "errors": errors,
                     }
                 return RetVal(
@@ -256,44 +286,16 @@ class GherkinGenericQuery(System):
 if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
-    g_query = """Feature: v2
-    Scenario: test
-    Given nifty50 stocks
-    * remove stocks under surveillance
-    * remove other stocks
-    When let ema10_change = change in 30 day close ema 10
-    Then get tickers with ema10_change > 0.1
-    When let ema10 = latest in 1 day close ema 10
-    * let ema20 = latest in 1 day close ema 20
-    * let low = latest in 1 day low
-    * let high = latest in 1 day high
-    * let close = latest in 1 day close
-    * let atr = latest in 1 day close atr 14
-    * let ma150 = latest in 1 day close ma 150
-    * let ma200 = latest in 1 day close ma 200
-    * let ma50 = latest in 1 day close ma 50
-    * let rate_ma200 = rate in 60 day close ma 200
-    * let wk_52low = minimum in 52 week close
-    * let wk_52high = maximum in 52 week close
-    Then let close_ma50 = close > ma50
-    * let close_ma150 = close > ma150
-    * let close_ma200 = close > ma200
-    * let ma50_ma150 = ma50 > ma150
-    * let ma50_ma200 = ma50 > ma200
-    * let ma150_ma200 = ma150 > ma200
-    * let uptrend200 = rate_ma200 > 0
-    * let close_52wklow = close > 1.25 * wk_52low
-    * let close_52wkhigh = close > 0.75 * wk_52high
-    * get tickers with close_ma50 and close_ma150 and close_ma200 and ma50_ma150 and ma50_ma200 and ma150_ma200 and uptrend200 and close_52wklow and close_52wkhigh
-    """
-    # g_query = """Feature: v2
-    # I want to query to get a list of turtle S1 stocks
-    # Scenario: test
-    # Given stocks ABB, TRENT
-    # When let ema10_change = change in 30 day close ema 10
-    # Then get tickers with ema10_change > 0.25
-    # """
-
+    g_query = """
+Feature: v2
+Scenario: test
+Given stocks from index nifty50
+When let close = latest in 1 samples of day close
+* let open = latest in 1 samples of day open
+Then let diff = close - open
+* list posMovers = tickers with diff > 0
+* list negMovers = tickers with diff < 0
+"""
     start = time.time()
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
@@ -312,17 +314,25 @@ if __name__ == "__main__":
     # check.obj["test"]["query_df"].to_csv("query_df.csv", index=False)
     print(check.errors)
     print(check.obj["test"]["tickers"])
+    print(check.obj["test"]["logic_tickers"]["posMovers"])
+    print(check.obj["test"]["logic_tickers"]["negMovers"])
     print("elasped time", time.time() - start)
 
-"""I want to query to get a list of turtle S1 stocks
+"""Feature: v2
 Scenario: test
-Given nifty50 stocks
-* add stocks ABB
-* add stocks MEDANTA, GLS, TCS
-* remove stocks under surveillance
-* remove stocks AXISBANK
-* remove stocks MEDANTA
-When let slope_ema10 = slope in 5 day close ema 10
-* let ema20 = latest in 5 day close ema 20
-Then get tickers with ema10 > ema20
+Given stocks from index nifty50
+* stocks from index niftybank
+When let changeEma10 = change in 30 samples of day close ema 10
+Then get tickers with changeEma10 > 0.1
+When let close = latest in 1 samples of day close
+* let ma150 = latest in 1 samples of day close ma 150
+* let ma200 = latest in 1 samples of day close ma 200
+* let ma50 = latest in 1 samples of day close ma 50
+* let rateMa200 = rate in 60 samples of day close ma 200
+* let wk52Low = minimum in 52 samples of week close
+* let wk52High = maximum in 52 samples of week close
+Then let closeMaComparison = close > ma50 and close > ma150 and close > ma200
+* let maComparison = ma50 > ma150 and ma150 > ma200
+* let closeOhlcComparision = close > 1.25 * wk52Low and close > 0.75 * wk52High
+* get tickers with closeMaComparison and maComparison and closeOhlcComparision and rateMa200 > 0
 """

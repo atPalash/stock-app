@@ -5,6 +5,7 @@ from stock_app_py.interface.commandHandlerIf import (
     get_commands_as_str,
 )
 
+from stock_app_py.system.src.indicator_list import IndicatorList
 from stock_app_py.utility.src.yaml_parser import read_config
 from stock_app_py.utility.src.message_parser import parse_message
 
@@ -26,6 +27,7 @@ class CommandHandler(CommandHandlerIf):
         from stock_app_py.system.src.stage2_scanner import Stage2Scanner
         from stock_app_py.system.src.nse_stock_list import NseStockList
         from stock_app_py.system.src.user_config import UserConfig
+        from stock_app_py.system.src.user_login import UserLogin
 
         super().__init__()
         self.commands = {
@@ -41,6 +43,8 @@ class CommandHandler(CommandHandlerIf):
             "rsrating": RsRating,
             "statementlist": StatementList,
             "userconfig": UserConfig,
+            "userlogin": UserLogin,
+            "indicatorlist": IndicatorList,
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml

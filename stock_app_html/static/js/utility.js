@@ -1,4 +1,4 @@
-var url = 'https://gorgeous-turtle-loudly.ngrok-free.app'
+var url = 'https://tight-strongly-liger.ngrok-free.app'
 // var url = 'http://localhost:8087'
 async function apiPost(endPoint, query) {
     var response = await fetch(`${url}/${endPoint}`, {

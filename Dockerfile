@@ -47,4 +47,4 @@ RUN usermod -aG sudo palash
 
 USER ${USERNAME}
 RUN ngrok config add-authtoken ${NGROK_AUTH_TOKEN}
-ENTRYPOINT ["./runner.sh"]
+# ENTRYPOINT ["./runner.sh"]

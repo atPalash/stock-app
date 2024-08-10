@@ -16,6 +16,6 @@ python stock_app_py/scheduler/main.py &
 P2=$!
 
 # Start ngrok -> 8087, this will tunnel the domain to localhost
-ngrok http 8087 --domain gorgeous-turtle-loudly.ngrok-free.app &
+ngrok http 8087 --domain=tight-strongly-liger.ngrok-free.app &
 P3=$!
 wait $P1 $P2 $P3
