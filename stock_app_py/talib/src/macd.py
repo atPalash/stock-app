@@ -23,6 +23,10 @@ class Macd(Indicator):
         )
 
     def _do_analysis(self, latest=True):
+        self.parse_indicator_setting(
+            self.parameter["indicator_setting"],
+            ["window", "macd_fast_period", "macd_slow_period", "macd_signal_period"],
+        )
         macd, macdsignal, macdhist = talib.MACD(
             self.ohlc[self.parameter["ohlc"]],
             fastperiod=self.parameter["macd_fast_period"],

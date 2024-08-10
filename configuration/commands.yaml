@@ -13,7 +13,7 @@ gherkin:
 Feature: Stage2 stocks
 I want to query to get a list of stage 2 stocks
 Scenario: list stocks in stage 2 uptrend
-Given nifty100 stocks
+Given stocks from index nifty100
 When day close ma 50 < close
 * day close ma 150 < close
 * day close ma 200 < close
@@ -116,7 +116,7 @@ Then get list of all match
 Feature: Stage2 nifty100
 I want to query to get a list of turtle S1 stocks
 Scenario: Stage2 nifty100
-Given nifty100 stocks
+Given stocks from index nifty100
 When relative strength > 70
 * day close ma 50 < close
 * day close ma 150 < close
@@ -140,7 +140,7 @@ v2:
 Feature: something
 I want to query to get a list of turtle S1 stocks
 Scenario: test
-Given nifty50 stocks
+Given stocks from index nifty50
 When let rel_str = latest in 60 day close rs_rating
 Then get tickers with rel_str > 0.9
 When let atr = latest in 1 day close atr 14

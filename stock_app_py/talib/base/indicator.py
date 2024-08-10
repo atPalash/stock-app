@@ -27,3 +27,11 @@ class Indicator(IndicatorIf):
         """
         self._do_analysis(latest=with_latest_minute)
         return self.ohlc
+
+    def parse_indicator_setting(self, setting: str, keys: list):
+        if setting != "":
+            settings = setting.replace(" ", "").split(",")
+            i = 0
+            for setting in settings:
+                self.parameter[keys[i]] = setting
+                i += 1

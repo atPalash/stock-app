@@ -72,14 +72,17 @@ class StatementList(System):
 
         def make_regex_dict(steps: dict, stepType: str):
             for regex, val in steps.items():
-                regex_dict[regex] = {"type": stepType, "variables": val.variables}
+                regex_dict[regex] = {
+                    "type": stepType,
+                    "variables": val.variables,
+                    "placeholders": val.placeholders,
+                    "query_type": val.query_type.value,
+                    "meta": val.meta,
+                }
 
         make_regex_dict(given_aggregator.get_steps(), "given")
         make_regex_dict(when_aggregator.get_steps(), "when")
         make_regex_dict(then_aggregator.get_steps(), "then")
-
-        temp_statements = []
-        added_keywords = []
 
         def make_statement(regex: str, options: dict, position: int):
             """Recursion to create a list of strings containing different combination
@@ -99,47 +102,35 @@ class StatementList(System):
                 options (dict): supported values of each regex plaeholder
                 position (int): the current placeholder whose options are being checked.
             """
-            if position < 0:
-                temp_statements.append(regex.replace("^", "").replace("$", ""))
-            else:
-                option_pos = regex.split(" ")
-                if position in options:
-                    for option in options[position]:
-                        temp_pos = option_pos
-                        temp_pos[position] = option
-                        temp = " ".join(temp_pos).replace("^", "")
-                        if do_append(statement=temp):
-                            make_statement(temp, options=options, position=position + 1)
-                            if "(" not in temp or ")" not in temp:
-                                temp_statements.append(temp.replace("$", ""))
+            sample_statement = ""
+            split_statement = regex.replace("^", "").replace("$", "").split(" ")
+            for i in range(len(split_statement)):
+                if i in options:
+                    sample_statement += options[i][0] + " "
                 else:
-                    if position < len(option_pos):
-                        make_statement(regex, options=options, position=position + 1)
-
-        def do_append(statement: str) -> bool:
-            key_word = statement.split()[0]
-            for step in temp_statements:
-                step_key_word = step.split()[0]
-                if key_word == step_key_word:
-                    return False
-            return True
+                    sample_statement += split_statement[i] + " "
+            return sample_statement.strip()
 
         for regx, values in regex_dict.items():
-            temp_statements.clear()
-            added_keywords.clear()
             # User queries for backtest for selected stock in context, not required
             # as an query statement.
             if "backtest" not in regx:
                 val = values["variables"]
+                placeholders = values["placeholders"]
+                query_type = values["query_type"]
+                meta = values["meta"]
                 if len(val.keys()) > 0:
-                    make_statement(
+                    sample_statement = make_statement(
                         regex=regx, options=val, position=list(val.keys())[0]
                     )
                     self.statement_map[values["type"].capitalize()].append(
                         {
                             "regex": regx,
                             "variables": val,
-                            "statements": temp_statements.copy(),
+                            "statements": sample_statement,
+                            "placeholders": placeholders,
+                            "query_type": query_type,
+                            "meta": meta,
                         }
                     )
 
@@ -166,6 +157,6 @@ if __name__ == "__main__":
     # https://www.niftyindices.com/IndexConstituent/ind_niftyoilgaslist.csv
     # javascript:;
     start_time = time.time()
-    data = yf.debug()
+    print(yf.debug())
     print("--- %s seconds ---" % (time.time() - start_time))
     # print(data.obj)

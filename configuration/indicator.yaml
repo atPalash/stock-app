@@ -4,8 +4,8 @@ indicator:
     day: "database/ohlc/day"
     hour: "database/ohlc/hour"
     week: "database/ohlc/week"
-    minute: "database/ohlc/minute"
-    minute5: "database/ohlc/minute5"
+    # minute: "database/ohlc/minute"
+    # minute5: "database/ohlc/minute5"
     minute15: "database/ohlc/minute15"
     minute30: "database/ohlc/minute30"
   plot:
@@ -13,3 +13,76 @@ indicator:
     hour: "database/plot/hour"
     week: "database/plot/week"
   fundamental: "database/fundamentals"
+  configurations: [
+      {
+        "id": "ema",
+        "label": "Exponential moving average",
+        "variables":
+          [
+            {
+              "control": "input",
+              "label": "window",
+              "type": "int",
+              "default": 14,
+            },
+            {
+              "control": "selection",
+              "label": "color",
+              "type": "str",
+              "default": "red",
+            },
+          ],
+      },
+      {
+        "id": "ma",
+        "label": "Simple moving average",
+        "variables":
+          [
+            {
+              "control": "input",
+              "label": "window",
+              "type": "int",
+              "default": 14,
+            },
+            {
+              "control": "selection",
+              "label": "color",
+              "type": "str",
+              "default": "red",
+            },
+          ],
+      },
+      {
+        #TODO
+        "id": "BB",
+        "label": "Bollinger bands",
+        "variables":
+          [
+            {
+              "control": "input",
+              "label": "window",
+              "type": "int",
+              "default": 14,
+            },
+          ],
+      },
+      {
+        "indicator": "signal",
+        "label": "Signals",
+        "variables":
+          [
+            {
+              "control": "input",
+              "label": "condition",
+              "type": "str",
+              "default": "",
+            },
+            {
+              "control": "selection",
+              "label": "color",
+              "type": "str",
+              "default": "red",
+            },
+          ],
+      },
+    ]

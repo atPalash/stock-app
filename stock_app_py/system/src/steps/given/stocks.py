@@ -1,12 +1,14 @@
 import stock_app_py.system.src.command_handler as executor
 from stock_app_py.system.src.steps.given import aggregator
+from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src.steps import given
 from stock_app_py.system.src.steps import common
+from stock_app_py.utility.src.yaml_parser import read_config
 
 
 @given
 def get_index_stocks(
-    selected_stocks_yaml: str, indicator_config_yaml: str, groups: tuple
+    selected_stocks_yaml: str, indicator_config_yaml: str, index: str
 ) -> list:
     """Get a list of stocks based on criteria.
 
@@ -24,7 +26,6 @@ def get_index_stocks(
         list: list of tickers
     """
     try:
-        index = groups[0]
         command_handler = executor.CommandHandler(
             selected_stocks_yaml, indicator_config_yaml
         )
@@ -66,10 +67,10 @@ def get_stocks(
     text_in = groups[0]
     if text_in == "under surveillance":
         return __get_surveillance_stocks(selected_stocks_yaml, indicator_config_yaml)
-    elif "," in text_in:
-        return __extract_stock_list(text_in)
     elif text_in != "":
-        return [text_in]
+        return __extract_stock_list(
+            selected_stocks_yaml, indicator_config_yaml, text_in
+        )
     else:
         raise Exception(
             f"{get_stocks.__name__} doesn't support the query with {text_in}"
@@ -92,9 +93,24 @@ def __get_surveillance_stocks(
         raise
 
 
-def __extract_stock_list(stock_list: str):
+def __extract_stock_list(selected_stocks_yaml, indicator_config_yaml, stock_list: str):
     try:
         ticker_str = stock_list.replace(" ", "")
-        return ticker_str.split(",") if "," in ticker_str else [ticker_str]
+        ids = ticker_str.split(",")
+        index_list = list(read_config(get_app_path("index_stock.yaml")).keys())
+        tickers = []
+        for id in ids:
+            if id in index_list:
+                index_tickers = get_index_stocks(
+                    selected_stocks_yaml, indicator_config_yaml, id
+                )
+                for ticker in index_tickers:
+                    if ticker not in tickers:
+                        tickers.append(ticker)
+            else:
+                if id not in tickers:
+                    tickers.append(id)
+        return tickers
+
     except Exception as e:
         raise

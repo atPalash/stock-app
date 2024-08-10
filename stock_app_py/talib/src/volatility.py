@@ -12,8 +12,12 @@ class Volatility(Indicator):
         )
 
     def _do_analysis(self, latest=1):
+        self.parse_indicator_setting(self.parameter["indicator_setting"], ["window"])
         atr = talib.ATR(
-            self.ohlc['High'], self.ohlc['Low'], self.ohlc['Close'], timeperiod=int(self.parameter["window"])
+            self.ohlc["High"],
+            self.ohlc["Low"],
+            self.ohlc["Close"],
+            timeperiod=int(self.parameter["window"]),
         )
         atr = numpy.around(atr, decimals=2)
         self.ohlc.loc[:, "atr"] = atr

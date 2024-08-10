@@ -11,16 +11,18 @@ def execute(
     pipe_type: PipeType,
     selected_stocks_config_file: str,
     indicator_config_file: str,
-    step_version: str = 'v1',
-    query_df: pandas.DataFrame = None
+    step_version: str = "v1",
+    query_df: pandas.DataFrame = None,
 ):
     func_ret = matched_step["func"](
-            selected_stocks_config_file,
-            indicator_config_file,
-            matched_step["match"].groups(),
+        selected_stocks_config_file,
+        indicator_config_file,
+        matched_step["match"].groups(),
+    )
+    if step_version == "v2":
+        piped_tickers = common.pipe_ticker_list(
+            query_df["ticker"].tolist(), func_ret, pipe_type
         )
-    if step_version == 'v2':
-        piped_tickers = common.pipe_ticker_list(query_df['ticker'].tolist(), func_ret, pipe_type)
         query_df = common.update_df(query_df, piped_tickers, pipe_type)
         return query_df
     else:
@@ -40,8 +42,8 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
 
-    query = f"remove stocks under surveillance"
-    # query = f"all stocks"
+    # query = f"remove stocks under surveillance"
+    query = f"stocks from nifty50, niftybank, niftyauto"
     # query = "day close > high of last 20 ticks"
     matched_step = common.get_matched_step(query, aggregator.get_steps())
     result = execute(

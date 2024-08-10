@@ -14,6 +14,7 @@ class Rsi(Indicator):
         )
 
     def _do_analysis(self, latest=True):
+        self.parse_indicator_setting(self.parameter["indicator_setting"], ["window"])
         rsi = talib.RSI(
             self.ohlc[self.parameter["ohlc"]], timeperiod=int(self.parameter["window"])
         )

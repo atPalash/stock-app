@@ -11,7 +11,7 @@ from stock_app_py.utility.src.path_helper import get_app_path
 
 def __download_df_from_yahoo(tickers, period, interval):
     try:
-        logging.getLogger('yfinance').setLevel(logging.ERROR)
+        logging.getLogger("yfinance").setLevel(logging.ERROR)
         data = yf.download(
             tickers=tickers,
             period=period,
@@ -20,7 +20,7 @@ def __download_df_from_yahoo(tickers, period, interval):
             group_by="ticker",
             rounding=True,
             actions=True,
-            threads=10
+            threads=10,
         )
         data = data.dropna()
         return data
@@ -170,11 +170,11 @@ def download_stock_stats(tickers: list, destination):
 if __name__ == "__main__":
     try:
         download_historical_data(
-            tickers=["63MOONS.NS"],
+            tickers=["ABB.NS"],
             period="5y",
             interval="1d",
             as_csv=True,
-            destination="test",
+            destination="/home/palash/app/stock_app_py/yahoofinance/src/test",
         )
     except Exception as e:
         print("ERROR", e.args)

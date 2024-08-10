@@ -1,0 +1,111 @@
+{
+    "admin": {
+        "password": "admin",
+        "configs": {
+            "config1": {
+                "queries": {
+                    "0:Scenario:Nifty 100 mover": {
+                        "gherkin": "Feature: v2\nScenario:Nifty 100 mover\nGiven stocks from index nifty100\nWhen let changeEma10 = change in 30 samples of day close ema 10\nThen get tickers with changeEma10 > 0.1\nWhen let close = latest in 1 samples of day close\n* let ma150 = latest in 1 samples of day close ma 150\n* let ma200 = latest in 1 samples of day close ma 200\n* let ma50 = latest in 1 samples of day close ma 50\n* let rateMa200 = rate in 60 samples of day close ma 200\n* let wk52Low = minimum in 52 samples of week close\n* let wk52High = maximum in 52 samples of week close\nThen get tickers with close > ma50\n* get tickers with close > ma150\n* get tickers with close > ma200\n* get tickers with ma50 > ma150\n* get tickers with ma150 > ma200\n* get tickers with ma50 > 200\n* get tickers with close > 1.25 * wk52Low\n* get tickers with close > 0.75 * wk52High\n* get tickers with rateMa200 > 0\n",
+                        "regex": "Feature: v2\nScenario:Nifty 100 mover\nGiven ^(\\w+) stocks$\nWhen ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^get tickers with (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\nThen ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n"
+                    },
+                    "1:Scenario:Nifty 50 mover": {
+                        "gherkin": "Feature: v2\nScenario:Nifty 50 mover\nGiven stocks from index nifty50\nWhen let changeEma10 = change in 30 samples of day close ema 10\nThen get tickers with changeEma10 > 0.1\nWhen let close = latest in 1 samples of day close\n* let ma150 = latest in 1 samples of day close ma 150\n* let ma200 = latest in 1 samples of day close ma 200\n* let ma50 = latest in 1 samples of day close ma 50\n* let rateMa200 = rate in 60 samples of day close ma 200\n* let wk52Low = minimum in 52 samples of week close\n* let wk52High = maximum in 52 samples of week close\nThen get tickers with close > ma50\n* get tickers with close > ma150\n* get tickers with close > ma200\n* get tickers with ma50 > ma150\n* get tickers with ma150 > ma200\n* get tickers with ma50 > 200\n* get tickers with close > 1.25 * wk52Low\n* get tickers with close > 0.75 * wk52High\n* get tickers with rateMa200 > 0\n",
+                        "regex": "Feature: v2\nScenario:Nifty 50 mover\nGiven ^(\\w+) stocks$\nWhen ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^get tickers with (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\nThen ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n"
+                    }
+                },
+                "default": false
+            },
+            "config2": {
+                "queries": {
+                    "0:Scenario:palash": {
+                        "gherkin": "Feature: v2\nScenario:Palash\nGiven stocks from index nifty100\nWhen let changeEma10 = change in 30 samples of day close ema 10\nThen get tickers with changeEma10 > 0.1\nWhen let close = latest in 1 samples of day close\n* let ma150 = latest in 1 samples of day close ma 150\n* let ma200 = latest in 1 samples of day close ma 200\n* let ma50 = latest in 1 samples of day close ma 50\n* let rateMa200 = rate in 60 samples of day close ma 200\n* let wk52Low = minimum in 52 samples of week close\n* let wk52High = maximum in 52 samples of week close\nThen get tickers with close > ma50\n* get tickers with close > ma150\n* get tickers with close > ma200\n* get tickers with ma50 > ma150\n* get tickers with ma150 > ma200\n* get tickers with ma50 > 200\n* get tickers with close > 1.25 * wk52Low\n* get tickers with close > 0.75 * wk52High\n* get tickers with rateMa200 > 0\n",
+                        "regex": "Feature: v2\nScenario:Palash\nGiven ^(\\w+) stocks$\nWhen ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^get tickers with (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+)$\nThen ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n* ^get tickers with (.+)$\n"
+                    }
+                },
+                "default": true
+            }
+        }
+    },
+    "palash": {
+        "password": "palash",
+        "configs": {
+            "test": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from list ABB, TCS\nWhen let ema10 = latest in 1 samples of day close ema 10\n* let ema20 = latest in 1 samples of day close ema 20\n* let bbupper = latest in 1 samples of day close upperbband 20\n* let bblower = latest in 1 samples of day close lowerbband 20\nThen let emagap = abs(ema20 - ema10)\n* let bbgap = abs(bbupper - bblower)\n* get tickers with emagap < bbgap * 0.02\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\nThen ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^get tickers with (.+)$\n"
+                    }
+                }
+            },
+            "error": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from index nifty50\nWhen let changeEma10 = change in 30 samples of day close ema 10\nThen get tickers with changeEma10 > 0.1\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from index (\\w+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^get tickers with (.+)$\n"
+                    }
+                }
+            },
+            "new": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from index nifty50\nWhen let changeEma10 = change in 30 samples of day close ema 10\nThen get tickers with changeEma10 > 0.1\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from index (\\w+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^get tickers with (.+)$\n"
+                    }
+                }
+            },
+            "rsi": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from list ABB, TCS\nWhen let rsi = latest in 1 samples of day close rsi 14\nThen get tickers with rsi > 48\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^get tickers with (.+)$\n"
+                    }
+                }
+            },
+            "Bbands": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from list ABB, TCS\nWhen let lowerBband = latest in 1 samples of day close lowerbband 20\n* let upperBband = latest in 1 samples of day close upperbband 20\nThen get tickers with upperBband - lowerBband > 0\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\nThen ^get tickers with (.+)$\n"
+                    }
+                }
+            },
+            "BbandsEma": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from list ABB,TCS\nWhen let lowerBband = latest in 1 samples of day close lowerbband 20\n* let upperBband = latest in 1 samples of day close upperbband 20\n* let ema10 = latest in 1 samples of day close ema 10\n* let ema100 = latest in 1 samples of day close ema 10\n* let ema200 = latest in 1 samples of day close ema 200\nThen let ema10U = ema10 < upperBband\n* let ema200U = ema200 < upperBband\n* let ema100U = ema100 < upperBband\n* let ema10L = ema10 > lowerBband\n* let ema100L = ema100 > lowerBband\n* let ema200L = ema200 > lowerBband\n* let upper = ema10U and ema200U and ema100U\n* let lower =  ema10L and ema100L and ema200L\n* get tickers with upper and lower\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^get tickers with (.+)$\n"
+                    }
+                }
+            },
+            "BbandsEma2": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from list ABB,TCS\nWhen let lowerBband = latest in 1 samples of day close lowerbband 20\n* let upperBband = latest in 1 samples of day close upperbband 20\n* let ema10 = latest in 1 samples of day close ema 10\n* let ema100 = latest in 1 samples of day close ema 10\n* let ema200 = latest in 1 samples of day close ema 200\nThen let rangeUpper = ema10 < upperBband and ema100 < upperBband and ema200 < upperBband\n* let rangeLower = ema10 > lowerBband and ema100 > lowerBband and ema200 > lowerBband\n* get tickers with rangeUpper and rangeLower\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^get tickers with (.+)$\n"
+                    }
+                }
+            },
+            "testVcp0": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from index niftylargemidcap250\nWhen let ema10 = latest in 1 samples of day close ema 10\n* let ema100 = latest in 1 samples of day close ema 100\n* let bbupper = latest in 1 samples of day close upperbband 20\n* let bblower = latest in 1 samples of day close lowerbband 20\nThen let emagap = abs(ema100 - ema10)\n* let bbgap = abs(bbupper - bblower)\n* get tickers with emagap < bbgap * 0.02\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^stocks from index (\\w+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+(?:,\\s?\\d+)*)$\nThen ^let (\\w+) = (.+)$\n* ^let (\\w+) = (.+)$\n* ^get tickers with (.+)$\n"
+                    }
+                }
+            }
+        }
+    },
+    "asit": {
+        "password": "asit",
+        "configs": {
+            "test": {
+                "queries": {
+                    "0:Scenario:Relative Strength": {
+                        "gherkin": "Feature: v2\nScenario:Relative Strength\nGiven stocks from index nifty50\nWhen let ema = latest in 1 samples of day close ema 20\nThen get tickers with ema>1000\n",
+                        "regex": "Feature: v2\nScenario:Relative Strength\nGiven ^(\\w+) stocks$\nWhen ^let (\\w+) = (\\w+) in (\\d+) (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^get tickers with (.+)$\n"
+                    }
+                }
+            }
+        }
+    }
+}

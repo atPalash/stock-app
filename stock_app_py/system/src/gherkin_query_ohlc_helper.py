@@ -4,6 +4,7 @@ import subprocess
 import time
 import pandas
 import csv
+
 # from stock_app_py.system.src.command_handler import CommandHandler
 from stock_app_py.system.src.yahoo_finance import YahooFinance
 
@@ -68,8 +69,8 @@ class GherkinQueryOhlcHelper(System):
             name="",
         )
         self.gherkin_ohlc = {}
-        for interval,duration in self.yf.get_intervals_duration().items():
-            self.gherkin_ohlc[interval] = { 'duration': duration }
+        for interval, duration in self.yf.get_intervals_duration().items():
+            self.gherkin_ohlc[interval] = {"duration": duration}
 
     def __get(self, interval: str, ticker: str) -> pandas.DataFrame:
         """Return dict with selected stocks.
@@ -94,22 +95,27 @@ class GherkinQueryOhlcHelper(System):
         for interval in intervals:
             self.gherkin_ohlc[interval]["timestamp"] = timestamp_minutes
             for ticker in tickers:
-                ret = self.yf.read_ohlc(interval=interval, ticker=ticker)
+                ret = RetVal(obj=None, errors="")
+                try:
+                    ret = self.yf.read_ohlc(interval=interval, ticker=ticker)
+                except Exception as e:
+                    print("ERROR yahoo gherking ohlc make", ret.errors, ticker)
                 self.gherkin_ohlc[interval][ticker] = ret.obj
-                if ret.errors != "":
-                    print("ERROR yahoo gherking ohlc make", ret.errors)
+                # TODO check what to do with errors
 
     def get_intervals(self) -> list:
         return self.gherkin_ohlc.keys()
 
-    def get_interval_map(self, interval:str, tickers:list):
+    def get_interval_map(self, interval: str, tickers: list):
         # first check if update is required, i.e the timestamp is older than interval
-        if 'timestamp' not in self.gherkin_ohlc[interval]:
+        if "timestamp" not in self.gherkin_ohlc[interval]:
             self.__update(intervals=[interval], tickers=tickers)
         else:
             timestamp_minutes = time.time() / 60
-            last_update_time = self.gherkin_ohlc[interval]['timestamp']
-            if (timestamp_minutes - last_update_time) > self.gherkin_ohlc[interval]['duration']:
+            last_update_time = self.gherkin_ohlc[interval]["timestamp"]
+            if (timestamp_minutes - last_update_time) > self.gherkin_ohlc[interval][
+                "duration"
+            ]:
                 self.__update(intervals=[interval], tickers=tickers)
         return self.gherkin_ohlc[interval]
 

@@ -58,12 +58,20 @@ class Webserver(Server):
         def financials_query():
             return self.handle_request(req=request)
 
-        @self.app.route("/statements-query", methods=["GET", "POST"])
+        @self.app.route("/statements", methods=["GET", "POST"])
         def statements_query():
             return self.handle_request(req=request)
 
         @self.app.route("/user-config", methods=["GET", "POST"])
         def user_config():
+            return self.handle_request(req=request)
+
+        @self.app.route("/user-login", methods=["GET", "POST"])
+        def user_login():
+            return self.handle_request(req=request)
+
+        @self.app.route("/indicators", methods=["GET", "POST"])
+        def indicators_query():
             return self.handle_request(req=request)
 
     def handle_request(self, req: request):

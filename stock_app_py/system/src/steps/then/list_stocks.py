@@ -13,7 +13,7 @@ def calculate(groups, query_df: pandas.DataFrame) -> pandas.DataFrame:
     logic = groups[0]
     # If logic was set earlier we ignore the earlier one, since the tickers should
     # be already filtered out with that logic.
-    query_df["logic"] = False
+    query_df["logic"] = None
     for index, row in query_df.iterrows():
         try:
             # Assume eval_expr is a string representing an evaluatable expression

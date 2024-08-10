@@ -182,3 +182,22 @@ Then {err_step}
     assert obj_str["test"] == "None"
     assert len(abb_series) == 0
     assert len(tcs_series) == 0
+
+
+def test_on_gherkin_query_error_break():
+    g_query = f"""Feature: v2
+    Scenario: test
+    Given stocks ABB, TCS
+    When let chEma10 = change in 30 day close ema 10
+    Then get tickers with chEma10 s> 0.1
+    When let chMa10 = change in 28 day close ma 10
+    Then get tickers with chMa10 > 0.1
+    """
+    obj_str, err, abb_series, tcs_series = init(g_query=g_query)
+    assert (
+        err["error"]
+        == "('invalid syntax', ('<string>', 1, 9, 'chEma10 s> 0.1', 1, 10))"
+    )
+    assert obj_str["test"] == "None"
+    assert len(abb_series) == 0
+    assert len(tcs_series) == 0

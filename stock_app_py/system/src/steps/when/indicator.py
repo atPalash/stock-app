@@ -169,13 +169,23 @@ def calculate(
     command_handler = executor.CommandHandler(
         selected_stocks_yaml, indicator_config_yaml
     )
-    variable_id, operator, query_span, interval, ohlc_source, indicator, window = groups
+    (
+        variable_id,
+        operator,
+        query_span,
+        interval,
+        ohlc_source,
+        indicator,
+        indicator_setting,
+    ) = groups
     query_span = int(query_span)
     indicator_query = f"talibquery --ticker {ticker} \
                 --interval {interval} --do get --csv 0 \
-                --indicator {indicator} --window {window} --n 1000 \
+                --indicator {indicator} --indicator_setting {indicator_setting} --n 1000 \
                 --ohlc {ohlc_source.capitalize()}"
-    temp_df = command_handler.execute(indicator_query, is_rest=False, ticker_df=ticker_df).obj
+    temp_df = command_handler.execute(
+        indicator_query, is_rest=False, ticker_df=ticker_df
+    ).obj
     temp_df = (
         temp_df.tail(query_span)
         .reset_index(drop=True)
@@ -192,3 +202,25 @@ def calculate(
         "span": query_span,
         "exception": None,
     }
+
+
+@when
+def plot(
+    selected_stocks_yaml,
+    indicator_config_yaml,
+    ticker,
+    groups,
+    query_df=None,
+    ticker_df=None,
+    lookback_window: int = -1,
+) -> dict:
+    groups = groups[:1] + ("series",) + groups[1:]
+    return calculate(
+        selected_stocks_yaml,
+        indicator_config_yaml,
+        ticker,
+        groups,
+        query_df,
+        ticker_df,
+        lookback_window,
+    )
