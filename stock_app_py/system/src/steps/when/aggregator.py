@@ -1,4 +1,5 @@
 from stock_app_py.system.src.steps.common import QueryType, StepData, VariableTypes
+from stock_app_py.system.src.steps.then import condition
 from stock_app_py.system.src.steps.when import (
     backtest,
     eps,

@@ -176,6 +176,7 @@ def get_matched_step(rule: str, steps: dict) -> dict:
             result["match"] = match
             result["func"] = step_data.logic
             result["query_type"] = step_data.query_type.value
+            result["meta"] = step_data.meta
             break
     return result
 

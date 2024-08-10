@@ -1,14 +1,34 @@
 import stock_app_py.system.src.steps.common as comm
 from stock_app_py.system.src.steps.common import QueryType, StepData, VariableTypes
-from stock_app_py.system.src.steps.then import color, list_stocks, signals, condition
+from stock_app_py.system.src.steps.then import color, condition, list_stocks, signals
 
 
 def get_steps():
     return {
-        # get tickers with <logic>
-        r"^get tickers with (.+)$": StepData(
+        # list tickers with <logic>, user can ask for multiple list names
+        r"^list (\w+) = tickers with (.+)$": StepData(
             logic=list_stocks.calculate,
-            variables={3: StepData.condition},
+            variables={
+                1: StepData.word,
+                5: StepData.condition,
+            },
+            query_type=QueryType.QUERY,
+            meta={
+                1: {"type": VariableTypes.NAME.value},
+                5: {"type": VariableTypes.CONDITION.value},
+            },
+        ),
+        r"^let (\w+) = (.+)$": StepData(
+            logic=condition.calculate,
+            variables={
+                1: StepData.word,
+                3: StepData.condition,
+            },
+            query_type=QueryType.QUERY,
+            meta={
+                1: {"type": VariableTypes.NAME.value},
+                3: {"type": VariableTypes.CONDITION.value},
+            },
         ),
         #   0   1    2   3      4     5
         r"^plot (\w+) = signals with (.+)$": StepData(
@@ -20,20 +40,6 @@ def get_steps():
             meta={
                 1: {"type": VariableTypes.NAME.value},
                 5: {"type": VariableTypes.CONDITION.value},
-            },
-            query_type=QueryType.CHART,
-        ),
-        r"^let (\w+) = (.+)$": StepData(
-            logic=condition.calculate,
-            variables={
-                1: StepData.word,
-                3: StepData.condition,
-            },
-        ),
-        r"^get signals with (.+)$": StepData(
-            logic=signals.calculate,
-            variables={
-                3: StepData.condition,
             },
             query_type=QueryType.CHART,
         ),

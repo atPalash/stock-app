@@ -1,6 +1,5 @@
 import pandas
 from stock_app_py.utility.src.steps import then
-from stock_app_py.system.src.steps import common
 
 
 @then

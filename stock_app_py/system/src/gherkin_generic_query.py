@@ -116,6 +116,7 @@ class GherkinGenericQuery(System):
             if scenario != "" and feature == "v2":
                 query_df = pandas.DataFrame(columns=["ticker", "error"])
                 current_keyword = ""
+                then_logic_names = []
                 for step in check["scenarios"][scenario]:
                     try:
                         if query_df["error"].apply(lambda x: x != "").any():
@@ -124,6 +125,7 @@ class GherkinGenericQuery(System):
                         keyword = step["keyword"].strip()
                         step_text = step["text"]
                         regex_steps = []
+
                         if keyword in conjunction_keyword:
                             regex_steps = self.steps[current_keyword]
                         else:
@@ -208,6 +210,11 @@ class GherkinGenericQuery(System):
                                     step_version=self.step_version,
                                     query_df=query_df,
                                 )
+                                # add then list statement as logic
+                                if "list" in matched_step["match"].string:
+                                    then_logic_names.append(
+                                        matched_step["match"].groups()[0]
+                                    )
                             else:
                                 raise Exception(
                                     f"Exception in matching keyword {keyword}"
@@ -222,6 +229,7 @@ class GherkinGenericQuery(System):
                 # which satisfy.
                 ret_tickers = []
                 errors = ""
+                ret_logic_tickers = {}
                 if query_df["error"].values[0] != "":
                     errors = (
                         query_df["error"].values[0].split(":")[1]
@@ -229,11 +237,19 @@ class GherkinGenericQuery(System):
                 elif "series" in query_df.columns:
                     # A series of data signifying condition check and indicator data
                     ret_tickers = query_df["ticker"][0]
+                elif len(then_logic_names) > 0:
+                    temp = set()
+                    for logic in then_logic_names:
+                        tickers = query_df[query_df[logic]]["ticker"].to_list()
+                        temp.update(tickers)
+                        ret_logic_tickers[logic] = tickers
+                    ret_tickers = list(sorted(temp))
                 else:
                     ret_tickers = query_df[query_df["logic"]]["ticker"].to_list()
                 self.query_df_dict[scenario] = {
                     "query_df": query_df,
                     "tickers": ret_tickers,
+                    "logic_tickers": ret_logic_tickers,
                     "errors": errors,
                 }
                 self.query_df_json[scenario] = "None"
@@ -245,6 +261,7 @@ class GherkinGenericQuery(System):
                             else query_df.to_json(orient="records")
                         ),
                         "tickers": ret_tickers,
+                        "logic_tickers": ret_logic_tickers,
                         "errors": errors,
                     }
                 return RetVal(
@@ -269,20 +286,16 @@ class GherkinGenericQuery(System):
 if __name__ == "__main__":
     from stock_app_py.system.src.command_handler import CommandHandler
 
-    # g_query = """Feature: v2
-    # Scenario: test
-    # Given stocks from list ABB
-    # When plot ema10 = 60 samples of hour close ema 10
-    # * plot ema20 = 60 samples of hour close ema 20
-    # Then plot emaSignal = signals with ema10 > ema20
-    # """
-    # g_query = """Feature: v2
-    # Scenario: test
-    # Given stocks from list ABB, TCS
-    # When let ema10Ch = change in 30 samples of day close ema 10
-    # Then get tickers with ema10Ch > 0.1
-    # """
-    g_query = "Feature: v2\nScenario: EmaChange\nGiven stocks from index nifty50​\nWhen let ema10Ch​ = change​ in 30​ samples of day​ close​ ema​ 10​\nThen get tickers with ema10Ch > 0.1​\n"
+    g_query = """
+Feature: v2
+Scenario: test
+Given stocks from index nifty50
+When let close = latest in 1 samples of day close
+* let open = latest in 1 samples of day open
+Then let diff = close - open
+* list posMovers = tickers with diff > 0
+* list negMovers = tickers with diff < 0
+"""
     start = time.time()
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
@@ -301,6 +314,8 @@ if __name__ == "__main__":
     # check.obj["test"]["query_df"].to_csv("query_df.csv", index=False)
     print(check.errors)
     print(check.obj["test"]["tickers"])
+    print(check.obj["test"]["logic_tickers"]["posMovers"])
+    print(check.obj["test"]["logic_tickers"]["negMovers"])
     print("elasped time", time.time() - start)
 
 """Feature: v2
