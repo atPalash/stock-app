@@ -3,6 +3,7 @@ import pandas
 import json
 from stock_app_py.system.base.system import System
 from stock_app_py.system.interface.system_if import RetVal
+from stock_app_py.system.src.steps.common import StepData
 
 
 class Webserver(System):
@@ -70,10 +71,8 @@ class Webserver(System):
             ret[indicator] = self.__get_tickers()
         elif indicator == "gherkin":
             gherkin_query = f'gherkinquery --gherkin {self.parameter["gherkin"]}'
-            result = self.command_handler.execute(
-                gherkin_query, is_rest=False
-            )
-            if result.errors['error'] == "":
+            result = self.command_handler.execute(gherkin_query, is_rest=False)
+            if result.errors["error"] == "":
                 ret["gherkin"] = result.obj_as_string
             else:
                 ret["gherkin"] = result.errors
@@ -84,6 +83,8 @@ class Webserver(System):
             ret[indicator] = self.command_handler.execute(
                 financials_query, is_rest=False
             ).obj
+        elif indicator == "intervals":
+            ret[indicator] = StepData.interval
         else:
             for ticker in tickers:
                 try:
