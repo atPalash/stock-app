@@ -6,6 +6,7 @@ from stock_app_py.interface.commandHandlerIf import (
 )
 
 from stock_app_py.system.src.indicator_list import IndicatorList
+from stock_app_py.system.src.ticker_event import TickerEvent
 from stock_app_py.utility.src.yaml_parser import read_config
 from stock_app_py.utility.src.message_parser import parse_message
 
@@ -45,6 +46,7 @@ class CommandHandler(CommandHandlerIf):
             "userconfig": UserConfig,
             "userlogin": UserLogin,
             "indicatorlist": IndicatorList,
+            "tickerevent": TickerEvent,
         }
         self.selected_stocks_yaml = selected_stocks_yaml
         self.indicator_config_yaml = indicator_config_yaml

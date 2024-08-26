@@ -1,4 +1,5 @@
 build/*
+StockAppApi/build
 dockerfiles
 .vscode
 database

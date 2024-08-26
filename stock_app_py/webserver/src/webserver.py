@@ -74,6 +74,10 @@ class Webserver(Server):
         def indicators_query():
             return self.handle_request(req=request)
 
+        @self.app.route("/ticker-event", methods=["GET", "POST"])
+        def ticker_event():
+            return self.handle_request(req=request)
+
     def handle_request(self, req: request):
         if request.method == "POST":
             try:

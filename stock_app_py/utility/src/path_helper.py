@@ -42,6 +42,7 @@ mapped_config = {
     "templates": __dir_path_html,
     "EQUITY_L.csv": __file_path,
     "test_indicator.yaml": __file_path,
+    "CF-Event-equities.csv": __file_path,
 }
 helper_file_path = Path(__file__)
 
