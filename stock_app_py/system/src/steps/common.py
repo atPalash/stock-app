@@ -74,7 +74,7 @@ class StepData:
     )
     list = ["<list>"]
     number = ["<number>"]
-    ohlc = ["close", "open", "high", "low"]
+    ohlc = ["close", "open", "high", "low", "volume"]
     indicator = ["ma", "ema", "atr", "rsi"]
     bbands = ["upperbband", "lowerbband", "middlebband"]
     word = ["<word>"]

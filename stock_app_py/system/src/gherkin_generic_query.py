@@ -290,11 +290,10 @@ if __name__ == "__main__":
 Feature: v2
 Scenario: test
 Given stocks from index nifty50
-When let close = latest in 1 samples of day close
-* let open = latest in 1 samples of day open
-Then let diff = close - open
-* list posMovers = tickers with diff > 0
-* list negMovers = tickers with diff < 0
+When let volume = latest in 1 samples of day volume
+* let avgVolume = average in 10 samples of day volume
+Then let condition = volume > avgVolume
+* list breaker = tickers with condition
 """
     start = time.time()
     indicator_config_yaml = get_app_path("indicator.yaml")
@@ -314,8 +313,7 @@ Then let diff = close - open
     # check.obj["test"]["query_df"].to_csv("query_df.csv", index=False)
     print(check.errors)
     print(check.obj["test"]["tickers"])
-    print(check.obj["test"]["logic_tickers"]["posMovers"])
-    print(check.obj["test"]["logic_tickers"]["negMovers"])
+    print(check.obj["test"]["logic_tickers"]["breaker"])
     print("elasped time", time.time() - start)
 
 """Feature: v2
