@@ -79,7 +79,16 @@ class StepData:
     bbands = ["upperbband", "lowerbband", "middlebband"]
     word = ["<word>"]
     condition = ["<condition>"]  # multiline condition
-    operator = ["latest", "oldest", "minimum", "maximum", "average", "rate", "change"]
+    operator = [
+        "latest",
+        "oldest",
+        "minimum",
+        "maximum",
+        "average",
+        "rate",
+        "change",
+        "slope",
+    ]
     series = ["<series>"]
 
     def __init__(
@@ -114,6 +123,8 @@ class StepData:
                 return round((data[-1] - data[0]) / span, 2)
             elif operator == "change":
                 return round((data[-1] - data[0]) / data[0], 2)
+            elif operator == "slope":
+                return round(numpy.polyfit(numpy.arange(len(data)), data, 1)[0], 2)
         else:
             raise Exception(f"No matching operator found {operator}")
 

@@ -292,7 +292,8 @@ Scenario: test
 Given stocks from index nifty50
 When let volume = latest in 1 samples of day volume
 * let avgVolume = average in 10 samples of day volume
-Then let condition = volume > avgVolume
+* let slope = slope in 10 samples of day volume
+Then let condition = volume > avgVolume and slope < 0
 * list breaker = tickers with condition
 """
     start = time.time()
