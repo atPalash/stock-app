@@ -69,9 +69,16 @@ class YahooScheduler(Scheduler):
             # elif interval == 'minute':
             #     scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*',
             #                       day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-            # elif interval == 'minute5':
-            #     scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*/5',
-            #                       day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
+            elif interval == "minute5":
+                scheduler.add_job(
+                    self.__periodic_download,
+                    "cron",
+                    hour="9-16",
+                    minute="*/5",
+                    day_of_week="mon-fri",
+                    timezone=pytz.timezone("Asia/Kolkata"),
+                    args=[interval],
+                )
             elif interval == "minute15":
                 scheduler.add_job(
                     self.__periodic_download,

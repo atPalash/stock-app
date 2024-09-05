@@ -5,7 +5,7 @@ indicator:
     hour: "database/ohlc/hour"
     week: "database/ohlc/week"
     # minute: "database/ohlc/minute"
-    # minute5: "database/ohlc/minute5"
+    minute5: "database/ohlc/minute5"
     minute15: "database/ohlc/minute15"
     minute30: "database/ohlc/minute30"
   plot:
