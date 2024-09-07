@@ -75,8 +75,8 @@ def get_result_double_df(
 
 def get_steps():
     return {
-        #  let ema20 = latest in  5   samples of day  close  ema   <otpional number paramaters>
-        #  0    1    2  3    4    5     6     7   8     9     10        11
+        #  let ema20 = latest in  5   samples of day  close  ema    window
+        #  0    1    2  3    4    5     6     7   8     9     10    11
         r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (\w+) (\w+) (\d+)$": StepData(
             logic=indicator.calculate,
             variables={
@@ -117,6 +117,29 @@ def get_steps():
                 9: StepData.ohlc,
             },
             step_version="v2",
+        ),
+        #  plot close = 5     samples of  day  close
+        #   0   1    2 3     4       5    6     7
+        r"^plot (\w+) = (\d+) samples of (\w+) (\w+)$": StepData(
+            logic=ohlc.plot,
+            variables={
+                1: StepData.word,
+                3: StepData.number,
+                6: StepData.interval,
+                7: StepData.ohlc,
+            },
+            step_version="v2",
+            query_type=QueryType.CHART,
+            meta={
+                1: {"type": VariableTypes.NAME.value},
+                3: {"type": VariableTypes.SAMPLES.value},
+                6: {
+                    "type": VariableTypes.INTERVAL.value,
+                    "readOnly": True,
+                    "listenerId": "onIntervalChange",
+                },
+                7: {"type": VariableTypes.OHLC.value},
+            },
         ),
         #   0    1    2   3      4    5    6     7     8     9
         r"^plot (\w+) = (\d+) samples of (\w+) (\w+) (\w+) (\d+)$": StepData(

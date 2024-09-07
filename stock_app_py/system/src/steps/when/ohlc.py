@@ -83,6 +83,7 @@ def ohlc_window_compare(
     except Exception as e:
         return {"ticker": ticker, "exception": e.args}
 
+
 @when
 def calculate(
     selected_stocks_yaml,
@@ -116,3 +117,25 @@ def calculate(
         "span": query_span,
         "exception": None,
     }
+
+
+@when
+def plot(
+    selected_stocks_yaml,
+    indicator_config_yaml,
+    ticker,
+    groups,
+    query_df=None,
+    ticker_df=None,
+    lookback_window: int = -1,
+) -> dict:
+    groups = groups[:1] + ("series",) + groups[1:]
+    return calculate(
+        selected_stocks_yaml,
+        indicator_config_yaml,
+        ticker,
+        groups,
+        query_df,
+        ticker_df,
+        lookback_window,
+    )
