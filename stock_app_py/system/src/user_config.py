@@ -42,6 +42,7 @@ class UserConfig(System):
             "get": self.__get,
             "update": self.__update,
             "remove": self.__remove,
+            "users": self.__users,
         }
         self.users_config = get_app_path("users_config.json")
 
@@ -128,8 +129,27 @@ class UserConfig(System):
             err = e.args[0]
         return RetVal(obj="", obj_as_str="None", errors=err)
 
+    def __users(self) -> RetVal:
+        ret = None
+        err = ""
+        try:
+            # Open a file for writing
+            with open(self.users_config, "r+") as f:
+                saved_config = f.read()
+                saved_config = json.loads(saved_config)
+                users = []
+                for k, v in saved_config.items():
+                    users.append({"username": k, "password": v["password"]})
+                ret = {
+                    "ok": True,
+                    "users": users,
+                }
+        except Exception as e:
+            err = e.args[0]
+        return RetVal(obj=ret, obj_as_str="dict of users and passwords", errors=err)
+
     def debug_update(self):
-        self.__update()
+        self.__users()
 
 
 if __name__ == "__main__":
