@@ -8,16 +8,9 @@
                         {
                             "title": "test",
                             "timeout": "1",
-                            "gherkin": "Given stocks from index nifty50\nWhen let close = latest in 1 samples of day close\nThen list sads = tickers with close > 1000\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
+                            "gherkin": "Given stocks from list 20MICRONS\nWhen let close = latest in 1 samples of day close\nThen list sads = tickers with close > 1000\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
                             "index": 0
-                        },
-                        {
-                            "title": "Consolidation",
-                            "timeout": "2",
-                            "gherkin": "Given stocks from index nifty100, nifty100lowvolatility30, nifty100quality30, nifty200, nifty200alp, nifty200moment, nifty200quali, nifty50, nifty500, nifty500multicap50, niftyauto, niftybank, niftycommodities, niftyconsumerdurables, niftycpse, niftyenergy, niftyfmcg, niftyindiadig, niftyindiamanufactu, niftyit, niftylargemidcap250, niftymedia, niftymetal, niftymicroca, niftymidcap100, niftymidcap150, niftymidcap150moment, niftymidcap150quality50, niftymidcap50, niftymidcapse, niftymidsmallcap400, niftymnc, niftynext50, niftyoilgas, niftypharma, niftypse, niftypsubank, niftyrealty, niftysmallcap100, niftysmallcap250, niftysmallcap50, niftytotalma\nWhen let ema10Change = change in 30 samples of day close ema 10\n* let atrChange = change in 10 samples of day close atr 14\n* let ema5Change = change in 10 samples of day close ema 5\nThen list bullflag = tickers with ema10Change > 0.1 and ( atrChange < 0 and  abs(ema5Change) < 0.03)\n* list bearFlag = tickers with ema10Change < 0 and abs(ema10Change) > 0.1 and ( atrChange < 0 and  abs(ema5Change) < 0.03)\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
-                            "index": 1
                         }
                     ]
                 },
@@ -27,42 +20,42 @@
                             "title": "Movers",
                             "timeout": "1",
                             "gherkin": "Given stocks from index nifty100, nifty100lowvolatility30, nifty100quality30, nifty200, nifty200alp, nifty200moment, nifty200quali, nifty50, nifty1, nifty1multicap50, niftyauto, niftybank, niftycommodities, niftyconsumerdurables, niftycpse, niftyenergy, niftyfmcg, niftyindiadig, niftyindiamanufactu, niftyit, niftylargemidcap250, niftymedia, niftymetal, niftymicroca, niftymidcap100, niftymidcap150, niftymidcap150moment, niftymidcap150quality50, niftymidcap50, niftymidcapse, niftymidsmallcap400, niftymnc, niftynext50, niftyoilgas, niftypharma, niftypse, niftypsubank, niftyrealty, niftysmallcap100, niftysmallcap250, niftysmallcap50, niftytotalma\nWhen let open = latest in 1 samples of day open\n* let close = latest in 1 samples of day close\n* let high = latest in 1 samples of day high\n* let low = latest in 1 samples of day low\nThen let condition = (close - open) / open \n* list upMovers = tickers with condition > 0.05\n* list downMovers = tickers with condition < 0 and abs(condition) > 0.05\n* let dayLength = high - low\n* list hammer = tickers with close - low > 0.6 * dayLength and open - low > 0.6 * dayLength\n* list invertedHammer = tickers with abs(high - close) > 0.6 * dayLength and abs(high - open) > 0.6 * dayLength\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
                             "index": 0
                         },
                         {
                             "title": "PeakConsolidation",
-                            "timeout": "1",
+                            "timeout": "5",
                             "gherkin": "Given stocks from index nifty100, nifty100lowvolatility30, nifty100quality30, nifty200, nifty200alp, nifty200moment, nifty200quali, nifty50, nifty1, nifty1multicap50, niftyauto, niftybank, niftycommodities, niftyconsumerdurables, niftycpse, niftyenergy, niftyfmcg, niftyindiadig, niftyindiamanufactu, niftyit, niftylargemidcap250, niftymedia, niftymetal, niftymicroca, niftymidcap100, niftymidcap150, niftymidcap150moment, niftymidcap150quality50, niftymidcap50, niftymidcapse, niftymidsmallcap400, niftymnc, niftynext50, niftyoilgas, niftypharma, niftypse, niftypsubank, niftyrealty, niftysmallcap100, niftysmallcap250, niftysmallcap50, niftytotalma\nWhen let ema10Change = change in 30 samples of day close ema 10\n* let atrChange = change in 10 samples of day close atr 14\n* let ema5Change = change in 10 samples of day close ema 5\nThen list bullflag = tickers with ema10Change > 0.1 and ( atrChange < 0 and  abs(ema5Change) < 0.03)\n* list bearFlag = tickers with ema10Change < 0 and abs(ema10Change) > 0.1 and ( atrChange < 0 and  abs(ema5Change) < 0.03)\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
                             "index": 1
                         },
                         {
                             "title": "Peak5Consolidation",
-                            "timeout": "1",
-                            "gherkin": "Given stocks from index nifty1\nWhen let ema10Change = change in 30 samples of minute5 close ema 10\n* let atrChange = change in 10 samples of minute5 close atr 14\n* let ema5Change = change in 10 samples of minute5 close ema 5\nThen list bullflag = tickers with ema10Change > 0.01 and ( atrChange < 0 or  ema5Change < 0.02)\n* list bearFlag = tickers with ema10Change < 0 and abs(ema10Change) > 0.01 and ( atrChange < 0 or  ema5Change < 0.02)\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
+                            "timeout": "5",
+                            "gherkin": "Given stocks from index nifty500\nWhen let ema10Change = change in 30 samples of minute5 close ema 10\n* let atrChange = change in 10 samples of minute5 close atr 14\n* let ema5Change = change in 10 samples of minute5 close ema 5\nThen list bullflag = tickers with ema10Change > 0.01 and ( atrChange < 0 or  ema5Change < 0.02)\n* list bearFlag = tickers with ema10Change < 0 and abs(ema10Change) > 0.01 and ( atrChange < 0 or  ema5Change < 0.02)\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
                             "index": 2
                         },
                         {
                             "title": "emaCross",
-                            "timeout": "1",
-                            "gherkin": "Given stocks from index nifty1\nWhen let ema10Slope = slope in 10 samples of minute5 close ema 10\n* let ema20Slope = slope in 10 samples of minute5 close ema 20\nThen list downCross = tickers with ema10Slope < 0 and ema20Slope < 0 and ema20Slope > ema10Slope\n* list upCross = tickers with ema10Slope > 0 and ema20Slope > 0 and ema10Slope > ema20Slope\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
+                            "timeout": "5",
+                            "gherkin": "Given stocks from index nifty500\nWhen let ema10Slope = slope in 10 samples of minute5 close ema 10\n* let ema20Slope = slope in 10 samples of minute5 close ema 20\nThen list downCross = tickers with ema10Slope < 0 and ema20Slope < 0 and ema20Slope > ema10Slope\n* list upCross = tickers with ema10Slope > 0 and ema20Slope > 0 and ema10Slope > ema20Slope\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
                             "index": 3
                         },
                         {
                             "title": "VolumeMovers",
-                            "timeout": "1",
-                            "gherkin": "Given stocks from index nifty1\nWhen let vol = maximum in 5 samples of minute5 volume\n* let volAvg = average in 20 samples of minute5 volume\nThen list movera = tickers with vol > volAvg * 4\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
+                            "timeout": "5",
+                            "gherkin": "Given stocks from index nifty500\nWhen let vol = maximum in 5 samples of minute5 volume\n* let volAvg = average in 20 samples of minute5 volume\nThen list movers = tickers with vol > volAvg * 4\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
                             "index": 4
                         },
                         {
                             "title": "EmaCross",
-                            "timeout": "1",
-                            "gherkin": "Given stocks from index nifty1\nWhen let ema10T0 = latest in 1 samples of minute5 close ema 10\n* let ema10T1 = oldest in 2 samples of minute5 close ema 10\n* let ema20T0 = latest in 1 samples of minute5 close ema 20\n* let ema20T1 = oldest in 2 samples of minute5 close ema 20\nThen list cross = tickers with ema10T1 > ema20T1 and ema10T0 < ema20T0\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
+                            "timeout": "5",
+                            "gherkin": "Given stocks from index nifty500\nWhen let ema10T0 = latest in 1 samples of minute5 close ema 10\n* let ema10T1 = oldest in 2 samples of minute5 close ema 10\n* let ema20T0 = latest in 1 samples of minute5 close ema 20\n* let ema20T1 = oldest in 2 samples of minute5 close ema 20\nThen list cross = tickers with ema10T1 > ema20T1 and ema10T0 < ema20T0\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
                             "index": 5
                         }
                     ]
@@ -78,7 +71,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-0-chart-plotter-step-1\",\"color\":\"#fda1ff\",\"show\":true},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-0-chart-plotter-step-2\",\"color\":\"#fda1ff\",\"show\":true},{\"stepIndex\":3,\"id\":\"Signal-chart-area-0-chart-plotter-step-3\",\"color\":\"#68bc00\",\"show\":false}]"
                         },
                         {
@@ -86,7 +79,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n* plot ema2Signal = signals with ema20 > ema10\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n* ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n* ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-1-chart-plotter-step-1\",\"color\":\"#fda1ff\",\"show\":true},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-1-chart-plotter-step-2\",\"color\":\"#fda1ff\",\"show\":true},{\"stepIndex\":3,\"id\":\"Signal-chart-area-1-chart-plotter-step-3\",\"color\":\"#fa28ff\",\"show\":true},{\"stepIndex\":4,\"id\":\"Signal-chart-area-1-chart-plotter-step-4\",\"color\":\"#000\",\"show\":true}]"
                         }
                     ]
@@ -98,7 +91,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-0-chart-plotter-step-1\",\"color\":\"#000000\",\"show\":true},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-0-chart-plotter-step-2\",\"color\":\"#000000\",\"show\":true},{\"stepIndex\":3,\"id\":\"Signal-chart-area-0-chart-plotter-step-3\",\"color\":\"#68bc00\",\"show\":true}]"
                         },
                         {
@@ -106,7 +99,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-1-chart-plotter-step-1\",\"color\":\"#000\",\"show\":false},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-1-chart-plotter-step-2\",\"color\":\"#000\",\"show\":false},{\"stepIndex\":3,\"id\":\"Signal-chart-area-1-chart-plotter-step-3\",\"color\":\"#fa28ff\",\"show\":true}]"
                         }
                     ]
@@ -124,7 +117,7 @@
                             "title": "test",
                             "timeout": "1",
                             "gherkin": "Given stocks from index nifty50\nWhen let close = latest in 1 samples of day close\nThen list sads = tickers with close > 1000\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^list (\\w+) = tickers with (.+)$\n",
                             "index": 0
                         }
                     ]
@@ -135,7 +128,7 @@
                             "title": "Movers",
                             "timeout": "1",
                             "gherkin": "Given stocks from index nifty100, nifty100lowvolatility30, nifty100quality30, nifty200, nifty200alp, nifty200moment, nifty200quali, nifty50, nifty1, nifty1multicap50, niftyauto, niftybank, niftycommodities, niftyconsumerdurables, niftycpse, niftyenergy, niftyfmcg, niftyindiadig, niftyindiamanufactu, niftyit, niftylargemidcap250, niftymedia, niftymetal, niftymicroca, niftymidcap100, niftymidcap150, niftymidcap150moment, niftymidcap150quality50, niftymidcap50, niftymidcapse, niftymidsmallcap400, niftymnc, niftynext50, niftyoilgas, niftypharma, niftypse, niftypsubank, niftyrealty, niftysmallcap100, niftysmallcap250, niftysmallcap50, niftytotalma\nWhen let open = latest in 1 samples of day open\n* let close = latest in 1 samples of day close\n* let high = latest in 1 samples of day high\n* let low = latest in 1 samples of day low\nThen let condition = (close - open) / open \n* list upMovers = tickers with condition > 0.05\n* list downMovers = tickers with condition < 0 and abs(condition) > 0.05\n* let dayLength = high - low\n* list hammer = tickers with close - low > 0.6 * dayLength and open - low > 0.6 * dayLength\n* list invertedHammer = tickers with abs(high - close) > 0.6 * dayLength and abs(high - open) > 0.6 * dayLength\n",
-                            "regex": "Given ^stocks from index (\\w+(?:,*\\s*\\w*)*)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
+                            "regex": "Given ^stocks from index (.+)$\nWhen ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\n* ^let (\\w+) = (\\w+) in (\\d+) samples of (\\w+) (\\w+)$\nThen ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^let (\\w+) = (.+)$\n* ^list (\\w+) = tickers with (.+)$\n* ^list (\\w+) = tickers with (.+)$\n",
                             "index": 0
                         }
                     ]
@@ -151,7 +144,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-0-chart-plotter-step-1\",\"color\":\"#73d8ff\",\"show\":true},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-0-chart-plotter-step-2\",\"color\":\"#fda1ff\",\"show\":true},{\"stepIndex\":3,\"id\":\"Signal-chart-area-0-chart-plotter-step-3\",\"color\":\"#68bc00\",\"show\":false}]"
                         },
                         {
@@ -159,7 +152,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-1-chart-plotter-step-1\",\"color\":\"#73d8ff\",\"show\":true},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-1-chart-plotter-step-2\",\"color\":\"#fda1ff\",\"show\":true},{\"stepIndex\":3,\"id\":\"Signal-chart-area-1-chart-plotter-step-3\",\"color\":\"#fa28ff\",\"show\":false}]"
                         }
                     ]
@@ -171,7 +164,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-0-chart-plotter-step-1\",\"color\":\"#000000\",\"show\":true},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-0-chart-plotter-step-2\",\"color\":\"#000000\",\"show\":true},{\"stepIndex\":3,\"id\":\"Signal-chart-area-0-chart-plotter-step-3\",\"color\":\"#68bc00\",\"show\":true}]"
                         },
                         {
@@ -179,7 +172,7 @@
                             "ticker": "ABB",
                             "interval": "day",
                             "gherkin": "Given stocks from list ABB\nWhen plot ema10 = 100 samples of day close ema 10\n* plot ema20 = 100 samples of day close ema 20\nThen plot emaSignal = signals with ema10 > ema20\n",
-                            "regex": "Given ^stocks from list (\\w+(?:,*\\s*\\w*)*)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
+                            "regex": "Given ^stocks from list (.+)$\nWhen ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\n* ^plot (\\w+) = (\\d+) samples of (\\w+) (\\w+) (\\w+) (\\d+)$\nThen ^plot (\\w+) = signals with (.+)$\n",
                             "stepMetaData": "[{\"stepIndex\":1,\"id\":\"Indicator-chart-area-1-chart-plotter-step-1\",\"color\":\"#000\",\"show\":false},{\"stepIndex\":2,\"id\":\"Indicator-chart-area-1-chart-plotter-step-2\",\"color\":\"#000\",\"show\":false},{\"stepIndex\":3,\"id\":\"Signal-chart-area-1-chart-plotter-step-3\",\"color\":\"#fa28ff\",\"show\":true}]"
                         }
                     ]

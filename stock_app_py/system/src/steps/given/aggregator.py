@@ -9,7 +9,7 @@ from stock_app_py.system.src.steps.common import (
 
 def get_steps():
     return {
-        r"^stocks from index (\w+(?:,*\s*\w*)*)$": StepData(
+        r"^stocks from index (.+)$": StepData(
             logic=stocks.get_stocks,
             variables={3: StepData.index},
             placeholders={3: VariablePlaceholder.MULTISELECTION.value},
@@ -18,7 +18,7 @@ def get_steps():
                 3: {"type": VariableTypes.INDEX.value},
             },
         ),
-        r"^stocks from list (\w+(?:,*\s*\w*)*)$": StepData(
+        r"^stocks from list (.+)$": StepData(
             logic=stocks.get_stocks,
             variables={3: StepData.stocks},
             placeholders={3: VariablePlaceholder.MULTISELECTION.value},
