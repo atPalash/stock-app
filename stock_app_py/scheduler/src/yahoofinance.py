@@ -156,4 +156,4 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
-    scheduler.forceDownload(inter="day")
+    scheduler.forceDownload(inter="minute5")

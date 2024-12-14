@@ -91,7 +91,7 @@ def get_steps():
             step_version="v2",
         ),
         #  let upbband = latest in  5 samples of day  close  upperbband <otpional number paramaters>
-        #  0    1      2  3    4    5     6     7   8     9     10        11
+        #  0    1         2  3    4    5     6     7   8     9     10        11
         r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (\w+) (\w+) (\d+(?:,\s?\d+)*)$": StepData(
             logic=indicator.calculate,
             variables={

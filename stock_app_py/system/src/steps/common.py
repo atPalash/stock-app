@@ -87,7 +87,7 @@ class StepData:
         "average",
         "rate",
         "change",
-        "slope",
+        # "slope",
     ]
     series = ["<series>"]
 
@@ -109,22 +109,25 @@ class StepData:
 
     def eval_operator(self, operator, span: int, data: numpy.array):
         if operator in self.operator:
-            if operator == "latest":
-                return data[-1]
-            elif operator == "oldest":
-                return data[0]
-            elif operator == "minimum":
-                return numpy.min(data)
-            elif operator == "maximum":
-                return numpy.max(data)
-            elif operator == "average":
-                return round(numpy.mean(data), 2)
-            elif operator == "rate":
-                return round((data[-1] - data[0]) / span, 2)
-            elif operator == "change":
-                return round((data[-1] - data[0]) / data[0], 2)
-            elif operator == "slope":
-                return round(numpy.polyfit(numpy.arange(len(data)), data, 1)[0], 2)
+            try:
+                if operator == "latest":
+                    return data[-1]
+                elif operator == "oldest":
+                    return data[0]
+                elif operator == "minimum":
+                    return numpy.min(data)
+                elif operator == "maximum":
+                    return numpy.max(data)
+                elif operator == "average":
+                    return round(numpy.mean(data), 2)
+                elif operator == "rate":
+                    return round((data[-1] - data[0]) / span, 2)
+                elif operator == "change":
+                    return round((data[-1] - data[0]) / data[0], 2)
+                # elif operator == "slope":
+                #     return round(numpy.polyfit(numpy.arange(len(data)), data, 1)[0], 2)
+            except Exception as e:
+                raise Exception(f"Error in operator {operator} {e.args}")
         else:
             raise Exception(f"No matching operator found {operator}")
 
