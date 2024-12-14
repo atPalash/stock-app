@@ -181,6 +181,7 @@ class NseStockList(System):
         stocks in index. This method is to add the non-index stocks. It assumes
         the index stock yaml is created. Create the selected stock list and
         update index stock list
+        url - https://www.nseindia.com/market-data/securities-available-for-trading
         e.g.
         other:
             -20MICRON
@@ -199,13 +200,13 @@ class NseStockList(System):
                 non_index_stocks.append(stock)
 
         # Add to index stock as other
-        index_stocks['other'] = non_index_stocks
+        index_stocks["other"] = non_index_stocks
         save_config(index_stocks, get_app_path("index_stock.yaml"))
 
         # Add to selected stock
         selected_stocks = read_config(get_app_path("selected_stocks.yaml"))
-        selected_stocks['stock'] = unique_index_stocks + non_index_stocks
-        selected_stocks['stock'].sort()
+        selected_stocks["stock"] = unique_index_stocks + non_index_stocks
+        selected_stocks["stock"].sort()
         save_config(selected_stocks, get_app_path("selected_stocks.yaml"))
 
     def debug(self):
