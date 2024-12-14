@@ -7,6 +7,7 @@ from yahoofinancials import YahooFinancials
 
 from stock_app_py.utility.src import json_helper
 from stock_app_py.utility.src.path_helper import get_app_path
+from requests_ratelimiter import LimiterSession
 
 
 def __download_df_from_yahoo(tickers, period, interval):
@@ -20,7 +21,8 @@ def __download_df_from_yahoo(tickers, period, interval):
             group_by="ticker",
             rounding=True,
             actions=True,
-            threads=10,
+            threads=True,
+            session=LimiterSession(per_second=5),
         )
         data = data.dropna()
         return data
@@ -88,7 +90,48 @@ def download_historical_data(
         _type_: _description_
     """
     errors = ""
-    ret = None
+    ret = {}
+    start = time.time()
+
+    try:
+        batch = 10
+        counter = 0
+        while counter < len(tickers):
+            tickers_batch = tickers[counter : min(counter + batch, len(tickers))]
+            counter += batch
+            try:
+                ohlc_data = __download_df_from_yahoo(
+                    tickers=tickers_batch, period=period, interval=interval
+                )
+                for ticker in tickers_batch:
+                    try:
+                        df = ohlc_data[f"{ticker}"]
+                        if df is not None:
+                            csv_name = "{}/{}".format(destination, ticker.split(".")[0])
+                            df.to_csv(csv_name + ".csv")
+                            ret[ticker] = df
+                    except Exception as e:
+                        errors += f"{ticker}:{e.args}"
+            except Exception as e:
+                errors += f"{e.args}"
+    except Exception as e:
+        frameinfo = getframeinfo(currentframe())
+        errors += f"{frameinfo.filename, frameinfo.lineno}:{e.args}"
+    print(f"Total time taken for ohlc {interval}: {time.time() - start}")
+    return ret, errors
+
+
+def download_historical_data_old(
+    tickers: list,
+    period: int,
+    interval: int,
+    as_panda_df=False,
+    as_csv=False,
+    destination="",
+):
+    errors = ""
+    ret = {}
+    start = time.time()
     try:
         if as_csv:
             args = []
@@ -105,6 +148,7 @@ def download_historical_data(
     except Exception as e:
         frameinfo = getframeinfo(currentframe())
         errors += f"{frameinfo.filename, frameinfo.lineno}:{e.args}"
+    print(f"Total time taken for ohlc {interval}: {time.time() - start}")
     return ret, errors
 
 
