@@ -96,9 +96,8 @@ class YahooFinance(System):
         # Need to add NS to download stock ohlc from yahoo
         tickers = [f"{tick}.NS" for tick in tickers]
 
-        indices = self._get_indices()
-
-        tickers = tickers + indices
+        # indices = self._get_indices()
+        # tickers = tickers + indices
 
         df, err = download_historical_data(
             tickers=tickers,
@@ -109,6 +108,7 @@ class YahooFinance(System):
             destination=self.indicator_config["indicator"]["data"][
                 self.parameter["interval"]
             ],
+            version="v2",
         )
 
         return RetVal(obj=df, obj_as_str="pandas dataframe downloaded", errors=err)
@@ -181,10 +181,10 @@ class YahooFinance(System):
         except Exception as e:
             raise
 
-    def get_intervals_duration(self)->list:
+    def get_intervals_duration(self) -> list:
         return self.duration
 
-    def read_ohlc(self, interval:str, ticker:str)->RetVal:
+    def read_ohlc(self, interval: str, ticker: str) -> RetVal:
         self.parameter["interval"] = interval
         self.parameter["ticker"] = ticker
         return self.__get_ohlc()

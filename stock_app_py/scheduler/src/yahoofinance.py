@@ -28,48 +28,48 @@ class YahooScheduler(Scheduler):
     def run(self):
         scheduler = BackgroundScheduler()
         for interval in self.indicator_config["indicator"]["data"]:
-            self.__periodic_download(interval=interval)
-            if interval == "month":
-                scheduler.add_job(
-                    self.__periodic_download,
-                    "cron",
-                    hour="16",
-                    day_of_week="mon-fri",
-                    timezone=pytz.timezone("Asia/Kolkata"),
-                    args=[interval],
-                )
-            elif interval == "week":
-                scheduler.add_job(
-                    self.__periodic_download,
-                    "cron",
-                    hour="16",
-                    day_of_week="mon-fri",
-                    timezone=pytz.timezone("Asia/Kolkata"),
-                    args=[interval],
-                )
-            elif interval == "day":
-                scheduler.add_job(
-                    self.__periodic_download,
-                    "cron",
-                    hour="16",
-                    day_of_week="mon-fri",
-                    timezone=pytz.timezone("Asia/Kolkata"),
-                    args=[interval],
-                )
-            elif interval == "hour":
-                scheduler.add_job(
-                    self.__periodic_download,
-                    "cron",
-                    hour="9-16",
-                    minute="16",
-                    day_of_week="mon-fri",
-                    timezone=pytz.timezone("Asia/Kolkata"),
-                    args=[interval],
-                )
+            # self.__periodic_download(interval=interval)
+            # if interval == "month":
+            #     scheduler.add_job(
+            #         self.__periodic_download,
+            #         "cron",
+            #         hour="16",
+            #         day_of_week="mon-fri",
+            #         timezone=pytz.timezone("Asia/Kolkata"),
+            #         args=[interval],
+            #     )
+            # if interval == "week":
+            #     scheduler.add_job(
+            #         self.__periodic_download,
+            #         "cron",
+            #         hour="16",
+            #         day_of_week="mon-fri",
+            #         timezone=pytz.timezone("Asia/Kolkata"),
+            #         args=[interval],
+            #     )
+            # if interval == "day":
+            #     scheduler.add_job(
+            #         self.__periodic_download,
+            #         "cron",
+            #         hour="16",
+            #         day_of_week="mon-fri",
+            #         timezone=pytz.timezone("Asia/Kolkata"),
+            #         args=[interval],
+            #     )
+            # if interval == "hour":
+            #     scheduler.add_job(
+            #         self.__periodic_download,
+            #         "cron",
+            #         hour="9-16",
+            #         minute="16",
+            #         day_of_week="mon-fri",
+            #         timezone=pytz.timezone("Asia/Kolkata"),
+            #         args=[interval],
+            #     )
             # elif interval == 'minute':
             #     scheduler.add_job(self.__periodic_download, 'cron', hour='9-16', minute='*',
             #                       day_of_week='mon-fri', timezone=pytz.timezone('Asia/Kolkata'), args=[interval])
-            elif interval == "minute5":
+            if interval == "minute5":
                 scheduler.add_job(
                     self.__periodic_download,
                     "cron",
@@ -79,28 +79,27 @@ class YahooScheduler(Scheduler):
                     timezone=pytz.timezone("Asia/Kolkata"),
                     args=[interval],
                 )
-            elif interval == "minute15":
-                scheduler.add_job(
-                    self.__periodic_download,
-                    "cron",
-                    hour="9-16",
-                    minute="*/15",
-                    day_of_week="mon-fri",
-                    timezone=pytz.timezone("Asia/Kolkata"),
-                    args=[interval],
-                )
-            elif interval == "minute30":
-                scheduler.add_job(
-                    self.__periodic_download,
-                    "cron",
-                    hour="9-16",
-                    minute="*/30",
-                    day_of_week="mon-fri",
-                    timezone=pytz.timezone("Asia/Kolkata"),
-                    args=[interval],
-                )
-            else:
-                print(f"Error: This {interval} is not allowed")
+            # if interval == "minute15":
+            #     scheduler.add_job(
+            #         self.__periodic_download,
+            #         "cron",
+            #         hour="9-16",
+            #         minute="*/15",
+            #         day_of_week="mon-fri",
+            #         timezone=pytz.timezone("Asia/Kolkata"),
+            #         args=[interval],
+            #     )
+            # if interval == "minute30":
+            #     scheduler.add_job(
+            #         self.__periodic_download,
+            #         "cron",
+            #         hour="9-16",
+            #         minute="*/30",
+            #         day_of_week="mon-fri",
+            #         timezone=pytz.timezone("Asia/Kolkata"),
+            #         args=[interval],
+            #     )
+
             self.schedulers[interval] = scheduler
 
         scheduler.add_job(
@@ -135,6 +134,7 @@ class YahooScheduler(Scheduler):
             ret = self.system_command_handler.execute(message=query, is_rest=False)
             if ret.errors != "":
                 print("ERROR yahoo system", ret.errors)
+            # self.__resample_ohlcv(ticker_dfs=ret.obj)
         except Exception as e:
             print("ERROR __periodic_download", e.args)
 
@@ -148,6 +148,37 @@ class YahooScheduler(Scheduler):
         except Exception as e:
             print("ERROR __weekly_fundamental_download", e.args)
 
+    def __resample_ohlcv(self, ticker_dfs: dict):
+        """Resample the data to the desired interval."""
+        file_paths = read_config(get_app_path("indicator.yaml"))["indicator"]["data"]
+        intervals_to_sample = {
+            15: file_paths["minute15"],
+            30: file_paths["minute30"],
+            60: file_paths["hour"],
+        }
+        for ticker, df in ticker_dfs.items():
+            try:
+                for interval in intervals_to_sample.keys():
+                    df = df.asfreq(
+                        "5T"
+                    )  # Ensure that the data is 5 minute timestamp are present
+                    df.ffill(inplace=True)  # Forward fill missing data
+                    resampled_df = df.resample(f"{interval}T", offset="15min").agg(
+                        {
+                            "Open": "first",
+                            "High": "max",
+                            "Low": "min",
+                            "Close": "last",
+                            "Volume": "sum",
+                        }
+                    )
+                    resampled_df = resampled_df.between_time("09:15", "15:30")
+                    resampled_df.to_csv(
+                        f"{intervals_to_sample[interval]}/{ticker}.csv",
+                    )
+            except Exception as e:
+                raise
+
 
 if __name__ == "__main__":
     from stock_app_py.utility.src.yaml_parser import read_config
@@ -156,4 +187,4 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
-    scheduler.forceDownload(inter="minute5")
+    scheduler.forceDownload(inter="day")

@@ -8,11 +8,15 @@ from yahoofinancials import YahooFinancials
 from stock_app_py.utility.src import json_helper
 from stock_app_py.utility.src.path_helper import get_app_path
 from requests_ratelimiter import LimiterSession
+from requests_ratelimiter import LimiterSession, RequestRate, Limiter, Duration
 
 
 def __download_df_from_yahoo(tickers, period, interval):
     try:
         logging.getLogger("yfinance").setLevel(logging.ERROR)
+        history_rate = RequestRate(5, Duration.SECOND)
+        limiter = Limiter(history_rate)
+        session = LimiterSession(limiter=limiter)
         data = yf.download(
             tickers=tickers,
             period=period,
@@ -22,7 +26,7 @@ def __download_df_from_yahoo(tickers, period, interval):
             rounding=True,
             actions=True,
             threads=True,
-            session=LimiterSession(per_second=5),
+            session=session,
         )
         data = data.dropna()
         return data
@@ -68,6 +72,38 @@ def download_historical_data(
     as_panda_df=False,
     as_csv=False,
     destination="",
+    version="v1",
+):
+    print(f"fetch ohlc using {version}")
+    if version == "v1":
+        return __download_historical_data_v1(
+            tickers=tickers,
+            period=period,
+            interval=interval,
+            as_panda_df=as_panda_df,
+            as_csv=as_csv,
+            destination=destination,
+        )
+    elif version == "v2":
+        return __download_historical_data_v2(
+            tickers=tickers,
+            period=period,
+            interval=interval,
+            as_panda_df=as_panda_df,
+            as_csv=as_csv,
+            destination=destination,
+        )
+    else:
+        raise ValueError("Invalid version")
+
+
+def __download_historical_data_v2(
+    tickers: list,
+    period: int,
+    interval: int,
+    as_panda_df=False,
+    as_csv=False,
+    destination="",
 ):
     """Download ohlc data from yahoo finance. When the desired return value is
     pandas dataframe the number of rows are realligned to match dataframe for all
@@ -107,9 +143,10 @@ def download_historical_data(
                     try:
                         df = ohlc_data[f"{ticker}"]
                         if df is not None:
-                            csv_name = "{}/{}".format(destination, ticker.split(".")[0])
+                            ticker_name = ticker.split(".")[0]
+                            csv_name = "{}/{}".format(destination, ticker_name)
                             df.to_csv(csv_name + ".csv")
-                            ret[ticker] = df
+                            ret[ticker_name] = df
                     except Exception as e:
                         errors += f"{ticker}:{e.args}"
             except Exception as e:
@@ -121,7 +158,7 @@ def download_historical_data(
     return ret, errors
 
 
-def download_historical_data_old(
+def __download_historical_data_v1(
     tickers: list,
     period: int,
     interval: int,

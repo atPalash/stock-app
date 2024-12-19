@@ -120,7 +120,10 @@ class GherkinGenericQuery(System):
                 for step in check["scenarios"][scenario]:
                     try:
                         if query_df["error"].apply(lambda x: x != "").any():
-                            break
+                            print(
+                                f"error in {query_df[query_df['error']!= '']['ticker']}"
+                            )
+                            query_df = query_df[query_df["error"] == ""]
                         errors = ""
                         keyword = step["keyword"].strip()
                         step_text = step["text"]
@@ -289,7 +292,7 @@ if __name__ == "__main__":
     g_query = """
 Feature: v2
 Scenario: test
-Given stocks from list ABB\nWhen let ema10Change = slope in 10 samples of day close ema 10\n* let atrChange = slope in 10 samples of day close atr 14\n* let dayClose = oldest in 2 samples of day close\n* let closeT0 = latest in 1 samples of day close\nThen list bullflag = tickers with ema10Change > 0.01 and atrChange < 0\n* list bearFlag = tickers with ema10Change < 0 and abs(ema10Change) > 0.01 and  atrChange < 0\n* let posMover = (closeT0 - dayClose ) / dayClose\n* let negMover = (dayClose - closeT0) / closeT0\n* list bulls = tickers with posMover > 0.01 and atrChange < 0 and ema10Change > 0\n* list bears = tickers with negMover > 0.01 and ema10Change < 0 and abs(ema10Change) > 0.01 and  atrChange < 0\n
+Given stocks from list 360ONE, 3MINDIA, AARTIDRUGS, AARTIIND, AAVAS, ABB, ABBOTINDIA\nWhen let ema10Change = change in 10 samples of minute5 close ema 10\n* let dayClose = latest in 2 samples of day close\n* let closeT0 = latest in 1 samples of minute5 close\n* let chClose5 = change in 10 samples of minute5 close\n* let ema10 = latest in 1 samples of minute5 close ema 10\n* let close = latest in 1 samples of minute5 close\nThen let posMover = (closeT0 - dayClose ) / dayClose\n* let negMover = (dayClose - closeT0) / closeT0\n* list bullsExisting = tickers with posMover > 0.02 and abs(close - ema10)/ema10 < 0.01\n* list bearsExisting = tickers with negMover > 0.02 and abs(close - ema10)/ema10< 0.01\n* list moverspos = tickers with posMover > 0.04\n* list moversNeg = tickers with negMover  > 0.04\n
 """
     # g_query = "Feature: v2\nScenario: test\nGiven stocks from list 360ONE, 3MINDIA, AARTIDRUGS, AARTIIND\nWhen let close = latest in 1 samples of day close\nThen list breaker = tickers with close > 1000\n"
     start = time.time()
