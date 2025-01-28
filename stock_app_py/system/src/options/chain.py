@@ -10,7 +10,8 @@ from stock_app_py.system.interface.system_if import RetVal
 
 class OptionChain:
     def __init__(self) -> None:
-        """Webscrap to get available option chain of stocks or index.
+        """Webscrap to get available option chain of stocks or index. Remeber to
+        disable vpn.
 
         e.g.
         1. optionchain --do get --ticker ADANIPORTS
@@ -29,14 +30,14 @@ class OptionChain:
             "https://www.nseindia.com/api/option-chain-equities?symbol="
         )
 
-        self.sesson = requests.sessions.Session()
-        self.sesson.headers = {
+        self.session = requests.sessions.Session()
+        self.session.headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0",
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.5",
         }
         self.timeout = 5
-        self.sesson.get(self.url_oc, timeout=self.timeout)
+        self.session.get(self.url_oc, timeout=self.timeout)
 
     def requestNseOptionChain(self, ticker: str, isIndex=False) -> dict:
         """Request nse to fetch option for a ticker.
@@ -54,7 +55,7 @@ class OptionChain:
         try:
             url = self.url_index if isIndex else self.url_stock
             url = url + ticker
-            data = self.sesson.get(url=url, timeout=self.timeout)
+            data = self.session.get(url=url, timeout=self.timeout)
             data = data.json()
 
             expiry_dates = data["records"]["expiryDates"]
@@ -71,3 +72,8 @@ class OptionChain:
             return result
         except Exception as err:
             logging.error(err)
+
+
+if __name__ == "__main__":
+    oc = OptionChain()
+    oc.requestNseOptionChain(ticker="ADANIPORTS")

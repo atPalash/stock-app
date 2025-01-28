@@ -29,8 +29,8 @@ class OptionInterface(System):
         """Calculate option price using Black-scholes model.
 
         e.g.
-        1. optionprice --do get --ticker ADANIPORTS
-        2. optionprice --do compare
+        1. options --do get --ticker ADANIPORTS --date 29-Jan-2025
+        2. options --do compare
         Args:
             indicator_config_file (str): indicator configuration
             selected_stocks_config_file (str): selected stocks list
@@ -46,8 +46,8 @@ class OptionInterface(System):
             name=name,
         )
         self.yahoofin = YahooFinance(
-            indicator_config_file=indicator_config_yaml,
-            selected_stocks_config_file=selected_stocks_yaml,
+            indicator_config_file=indicator_config_file,
+            selected_stocks_config_file=indicator_config_file,
             parameter={},
             command_handler=None,
             name="",
@@ -80,9 +80,9 @@ class OptionInterface(System):
             option_chain = self.option_chain.requestNseOptionChain(
                 ticker=self.parameter["ticker"], isIndex=False  # TODO
             )
-            result = {}
+            result = []
             for expiry, rows in option_chain.items():
-                result[expiry] = []
+                result_for_expiry = []
                 days_to_expiry = date_helper.days_until(
                     start_date=start_date,
                     target_date=expiry,
@@ -101,7 +101,7 @@ class OptionInterface(System):
                         strike_price = row["strikePrice"]
 
                         upward_price, downward_price = option_price.future_stock_price(
-                            ohlc=ohlc, period_in_days=days_to_expiry, std_dev=1
+                            ohlc=ohlc, period_in_days=days_to_expiry, std_dev=0.1
                         )
                         upward_option_price = option_price.calculate_option_prices(
                             current_stock_price=upward_price,
@@ -122,12 +122,12 @@ class OptionInterface(System):
                             annual_volatility=annual_volatility,
                         )
 
-                        result[expiry].append(
+                        result_for_expiry.append(
                             {
                                 "strikePrice": strike_price,
                                 "underlyingPrice": ohlc.iloc[-1]["Close"],
-                                "underlyingCurrentCallPrice": row["CE"]["lastPrice"],
-                                "underlyingCurrentPutPrice": row["PE"]["lastPrice"],
+                                "underlyingCallPrice": row["CE"]["lastPrice"],
+                                "underlyingPutPrice": row["PE"]["lastPrice"],
                                 "BlackScholzCallPrice": round(
                                     current_option_price[0], 2
                                 ),
@@ -149,6 +149,7 @@ class OptionInterface(System):
                                 },
                             }
                         )
+                result.append({"expiry": expiry, "data": result_for_expiry})
             return (result, "")
         except Exception as e:
             logging.error(e)
@@ -168,7 +169,7 @@ class OptionInterface(System):
 if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
-    parameter = {"ticker": "ADANIPORTS", "interval": "day", "date": "20-Feb-2025"}
+    parameter = {"ticker": "ADANIPORTS", "interval": "day", "date": "28-Jan-2025"}
     oi = OptionInterface(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,

@@ -78,6 +78,10 @@ class Webserver(Server):
         def ticker_event():
             return self.handle_request(req=request)
 
+        @self.app.route("/options", methods=["GET", "POST"])
+        def options():
+            return self.handle_request(req=request)
+
     def handle_request(self, req: request):
         if request.method == "POST":
             try:
