@@ -84,7 +84,7 @@ class OptionInterface(System):
             for expiry, rows in option_chain.items():
                 result_for_expiry = []
                 days_to_expiry = date_helper.days_until(
-                    start_date=start_date,
+                    start_date=start_date if start_date != "" else "today",
                     target_date=expiry,
                     date_format="%d-%b-%Y",
                 )
@@ -124,28 +124,20 @@ class OptionInterface(System):
 
                         result_for_expiry.append(
                             {
-                                "strikePrice": strike_price,
-                                "underlyingPrice": ohlc.iloc[-1]["Close"],
-                                "underlyingCallPrice": row["CE"]["lastPrice"],
-                                "underlyingPutPrice": row["PE"]["lastPrice"],
-                                "BlackScholzCallPrice": round(
-                                    current_option_price[0], 2
-                                ),
-                                "BlackScholzPutPrice": round(
-                                    current_option_price[1], 2
-                                ),
+                                "strike": strike_price,
+                                "close": ohlc.iloc[-1]["Close"],
+                                "call": row["CE"]["lastPrice"],
+                                "put": row["PE"]["lastPrice"],
+                                "BSCall": round(current_option_price[0], 2),
+                                "BSPut": round(current_option_price[1], 2),
                                 "probabilities": {
                                     "date": start_date,
-                                    "upwardPrice": round(upward_price, 2),
-                                    "downwardPrice": round(downward_price, 2),
-                                    "upwardCallPrice": round(upward_option_price[0], 2),
-                                    "upwardPutPrice": round(upward_option_price[1], 2),
-                                    "downwardCallPrice": round(
-                                        downward_option_price[0], 2
-                                    ),
-                                    "downwardPutPrice": round(
-                                        downward_option_price[1], 2
-                                    ),
+                                    "up": round(upward_price, 2),
+                                    "down": round(downward_price, 2),
+                                    "upCall": round(upward_option_price[0], 2),
+                                    "upPut": round(upward_option_price[1], 2),
+                                    "downCall": round(downward_option_price[0], 2),
+                                    "downPut": round(downward_option_price[1], 2),
                                 },
                             }
                         )

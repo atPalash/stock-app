@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 
 def find_closest_date(target_date, date_list):
@@ -16,13 +16,12 @@ def find_closest_date(target_date, date_list):
 
 def days_until(start_date: str, target_date: str, date_format="%d-%b-%Y"):
     # Parse the date string into a datetime object
-    if start_date == "today":
-        start_date = datetime.now()
-    else:
-        start_date = datetime.strptime(start_date, date_format)
-    target_date = datetime.strptime(target_date, date_format)
+    check = date.today()  # TODO check  timezone
+    if start_date != "today":
+        check = datetime.strptime(start_date, date_format).date()
+    target_date = datetime.strptime(target_date, date_format).date()
 
     # Calculate the difference in days
-    remaining_days = (target_date - start_date).days
+    remaining_days = (target_date - check).days
 
     return remaining_days

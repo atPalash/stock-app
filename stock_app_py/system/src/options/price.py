@@ -16,7 +16,7 @@ def calculate_volatility(ohlc: pandas.DataFrame, trading_days=252) -> float:
     Returns:
         float: volatility
     """
-    if trading_days < 0:
+    if trading_days <= 0:
         return 0
     data = ohlc[["Date", "Close"]].copy()  # Use copy to avoid SettingWithCopyWarning
     data["logRelativePrice"] = np.log(data["Close"] / data["Close"].shift(1))
@@ -45,7 +45,7 @@ def calculate_option_prices(
     Returns:
     tuple - (call price, put price)
     """
-    if days_to_expiry < 0:
+    if days_to_expiry <= 0:
         return (0, 0)
     # Creating instances of BlackScholesCall and BlackScholesPut
     call_option = BlackScholesCall(
@@ -83,7 +83,7 @@ def future_stock_price(ohlc: pandas.DataFrame, period_in_days: int, std_dev=1) -
     Returns:
         tuple: upper, lower price of underlying
     """
-    if period_in_days < 0:
+    if period_in_days <= 0:
         return (0, 0)
     volatility = calculate_volatility(ohlc=ohlc, trading_days=period_in_days)
     current_price = ohlc.iloc[-1]["Close"]
