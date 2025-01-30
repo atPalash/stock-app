@@ -125,7 +125,6 @@ class OptionInterface(System):
                         result_for_expiry.append(
                             {
                                 "strike": strike_price,
-                                "close": ohlc.iloc[-1]["Close"],
                                 "call": row["CE"]["lastPrice"],
                                 "put": row["PE"]["lastPrice"],
                                 "BSCall": round(current_option_price[0], 2),
@@ -141,7 +140,16 @@ class OptionInterface(System):
                                 },
                             }
                         )
-                result.append({"expiry": expiry, "data": result_for_expiry})
+                result.append(
+                    {
+                        "expiry": expiry,
+                        "data": result_for_expiry,
+                        "open": ohlc.iloc[-1]["Open"],
+                        "high": ohlc.iloc[-1]["High"],
+                        "low": ohlc.iloc[-1]["Low"],
+                        "close": ohlc.iloc[-1]["Close"],
+                    }
+                )
             return (result, "")
         except Exception as e:
             logging.error(e)
