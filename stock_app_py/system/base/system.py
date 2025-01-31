@@ -62,7 +62,9 @@ class System(SystemIf):
             "ticker": parameter.get("ticker", "all"),
             "window": int(parameter.get("window", "20")),
             "stage2scannertype": parameter.get("stage2scannertype", "ma"),
-            "std_deviation": int(parameter.get("std_deviation", 5)),  # bb std deviation
+            "std_deviation": float(
+                parameter.get("std_deviation", 5)
+            ),  # bb std deviation
             "ticker_df": parameter.get("ticker_df", None),
             "username": parameter.get("username", ""),
         }

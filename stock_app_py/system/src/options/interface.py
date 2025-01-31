@@ -59,7 +59,9 @@ class OptionInterface(System):
         result = (None, "")
         try:
             result = self.__calculate_probable_price_till_expiry(
-                ticker=self.parameter["ticker"], start_date=self.parameter["date"]
+                ticker=self.parameter["ticker"],
+                start_date=self.parameter["date"],
+                std_dev=self.parameter["std_deviation"],
             )
         except Exception as e:
             logging.error(e)
@@ -67,10 +69,22 @@ class OptionInterface(System):
             obj=result[0], obj_as_str="probable option price", errors=result[1]
         )
 
-    def __calculate_probable_price_till_expiry(self, ticker: str, start_date: str):
-        """Compute the option price.
+    def __calculate_probable_price_till_expiry(
+        self, ticker: str, start_date: str, std_dev: float
+    ) -> tuple:
+        """Fetch the current option prices at allowed strike prices for all
+        the allowed expiries. Compute probable prices based on the user std_deviation
+        and the proposed dates. This will allow compariesion to different option
+        choices.
+
+        Args:
+            ticker (str): Calculate option prices for this ticker
+            start_date (str): the date of calculation
+            std_dev (float): probable standard deviation till start_date
+
         Returns:
-            RetVal: return object to be send to client
+            tuple:  0: list of option prices and probabilities
+                    1: error string
         """
         try:
             ohlc = self.yahoofin.read_ohlc(
@@ -101,7 +115,7 @@ class OptionInterface(System):
                         strike_price = row["strikePrice"]
 
                         upward_price, downward_price = option_price.future_stock_price(
-                            ohlc=ohlc, period_in_days=days_to_expiry, std_dev=0.1
+                            ohlc=ohlc, period_in_days=days_to_expiry, std_dev=std_dev
                         )
                         upward_option_price = option_price.calculate_option_prices(
                             current_stock_price=upward_price,
@@ -130,9 +144,6 @@ class OptionInterface(System):
                                 "BSCall": round(current_option_price[0], 2),
                                 "BSPut": round(current_option_price[1], 2),
                                 "probabilities": {
-                                    "date": start_date,
-                                    "up": round(upward_price, 2),
-                                    "down": round(downward_price, 2),
                                     "upCall": round(upward_option_price[0], 2),
                                     "upPut": round(upward_option_price[1], 2),
                                     "downCall": round(downward_option_price[0], 2),
@@ -148,6 +159,10 @@ class OptionInterface(System):
                         "high": ohlc.iloc[-1]["High"],
                         "low": ohlc.iloc[-1]["Low"],
                         "close": ohlc.iloc[-1]["Close"],
+                        "stdDev": std_dev,
+                        "date": start_date,
+                        "up": round(upward_price, 2),
+                        "down": round(downward_price, 2),
                     }
                 )
             return (result, "")
