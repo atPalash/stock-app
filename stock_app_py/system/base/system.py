@@ -60,11 +60,16 @@ class System(SystemIf):
             "plot": int(parameter.get("plot", "0")),
             "save_plot": parameter.get("save_plot", ""),
             "ticker": parameter.get("ticker", "all"),
+            "tickers": parameter.get("tickers", []),
             "window": int(parameter.get("window", "20")),
+            "sortby": parameter.get("sortby", "risk_ratio"),
             "stage2scannertype": parameter.get("stage2scannertype", "ma"),
             "std_deviation": float(
                 parameter.get("std_deviation", 5)
             ),  # bb std deviation
+            "strategies": parameter.get(
+                "strategies", "ironCondor"
+            ),  # comma separated list
             "ticker_df": parameter.get("ticker_df", None),
             "username": parameter.get("username", ""),
         }

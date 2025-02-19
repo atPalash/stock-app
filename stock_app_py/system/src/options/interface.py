@@ -1,20 +1,20 @@
-import logging
-import os
-import re
-import subprocess
-import time
+from flask import jsonify
 import numpy as np
 import pandas
-import csv
-from datetime import datetime
+import nsepython
 
+from stock_app_py.system.src.options.chain import OptionChain
+from stock_app_py.system.src.options.strategy.iron_condor import IronCondor
+from stock_app_py.system.src.options.strategy.spread import Spread
 from stock_app_py.system.src.yahoo_finance import YahooFinance
 from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src import date_helper
+from stock_app_py.utility.src.logger import get_logger
 from stock_app_py.system.base.system import System
 from stock_app_py.system.interface.system_if import RetVal
-from stock_app_py.system.src.options.chain import OptionChain
-from stock_app_py.system.src.options import price as option_price
+from stock_app_py.system.src.options import price
+
+logger = get_logger(__name__)
 
 
 class OptionInterface(System):
@@ -30,7 +30,7 @@ class OptionInterface(System):
 
         e.g.
         1. options --do get --ticker ADANIPORTS --date 29-Jan-2025
-        2. options --do compare
+        2. options --do find --ticker ADANIPORTS --date 29-Jan-2025 --std_deviation 0.7 --n 4 --strategies ironCondor, bullCallSpread, bullPutSpread
         Args:
             indicator_config_file (str): indicator configuration
             selected_stocks_config_file (str): selected stocks list
@@ -52,26 +52,109 @@ class OptionInterface(System):
             command_handler=None,
             name="",
         )
-        self.commands = {"get": self.__get}
-        self.option_chain = OptionChain()
+        self.commands = {"get": self.__get, "find": self.__find}
+        self.nse_option_chain = OptionChain()
+        self.base_strategies_class = [IronCondor, Spread]
 
     def __get(self) -> RetVal:
-        result = (None, "")
+        result = [None, ""]
         try:
-            result = self.__calculate_probable_price_till_expiry(
-                ticker=self.parameter["ticker"],
-                start_date=self.parameter["date"],
-                std_dev=self.parameter["std_deviation"],
-            )
+            ohlc = self.yahoofin.read_ohlc(
+                interval=self.parameter["interval"], ticker=self.parameter["ticker"]
+            ).obj
+            result = self.calculate_probable_price_till_expiry(ohlc=ohlc)
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
         return RetVal(
             obj=result[0], obj_as_str="probable option price", errors=result[1]
         )
 
-    def __calculate_probable_price_till_expiry(
-        self, ticker: str, start_date: str, std_dev: float
-    ) -> tuple:
+    def __find(self) -> RetVal:
+        result = [None, ""]
+        try:
+            strategies_to_search = (
+                self.parameter["strategies"].replace(" ", "").split(",")
+            )
+            ohlc = self.yahoofin.read_ohlc(
+                interval=self.parameter["interval"], ticker=self.parameter["ticker"]
+            ).obj
+
+            nse_python = nsepython.nse_quote(symbol=self.parameter["ticker"])
+            filter_nse_python = nse_python["stocks"][0]["marketDeptOrderBook"]
+            lot_size = filter_nse_python["tradeInfo"]["marketLot"]
+            # lot_size = 0
+
+            daily_volatility = price.calculate_volatility(ohlc=ohlc, trading_days=1)
+            today_to_date = date_helper.days_until(
+                start_date="today",
+                target_date=(
+                    self.parameter["date"] if self.parameter["date"] != "" else "today"
+                ),
+                date_format="%d-%b-%Y",
+            )
+            upward_price, downward_price = price.future_stock_price(
+                current_price=ohlc.iloc[-1]["Close"],
+                period_in_days=today_to_date,
+                std_dev=self.parameter["std_deviation"],
+                volatility=(daily_volatility * np.sqrt(today_to_date)),
+            )
+            upward_price = round(upward_price, 2)
+            downward_price = round(downward_price, 2)
+
+            result_dict = self.__find_best_N_strategy(
+                strategies=strategies_to_search,
+                n=self.parameter["n"],
+                std_price=(upward_price, downward_price),
+            )
+            ret = {
+                "ticker": self.parameter["ticker"],
+                "lotsize": lot_size,
+                "open": ohlc.iloc[-1]["Open"],
+                "high": ohlc.iloc[-1]["High"],
+                "low": ohlc.iloc[-1]["Low"],
+                "close": ohlc.iloc[-1]["Close"],
+                "stdDev": self.parameter["std_deviation"],
+                "date": self.parameter["date"],
+                "up": upward_price,
+                "down": downward_price,
+                "expirees": [],
+            }
+            for expiry, df in result_dict.items():
+                ret["expirees"].append(
+                    {"expiry": expiry, "data": df.to_dict(orient="records")}
+                )
+                # df.to_csv(f"{expiry}.csv", index=False)  # debug
+            result[0] = jsonify(ret)
+        except Exception as e:
+            logger.error(e)
+            result[1] = e.args
+        return RetVal(
+            obj=result[0], obj_as_str="probable option price", errors=result[1]
+        )
+
+    def __find_best_N_strategy(
+        self, strategies: list, n: int, std_price: tuple
+    ) -> dict:
+        result = {}
+        for strategy_class in self.base_strategies_class:
+            self.parameter["n"] = n
+            strategy = strategy_class(
+                options_interface=self,
+                parameter=self.parameter,
+                indicator_config_file=self.indicator_config_file,
+                selected_stocks_config_file=self.selected_stocks_config_file,
+            )
+            result_ticker = strategy.get(std_price, strategies)
+            for expiry in result_ticker.keys():
+                if expiry not in result:
+                    result[expiry] = result_ticker[expiry]
+                else:
+                    result[expiry] = pandas.concat(
+                        [result[expiry], result_ticker[expiry]], ignore_index=True
+                    )
+        return result
+
+    def calculate_probable_price_till_expiry(self) -> tuple:
         """Fetch the current option prices at allowed strike prices for all
         the allowed expiries. Compute probable prices based on the user std_deviation
         and the proposed dates. This will allow compariesion to different option
@@ -87,94 +170,46 @@ class OptionInterface(System):
                     1: error string
         """
         try:
-            ohlc = self.yahoofin.read_ohlc(
-                interval=self.parameter["interval"], ticker=ticker
-            ).obj
-
-            option_chain = self.option_chain.requestNseOptionChain(
+            nse_option_chain = self.nse_option_chain.requestNseOptionChain(
                 ticker=self.parameter["ticker"], isIndex=False  # TODO
             )
+
             result = []
-            for expiry, rows in option_chain.items():
+            for expiry, rows in nse_option_chain.items():
                 result_for_expiry = []
-                days_to_expiry = date_helper.days_until(
-                    start_date=start_date if start_date != "" else "today",
-                    target_date=expiry,
-                    date_format="%d-%b-%Y",
-                )
-                today_to_expiry = date_helper.days_until(
-                    start_date="today",
-                    target_date=expiry,
-                    date_format="%d-%b-%Y",
-                )
-                annual_volatility = option_price.calculate_volatility(
-                    ohlc=ohlc, trading_days=252
-                )
                 for row in rows:
-                    if row["CE"]["openInterest"] > 0 and row["PE"]["openInterest"] > 0:
-                        strike_price = row["strikePrice"]
-
-                        upward_price, downward_price = option_price.future_stock_price(
-                            ohlc=ohlc, period_in_days=days_to_expiry, std_dev=std_dev
-                        )
-                        upward_option_price = option_price.calculate_option_prices(
-                            current_stock_price=upward_price,
-                            strike_price=strike_price,
-                            days_to_expiry=days_to_expiry,
-                            annual_volatility=annual_volatility,
-                        )
-                        downward_option_price = option_price.calculate_option_prices(
-                            current_stock_price=downward_price,
-                            strike_price=strike_price,
-                            days_to_expiry=days_to_expiry,
-                            annual_volatility=annual_volatility,
-                        )
-                        current_option_price = option_price.calculate_option_prices(
-                            current_stock_price=ohlc.iloc[-1]["Close"],
-                            strike_price=strike_price,
-                            days_to_expiry=today_to_expiry,
-                            annual_volatility=annual_volatility,
-                        )
-
-                        result_for_expiry.append(
-                            {
-                                "strike": strike_price,
-                                "call": row["CE"]["lastPrice"],
-                                "put": row["PE"]["lastPrice"],
-                                "BSCall": round(current_option_price[0], 2),
-                                "BSPut": round(current_option_price[1], 2),
-                                "probabilities": {
-                                    "upCall": round(upward_option_price[0], 2),
-                                    "upPut": round(upward_option_price[1], 2),
-                                    "downCall": round(downward_option_price[0], 2),
-                                    "downPut": round(downward_option_price[1], 2),
-                                },
-                            }
-                        )
+                    strike_price = row["strikePrice"]
+                    result_for_expiry.append(
+                        {
+                            "strike": strike_price,
+                            "call": row["CE"]["lastPrice"],
+                            "put": row["PE"]["lastPrice"],
+                        }
+                    )
                 result.append(
                     {
                         "expiry": expiry,
                         "data": result_for_expiry,
-                        "open": ohlc.iloc[-1]["Open"],
-                        "high": ohlc.iloc[-1]["High"],
-                        "low": ohlc.iloc[-1]["Low"],
-                        "close": ohlc.iloc[-1]["Close"],
-                        "stdDev": std_dev,
-                        "date": start_date,
-                        "up": round(upward_price, 2),
-                        "down": round(downward_price, 2),
                     }
                 )
             return (result, "")
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             return (None, e)
 
-    def __get_expiry_dates(self, isIndex=False) -> list:
-        return list(
-            self.option_chain.requestNseOptionChain(
-                ticker=self.parameter["ticker"], isIndex=isIndex
-            ).keys()
+    def get_probable_price(self, ticker: str, target_date: str, std_dev: float) -> list:
+        ohlc = self.yahoofin.read_ohlc(interval="day", ticker=ticker).obj
+        days_till = date_helper.days_until(
+            start_date="today",
+            target_date=target_date if target_date != "" else "today",
+            date_format="%d-%b-%Y",
+        )
+        daily_volatility = price.calculate_volatility(ohlc=ohlc, trading_days=1)
+        return price.future_stock_price(
+            current_price=ohlc.iloc[-1]["Close"],
+            period_in_days=days_till,
+            std_dev=std_dev,
+            volatility=(daily_volatility * np.sqrt(days_till)),
         )
 
     def debug(self):
@@ -184,7 +219,7 @@ class OptionInterface(System):
 if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
-    parameter = {"ticker": "ADANIPORTS", "interval": "day", "date": "28-Jan-2025"}
+    parameter = {"ticker": "ADANIPORTS", "interval": "day", "date": "10-Feb-2025"}
     oi = OptionInterface(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,
