@@ -8,7 +8,9 @@ from stock_app_py.talib.src.macd import Macd
 from stock_app_py.talib.src.rsi import Rsi
 from stock_app_py.talib.src.rsi_line import RsiLine
 from stock_app_py.talib.src.ma import Ma
+from stock_app_py.talib.src.rvol import Rvol
 from stock_app_py.talib.src.volatility import Volatility
+from stock_app_py.talib.src.vwap import Vwap
 
 
 class TalibQuery(System):
@@ -57,6 +59,8 @@ class TalibQuery(System):
             "upperbband": Bbands,
             "lowerbband": Bbands,
             "middlebband": Bbands,
+            "vwap": Vwap,
+            "rvol": Rvol,
         }
 
         self.commands = {
@@ -125,10 +129,11 @@ if __name__ == "__main__":
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,
         parameter={
-            "indicator": "upperbband",
+            "interval": "minute5",
+            "indicator": "rvol",
             "do": "get",
             "ticker": "TATAMOTORS",
-            "window": 20,
+            "window": 14,
         },
         command_handler=commandHandler,
         name="",
