@@ -108,7 +108,7 @@ class YahooFinance(System):
             destination=self.indicator_config["indicator"]["data"][
                 self.parameter["interval"]
             ],
-            version="v2",
+            version="v1",
         )
 
         return RetVal(obj=df, obj_as_str="pandas dataframe downloaded", errors=err)

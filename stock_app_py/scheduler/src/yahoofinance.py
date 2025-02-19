@@ -28,7 +28,7 @@ class YahooScheduler(Scheduler):
     def run(self):
         scheduler = BackgroundScheduler()
         for interval in self.indicator_config["indicator"]["data"]:
-            # self.__periodic_download(interval=interval)
+            self.__periodic_download(interval=interval)
             # if interval == "month":
             #     scheduler.add_job(
             #         self.__periodic_download,
@@ -187,4 +187,4 @@ if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
     scheduler = YahooScheduler(indicator_config_yaml, selected_stocks_yaml, "dummy")
-    scheduler.forceDownload(inter="day")
+    scheduler.forceDownload(inter="minute5")
