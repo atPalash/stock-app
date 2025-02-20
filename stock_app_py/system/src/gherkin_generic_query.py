@@ -13,8 +13,11 @@ import stock_app_py.system.src.steps.when.when as when_step
 import stock_app_py.system.src.steps.then.then as then_step
 from stock_app_py.system.src.steps import common
 from stock_app_py.system.src.steps.common import PipeType
+from stock_app_py.utility.src.logger import get_logger
 from stock_app_py.utility.src.path_helper import get_app_path
 from stock_app_py.utility.src.yaml_parser import read_config
+
+logger = get_logger(__name__)
 
 
 class GherkinGenericQuery(System):
@@ -24,6 +27,7 @@ class GherkinGenericQuery(System):
         selected_stocks_config_file: str,
         parameter: dict,
         command_handler: object,
+        gherkin_ohlc_helper: object = None,
         name="",
     ) -> None:
         """Get the result of gherkin query. Go through all the scenarios and make
@@ -67,7 +71,7 @@ class GherkinGenericQuery(System):
             selected_stocks_config_file=selected_stocks_config_file,
             parameter=parameter,
             command_handler=command_handler,
-            name=name,
+            name="",
         )
 
         self.commands = {
@@ -79,13 +83,18 @@ class GherkinGenericQuery(System):
         self.query_df_json = {}
         self.steps = {"Given": {}, "When": {}, "Then": {}}
         self.step_version = "v2"
-        self.gherkin_ohlc = GherkinQueryOhlcHelper(
-            indicator_config_file=indicator_config_file,
-            selected_stocks_config_file=indicator_config_file,
-            parameter={},
-            command_handler=None,
-            name="",
+        self.gherkin_ohlc = (
+            GherkinQueryOhlcHelper(
+                indicator_config_file=indicator_config_file,
+                selected_stocks_config_file=indicator_config_file,
+                parameter={},
+                command_handler=None,
+                name="",
+            )
+            if gherkin_ohlc_helper == None
+            else gherkin_ohlc_helper
         )
+        self.query_tickers = []
 
         def add_steps(supported_steps, step_type: str):
             for regex, func in supported_steps.items():
@@ -102,6 +111,9 @@ class GherkinGenericQuery(System):
                     interval=interval, tickers=tickers
                 )
         return {}
+
+    def get_tickers(self):
+        return self.query_tickers
 
     # @profile
     def __get(self) -> RetVal:
@@ -156,6 +168,7 @@ class GherkinGenericQuery(System):
                                     step_version=self.step_version,
                                     query_df=query_df,
                                 )
+                                self.query_tickers = query_df["ticker"].tolist()
 
                             elif keyword == "When" or (
                                 current_keyword == "When"
@@ -219,11 +232,14 @@ class GherkinGenericQuery(System):
                                         matched_step["match"].groups()[0]
                                     )
                             else:
+                                logger.error(f"Exception in matching keyword {keyword}")
                                 raise Exception(
                                     f"Exception in matching keyword {keyword}"
                                 )
                         else:
+                            logger.error(f"No matching steps found {step}")
                             raise Exception(f"No matching steps found {step}")
+
                     except Exception as e:
                         errors += f"{step}->{e.args}\n"
                         raise Exception(errors)
@@ -292,7 +308,7 @@ if __name__ == "__main__":
     g_query = """
 Feature: v2
 Scenario: test
-Given stocks from list 360ONE, 3MINDIA, AARTIDRUGS, AARTIIND, AAVAS, ABB, ABBOTINDIA\nWhen let ema10Change = change in 10 samples of minute5 close ema 10\n* let dayClose = latest in 2 samples of day close\n* let closeT0 = latest in 1 samples of minute5 close\n* let chClose5 = change in 10 samples of minute5 close\n* let ema10 = latest in 1 samples of minute5 close ema 10\n* let close = latest in 1 samples of minute5 close\nThen let posMover = (closeT0 - dayClose ) / dayClose\n* let negMover = (dayClose - closeT0) / closeT0\n* list bullsExisting = tickers with posMover > 0.02 and abs(close - ema10)/ema10 < 0.01\n* list bearsExisting = tickers with negMover > 0.02 and abs(close - ema10)/ema10< 0.01\n* list moverspos = tickers with posMover > 0.04\n* list moversNeg = tickers with negMover  > 0.04\n
+Given stocks from list BEL, TCS\nWhen let ema10Day = rate in 10 samples of day close ema 10\n* let ema10Minute5 = rate in 10 samples of minute5 close ema 10\nThen list bull = tickers with ema10Day > 0 and ema10Minute5 > 0\n* list bear = tickers with ema10Day < 0 and ema10Minute5 < 0\n
 """
     # g_query = "Feature: v2\nScenario: test\nGiven stocks from list 360ONE, 3MINDIA, AARTIDRUGS, AARTIIND\nWhen let close = latest in 1 samples of day close\nThen list breaker = tickers with close > 1000\n"
     start = time.time()
