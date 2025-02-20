@@ -200,7 +200,7 @@ if __name__ == "__main__":
     yf = YahooFinance(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,
-        parameter={"interval": "day", "panda": 1, "ticker": "ABB"},
+        parameter={"interval": "minute5", "panda": 1, "ticker": "ADANIPORTS"},
         command_handler=None,
         name="",
     )

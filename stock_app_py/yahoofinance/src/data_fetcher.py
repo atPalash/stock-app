@@ -27,6 +27,8 @@ def __download_df_from_yahoo(tickers, period, interval):
             actions=True,
             threads=True,
             session=session,
+            multi_level_index=False,
+            ignore_tz=True,
         )
         data = data.dropna()
         return data
@@ -93,8 +95,46 @@ def download_historical_data(
             as_csv=as_csv,
             destination=destination,
         )
+    elif version == "v3":
+        return __download_historical_data_v3(
+            tickers=tickers,
+            period=period,
+            interval=interval,
+            as_panda_df=as_panda_df,
+            as_csv=as_csv,
+            destination=destination,
+        )
     else:
         raise ValueError("Invalid version")
+
+
+def __download_historical_data_v3(
+    tickers: list,
+    period: int,
+    interval: int,
+    as_panda_df=False,
+    as_csv=False,
+    destination="",
+):
+    errors = ""
+    ret = {}
+    start = time.time()
+    try:
+        if as_csv:
+            args = []
+            for ticker in tickers:
+                __get_csv_from_yahoo(ticker, period, interval, destination)
+                time.sleep(1)
+
+        if as_panda_df:
+            ret = __download_df_from_yahoo(
+                tickers=tickers, period=period, interval=interval
+            )
+    except Exception as e:
+        frameinfo = getframeinfo(currentframe())
+        errors += f"{frameinfo.filename, frameinfo.lineno}:{e.args}"
+    print(f"Total time taken for ohlc {interval}: {time.time() - start}")
+    return ret, errors
 
 
 def __download_historical_data_v2(
@@ -251,9 +291,9 @@ def download_stock_stats(tickers: list, destination):
 if __name__ == "__main__":
     try:
         download_historical_data(
-            tickers=["ABB.NS"],
-            period="5y",
-            interval="1d",
+            tickers=["BEL.NS"],
+            period="1mo",
+            interval="5m",
             as_csv=True,
             destination="/home/palash/app/stock_app_py/yahoofinance/src/test",
         )
