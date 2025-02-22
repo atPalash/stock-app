@@ -4,10 +4,10 @@ import numpy as np
 import pandas
 import nsepython
 
-from stock_app_py.system.src.gherkin_backtest_ohlc_helper import (
+from stock_app_py.system.src.gherkin.gherkin_backtest_ohlc_helper import (
     GherkinBacktestOhlcHelper,
 )
-from stock_app_py.system.src.gherkin_generic_query import GherkinGenericQuery
+from stock_app_py.system.src.gherkin.gherkin_generic_query import GherkinGenericQuery
 from stock_app_py.system.src.options.chain import OptionChain
 from stock_app_py.system.src.options.strategy.iron_condor import IronCondor
 from stock_app_py.system.src.options.strategy.spread import Spread

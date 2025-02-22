@@ -3,7 +3,9 @@ import pandas
 
 from stock_app_py.system.base.system import System
 from stock_app_py.system.interface.system_if import RetVal
-from stock_app_py.system.src.gherkin_query_ohlc_helper import GherkinQueryOhlcHelper
+from stock_app_py.system.src.gherkin.gherkin_query_ohlc_helper import (
+    GherkinQueryOhlcHelper,
+)
 from stock_app_py.utility.src import gherkin_parser
 import stock_app_py.system.src.steps.given.aggregator as given_aggregator
 import stock_app_py.system.src.steps.then.aggregator as then_aggregator

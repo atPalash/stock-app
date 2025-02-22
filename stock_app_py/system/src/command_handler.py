@@ -14,10 +14,12 @@ from stock_app_py.utility.src.message_parser import parse_message
 
 class CommandHandler(CommandHandlerIf):
     def __init__(self, selected_stocks_yaml, indicator_config_yaml) -> None:
-        from stock_app_py.system.src.gherkin_generic_query import GherkinGenericQuery
+        from stock_app_py.system.src.gherkin.gherkin_generic_query import (
+            GherkinGenericQuery,
+        )
         from stock_app_py.system.src.statement_list import StatementList
         from stock_app_py.system.src.elder_impulse import ElderImpulse
-        from stock_app_py.system.src.gherkin_query import GherkinQuery
+        from stock_app_py.system.src.gherkin.gherkin_query import GherkinQuery
         from stock_app_py.system.src.rs_rating import RsRating
         from stock_app_py.system.src.talib_query import TalibQuery
         from stock_app_py.system.src.yahoo_finance import YahooFinance

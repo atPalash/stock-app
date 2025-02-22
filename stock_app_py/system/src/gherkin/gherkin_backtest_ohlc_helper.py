@@ -6,7 +6,9 @@ import pandas
 import csv
 
 # from stock_app_py.system.src.command_handler import CommandHandler
-from stock_app_py.system.src.gherkin_query_ohlc_helper import GherkinQueryOhlcHelper
+from stock_app_py.system.src.gherkin.gherkin_query_ohlc_helper import (
+    GherkinQueryOhlcHelper,
+)
 from stock_app_py.system.src.yahoo_finance import YahooFinance
 
 from stock_app_py.utility.src.csv_checker import is_csv_html
