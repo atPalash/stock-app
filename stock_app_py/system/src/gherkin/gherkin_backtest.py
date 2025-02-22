@@ -51,6 +51,8 @@ class GherkinBacktest(System):
             test_window = self.parameter["window"]
             test_interval = self.parameter["interval"]
             gherkin_query = self.parameter["gherkin"]
+            net_pos_predictions = 0
+            net_neg_predictions = 0
             for i in range(test_count):
                 look_back = random.randint(test_window, 1000)
                 if i == 0:
@@ -115,11 +117,16 @@ class GherkinBacktest(System):
                 pos_prediction_count = (query_df["prediction"] == 1).sum()
                 neg_prediction_count = (query_df["prediction"] == 0).sum()
                 total_count = pos_prediction_count + neg_prediction_count
-                print(query_df)
-                print(
-                    f"start {start_date} end {end_date}\nFailure % {round(neg_prediction_count * 100/ total_count)}\nSuccess % {round(pos_prediction_count * 100/ total_count)}"
-                )
-                print("**************")
+                net_pos_predictions += pos_prediction_count
+                net_neg_predictions += neg_prediction_count
+                # print(query_df)
+                # print(
+                #     f"start {start_date} end {end_date}\nFailure % {round(neg_prediction_count * 100/ total_count)}\nSuccess % {round(pos_prediction_count * 100/ total_count)}"
+                # )
+            net_predictions = net_pos_predictions + net_neg_predictions
+            print(
+                f"window {test_window} positive {round(net_pos_predictions * 100/net_predictions)}% negative {round(net_neg_predictions * 100/net_predictions)}%"
+            )
 
         except Exception as e:
             logger.error(e)
@@ -145,11 +152,17 @@ if __name__ == "__main__":
     * list bull = tickers with ema10Change > 0 and vwap10Change > 0 and inrange\n
     * list bear = tickers with ema10Change < 0 and vwap10Change < 0 and inrange\n
     """
-    ut = GherkinBacktest(
-        indicator_config_file=indicator_config_yaml,
-        selected_stocks_config_file=selected_stocks_yaml,
-        command_handler=None,
-        parameter={"window": 15, "interval": "minute5", "n": 5, "gherkin": gherkin},
-        name="",
-    )
-    ut.debug()
+    for window in range(10, 100, 10):
+        ut = GherkinBacktest(
+            indicator_config_file=indicator_config_yaml,
+            selected_stocks_config_file=selected_stocks_yaml,
+            command_handler=None,
+            parameter={
+                "window": window,
+                "interval": "minute5",
+                "n": 5,
+                "gherkin": gherkin,
+            },
+            name="",
+        )
+        ut.debug()
