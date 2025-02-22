@@ -53,6 +53,7 @@ class GherkinBacktest(System):
             gherkin_query = self.parameter["gherkin"]
             net_pos_predictions = 0
             net_neg_predictions = 0
+            net_gain_percentage = 0
             for i in range(test_count):
                 look_back = random.randint(test_window, 1000)
                 if i == 0:
@@ -102,6 +103,15 @@ class GherkinBacktest(System):
                         else -1
                     )
 
+                    def __percentage_gain():
+                        if row["bull"] == row["bear"]:
+                            return 0
+                        return (
+                            round((end_close - start_close) * 100 / start_close, 2)
+                            if row["bull"]
+                            else round((start_close - end_close) * 100 / start_close, 2)
+                        )
+
                     to_add = {
                         "start_date": start_date,
                         "start_close": start_close,
@@ -109,6 +119,7 @@ class GherkinBacktest(System):
                         "end_close": end_close,
                         "action": action,
                         "prediction": prediction,
+                        "gain%": __percentage_gain(),
                     }
 
                     for k, v in to_add.items():
@@ -117,15 +128,23 @@ class GherkinBacktest(System):
                 pos_prediction_count = (query_df["prediction"] == 1).sum()
                 neg_prediction_count = (query_df["prediction"] == 0).sum()
                 total_count = pos_prediction_count + neg_prediction_count
+
+                # total_gain =
                 net_pos_predictions += pos_prediction_count
                 net_neg_predictions += neg_prediction_count
+                net_gain_percentage += query_df["gain%"].sum()
                 # print(query_df)
                 # print(
-                #     f"start {start_date} end {end_date}\nFailure % {round(neg_prediction_count * 100/ total_count)}\nSuccess % {round(pos_prediction_count * 100/ total_count)}"
+                #     f"start {start_date} end {end_date}\n\
+                #     Failure % {round(neg_prediction_count * 100/ total_count)}\n\
+                #     Success % {round(pos_prediction_count * 100/ total_count)}\n\
+                #     Gain% {query_df['gain%'].sum()}"
                 # )
             net_predictions = net_pos_predictions + net_neg_predictions
             print(
-                f"window {test_window} positive {round(net_pos_predictions * 100/net_predictions)}% negative {round(net_neg_predictions * 100/net_predictions)}%"
+                f"window {test_window}\n\
+                positive {round(net_pos_predictions * 100/net_predictions)}% negative {round(net_neg_predictions * 100/net_predictions)}%\n\
+                total gain% {net_gain_percentage}"
             )
 
         except Exception as e:
@@ -152,7 +171,7 @@ if __name__ == "__main__":
     * list bull = tickers with ema10Change > 0 and vwap10Change > 0 and inrange\n
     * list bear = tickers with ema10Change < 0 and vwap10Change < 0 and inrange\n
     """
-    for window in range(10, 100, 10):
+    for window in range(10, 20, 10):
         ut = GherkinBacktest(
             indicator_config_file=indicator_config_yaml,
             selected_stocks_config_file=selected_stocks_yaml,
@@ -160,7 +179,7 @@ if __name__ == "__main__":
             parameter={
                 "window": window,
                 "interval": "minute5",
-                "n": 5,
+                "n": 1,
                 "gherkin": gherkin,
             },
             name="",
