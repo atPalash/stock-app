@@ -19,17 +19,17 @@ class Spread(Strategy):
     ) -> None:
         """Implement Spread and strangle
         1. Bull call
-                S CE ________
+                S CE (1120)________
                     /
                    /
          _________/
-                B CE
+                B CE (1080)
         2. Bull put
-                S PE ________
+                S PE (1080)________
                     /
                    /
          _________/
-                B PE
+                B PE (1040)
         3. Bear call
             ________ B CE   
                     \
@@ -43,7 +43,7 @@ class Spread(Strategy):
                       \_________
                         S PE
         5. Neutral strangle
-             SPE _________ BCE
+             SPE _________ SCE
                 /         \ 
                /           \
         6. Long strangle
@@ -185,64 +185,72 @@ class Spread(Strategy):
                     strike=bc_strike, key="call", expiry_prices=expiry_prices
                 )
                 for sc_strike in strikes["SCE"]:
-                    sell_call = self._fetch_price(
-                        strike=sc_strike, key="call", expiry_prices=expiry_prices
-                    )
-                    self.combination_table.loc[row_index] = {
-                        "BPE": [0, 0],
-                        "SPE": [0, 0],
-                        "SCE": sell_call,
-                        "BCE": buy_call,
-                    }
-                    row_index += 1
+                    if (spread == "bullCallSpread" and sc_strike > bc_strike) or (
+                        spread == "bearCallSpread" and bc_strike > sc_strike
+                    ):
+                        sell_call = self._fetch_price(
+                            strike=sc_strike, key="call", expiry_prices=expiry_prices
+                        )
+                        self.combination_table.loc[row_index] = {
+                            "BPE": [0, 0],
+                            "SPE": [0, 0],
+                            "SCE": sell_call,
+                            "BCE": buy_call,
+                        }
+                        row_index += 1
         elif spread in ["bearPutSpread", "bullPutSpread"]:
             for bp_strike in strikes["BPE"]:
                 buy_put = self._fetch_price(
                     strike=bp_strike, key="put", expiry_prices=expiry_prices
                 )
                 for sp_strike in strikes["SPE"]:
-                    sell_put = self._fetch_price(
-                        strike=sp_strike, key="put", expiry_prices=expiry_prices
-                    )
-                    self.combination_table.loc[row_index] = {
-                        "BPE": buy_put,
-                        "SPE": sell_put,
-                        "SCE": [0, 0],
-                        "BCE": [0, 0],
-                    }
-                    row_index += 1
+                    if (spread == "bullPutSpread" and sp_strike > bp_strike) or (
+                        spread == "bearPutSpread" and bp_strike > sp_strike
+                    ):
+                        sell_put = self._fetch_price(
+                            strike=sp_strike, key="put", expiry_prices=expiry_prices
+                        )
+                        self.combination_table.loc[row_index] = {
+                            "BPE": buy_put,
+                            "SPE": sell_put,
+                            "SCE": [0, 0],
+                            "BCE": [0, 0],
+                        }
+                        row_index += 1
         elif spread in ["neutralStrangle"]:
             for sc_strike in strikes["SCE"]:
                 sell_call = self._fetch_price(
                     strike=sc_strike, key="call", expiry_prices=expiry_prices
                 )
                 for sp_strike in strikes["SPE"]:
-                    sell_put = self._fetch_price(
-                        strike=sp_strike, key="put", expiry_prices=expiry_prices
-                    )
-                    self.combination_table.loc[row_index] = {
-                        "BPE": [0, 0],
-                        "SPE": sell_put,
-                        "SCE": sell_call,
-                        "BCE": [0, 0],
-                    }
-                    row_index += 1
+                    if sc_strike > sp_strike:
+                        sell_put = self._fetch_price(
+                            strike=sp_strike, key="put", expiry_prices=expiry_prices
+                        )
+                        self.combination_table.loc[row_index] = {
+                            "BPE": [0, 0],
+                            "SPE": sell_put,
+                            "SCE": sell_call,
+                            "BCE": [0, 0],
+                        }
+                        row_index += 1
         elif spread in ["longStrangle"]:
             for bc_strike in strikes["BCE"]:
                 buy_call = self._fetch_price(
                     strike=bc_strike, key="call", expiry_prices=expiry_prices
                 )
                 for bp_strike in strikes["BPE"]:
-                    buy_put = self._fetch_price(
-                        strike=bp_strike, key="put", expiry_prices=expiry_prices
-                    )
-                    self.combination_table.loc[row_index] = {
-                        "BPE": buy_put,
-                        "SPE": [0, 0],
-                        "SCE": [0, 0],
-                        "BCE": buy_call,
-                    }
-                    row_index += 1
+                    if bc_strike > bp_strike:
+                        buy_put = self._fetch_price(
+                            strike=bp_strike, key="put", expiry_prices=expiry_prices
+                        )
+                        self.combination_table.loc[row_index] = {
+                            "BPE": buy_put,
+                            "SPE": [0, 0],
+                            "SCE": [0, 0],
+                            "BCE": buy_call,
+                        }
+                        row_index += 1
         elif spread in ["longStraddle"]:
             for bc_strike in strikes["BCE"]:
                 buy_call = self._fetch_price(
@@ -251,13 +259,14 @@ class Spread(Strategy):
                 buy_put = self._fetch_price(
                     strike=bc_strike, key="put", expiry_prices=expiry_prices
                 )
-                self.combination_table.loc[row_index] = {
-                    "BPE": buy_put,
-                    "SPE": [0, 0],
-                    "SCE": [0, 0],
-                    "BCE": buy_call,
-                }
-                row_index += 1
+                if buy_call == buy_put:
+                    self.combination_table.loc[row_index] = {
+                        "BPE": buy_put,
+                        "SPE": [0, 0],
+                        "SCE": [0, 0],
+                        "BCE": buy_call,
+                    }
+                    row_index += 1
         return self._get_best_n_combination(
             strategy=spread,
             compute_func=self.__compute_func,
@@ -283,12 +292,12 @@ class Spread(Strategy):
             row["max_gain"] = abs(row["net"])
         elif spread == "neutralStrangle":
             row["max_gain"] = abs(row["net"])
-            row["max_loss"] = float("inf")
+            row["max_loss"] = -1  # float("inf")
         elif spread == "longStrangle":
-            row["max_gain"] = float("inf")
+            row["max_gain"] = -1  # float("inf")
             row["max_loss"] = abs(row["net"])
         elif spread == "longStraddle":
-            row["max_gain"] = float("inf")
+            row["max_gain"] = -1  # float("inf")
             row["max_loss"] = abs(row["net"])
         else:
             logger.error(f"Unknown spread {spread}")
