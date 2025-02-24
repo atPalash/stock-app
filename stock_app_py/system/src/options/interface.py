@@ -117,12 +117,35 @@ class OptionInterface(System):
                 "date": self.parameter["date"],
                 "up": upward_price,
                 "down": downward_price,
+                "bsCall": {},
+                "bsPut": {},
                 "expirees": [],
             }
             for expiry, df in result_dict.items():
                 ret["expirees"].append(
                     {"expiry": expiry, "data": df.to_dict(orient="records")}
                 )
+
+                days_to_expiry = date_helper.days_until(
+                    start_date="today",
+                    target_date=expiry,
+                    date_format="%d-%b-%Y",
+                )
+                for strike in nse_python["strikePrices"]:
+                    try:
+                        black_scholz = price.calculate_option_prices(
+                            S=strike,
+                            K=ohlc.iloc[-1]["Close"],
+                            T=days_to_expiry / 365,
+                            r=0.07,
+                            sigma=daily_volatility * np.sqrt(365),
+                            q=0,
+                        )
+                        ret["bsCall"][strike] = black_scholz[0]
+                        ret["bsPut"][strike] = black_scholz[1]
+                    except Exception as e:
+                        logger.info(e.args)
+
                 # df.to_csv(f"{expiry}.csv", index=False)  # debug
             result[0] = jsonify(ret)
         except Exception as e:
@@ -213,13 +236,20 @@ class OptionInterface(System):
         )
 
     def debug(self):
-        return self.__get()
+        return self.__find()
 
 
 if __name__ == "__main__":
     indicator_config_yaml = get_app_path("indicator.yaml")
     selected_stocks_yaml = get_app_path("selected_stocks.yaml")
-    parameter = {"ticker": "ADANIPORTS", "interval": "day", "date": "10-Feb-2025"}
+    parameter = {
+        "ticker": "ADANIPORTS",
+        "interval": "day",
+        "date": "25-Feb-2025",
+        "strategies": "bullCallSpread, bullPutSpread",
+        "std_deviation": 0.2,
+        "n": 4,
+    }
     oi = OptionInterface(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,

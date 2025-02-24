@@ -47,3 +47,29 @@ def future_stock_price(
     price_up = current_price * np.exp(std_dev * volatility)
     price_low = current_price * np.exp(-std_dev * volatility)
     return (price_up, price_low)
+
+
+def calculate_option_prices(S, K, T, r, sigma, q):
+    """
+    Calculate the Black-Scholes option prices for European call and put options using the 'blackscholes' package.
+
+    Parameters:
+    S : float - current stock price
+    K : float - strike price of the option
+    T : float - time to maturity (in years)
+    r : float - risk-free interest rate (annual as a decimal)
+    sigma : float - volatility of the underlying stock (annual as a decimal)
+    q : float - annual dividend yield (as a decimal)
+
+    Returns:
+    tuple - (call price, put price)
+    """
+    # Creating instances of BlackScholesCall and BlackScholesPut
+    call_option = BlackScholesCall(S=S, K=K, T=T, r=r, sigma=sigma, q=q)
+    put_option = BlackScholesPut(S=S, K=K, T=T, r=r, sigma=sigma, q=q)
+
+    # Get call and put prices
+    call_price = round(call_option.price(), 2)
+    put_price = round(put_option.price(), 2)
+
+    return call_price, put_price
