@@ -96,8 +96,9 @@ class YahooFinance(System):
         # Need to add NS to download stock ohlc from yahoo
         tickers = [f"{tick}.NS" for tick in tickers]
 
-        # indices = self._get_indices()
-        # tickers = tickers + indices
+        indices = self._get_indices()
+        indices = [f"{tick}.NS" if "^" not in tick else tick for tick in indices]
+        tickers = tickers + indices
 
         df, err = download_historical_data(
             tickers=tickers,
@@ -190,7 +191,7 @@ class YahooFinance(System):
         return self.__get_ohlc()
 
     def debug_get(self):
-        return self.__get_ohlc().obj
+        return self.__get().obj
 
 
 if __name__ == "__main__":
@@ -200,7 +201,7 @@ if __name__ == "__main__":
     yf = YahooFinance(
         indicator_config_file=indicator_config_yaml,
         selected_stocks_config_file=selected_stocks_yaml,
-        parameter={"interval": "minute5", "panda": 1, "ticker": "ADANIPORTS"},
+        parameter={"interval": "minute5", "panda": 1, "ticker": "all"},
         command_handler=None,
         name="",
     )

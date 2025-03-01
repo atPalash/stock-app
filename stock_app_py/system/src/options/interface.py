@@ -79,7 +79,11 @@ class OptionInterface(System):
                 interval=self.parameter["interval"], ticker=self.parameter["ticker"]
             ).obj
 
-            nse_python = nsepython.nse_quote(symbol=self.parameter["ticker"])
+            nse_python = nsepython.nse_quote(
+                symbol=self.nse_option_chain._formatIndexSymbol(
+                    self.parameter["ticker"]
+                )
+            )
             filter_nse_python = nse_python["stocks"][0]["marketDeptOrderBook"]
             lot_size = filter_nse_python["tradeInfo"]["marketLot"]
             # lot_size = 0
@@ -194,7 +198,7 @@ class OptionInterface(System):
         """
         try:
             nse_option_chain = self.nse_option_chain.requestNseOptionChain(
-                ticker=self.parameter["ticker"], isIndex=False  # TODO
+                ticker=self.parameter["ticker"]
             )
 
             result = []

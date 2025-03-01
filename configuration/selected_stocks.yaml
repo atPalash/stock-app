@@ -1,6 +1,9 @@
 index:
   - ^NSEI
   - ^NSEBANK
+  - ^NSMIDCP
+  - NIFTY_MID_SELECT
+  - NIFTY_FIN_SERVICE
 stock:
   - ADANIENT
   - ADANIPORTS

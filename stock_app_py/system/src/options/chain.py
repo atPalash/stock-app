@@ -39,12 +39,11 @@ class OptionChain:
         self.timeout = 5
         self.session.get(self.url_oc, timeout=self.timeout)
 
-    def requestNseOptionChain(self, ticker: str, isIndex=False) -> dict:
+    def requestNseOptionChain(self, ticker: str) -> dict:
         """Request nse to fetch option for a ticker.
 
         Args:
             ticker (str): ticker name.e.g COALINDIA
-            isIndex (bool, optional): Fetch index option chain with True. Defaults to False.
 
         Returns:
             dict: returns a dictionary of expiry dates and its respective strike price
@@ -53,8 +52,10 @@ class OptionChain:
             }
         """
         try:
+            formatted_ticker = self._formatIndexSymbol(ticker)
+            isIndex = ticker != formatted_ticker
             url = self.url_index if isIndex else self.url_stock
-            url = url + ticker
+            url = url + formatted_ticker
             data = self.session.get(url=url, timeout=self.timeout)
             data = data.json()
 
@@ -72,6 +73,19 @@ class OptionChain:
             return result
         except Exception as err:
             logging.error(err)
+
+    def _formatIndexSymbol(self, symbol: str) -> str:
+        # NIFTY | FINNIFTY | BANKNIFTY | NIFTYMID50 | MIDCPNIFTY https://www.nseindia.com/api/option-chain-indices
+        index_symbols = {
+            "^NSEI": "NIFTY",
+            "^NSEBANK": "BANKNIFTY",
+            "^NSMIDCP": "MIDCPNIFTY",
+            "NIFTY_FIN_SERVICE": "FINNIFTY",
+            "NIFTY_MID_SELECT": "NIFTYMID50",
+        }
+        if symbol in index_symbols.keys():
+            return index_symbols[symbol]
+        return symbol
 
 
 if __name__ == "__main__":

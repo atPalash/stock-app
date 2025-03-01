@@ -68,7 +68,10 @@ class StepData:
     color = ["red", "green", "blue"]
     empty = [""]
     index = list(read_config(get_app_path("index_stock.yaml")).keys())
-    stocks = read_config(get_app_path("selected_stocks.yaml"))["stock"]
+    stocks = (
+        read_config(get_app_path("selected_stocks.yaml"))["stock"]
+        + read_config(get_app_path("selected_stocks.yaml"))["index"]
+    )
     interval = list(
         read_config(get_app_path("indicator.yaml"))["indicator"]["data"].keys()
     )

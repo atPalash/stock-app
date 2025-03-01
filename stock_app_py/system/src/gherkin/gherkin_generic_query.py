@@ -160,6 +160,7 @@ class GherkinGenericQuery(System):
                             ):
                                 # 1st step -> This step will create the list of stocks
                                 # e.g. set the interval, selected stock etc.
+                                # pipe_type = PipeType.OR  # Allow ticker to be add this if multiple given. TODO test
                                 current_keyword = "Given"
                                 query_df = given_step.execute(
                                     matched_step,
@@ -310,7 +311,19 @@ if __name__ == "__main__":
     g_query = """
 Feature: v2
 Scenario: test
-Given stocks from list BEL, TCS\nWhen let ema10Day = rate in 10 samples of day close ema 10\n* let ema10Minute5 = rate in 10 samples of minute5 close ema 10\nThen list bull = tickers with ema10Day > 0 and ema10Minute5 > 0\n* list bear = tickers with ema10Day < 0 and ema10Minute5 < 0\n
+Given stocks from index nifty50\n
+* stocks from list ^NSEI, ^NSEBANK, ^NSMIDCP, NIFTY_MID_SELECT, NIFTY_FIN_SERVICE\n
+When let ema10Change = rate in 20 samples of minute5 close ema 10\n
+* let vwap10Change = rate in 20 samples of minute5 close vwap 10\n
+* let vwapMax = maximum in 10 samples of minute5 close vwap 10\n
+* let vwapMin = minimum in 10 samples of minute5 close vwap 10\n
+* let emaMax = maximum in 10 samples of minute5 close ema 10\n
+* let emaMin = minimum in 10 samples of minute5 close ema 10\n
+* let ema10Day = latest in 1 samples of day close ema 10\n
+* let close = latest in 1 samples of minute5 close\n
+Then list bulls = tickers with ema10Change > 0 and vwap10Change > 0 and close > ema10Day * 0.99 and close < ema10Day * 1.01\n
+* list bears = tickers with ema10Change < 0 and vwap10Change < 0 and close > ema10Day * 0.99 and close < ema10Day * 1.01\n
+* list vwapCross = tickers with vwapMax > emaMin and emaMax > vwapMin\n* list withinRange = tickers with close > ema10Day * 0.99 and close < ema10Day * 1.01\n
 """
     # g_query = "Feature: v2\nScenario: test\nGiven stocks from list 360ONE, 3MINDIA, AARTIDRUGS, AARTIIND\nWhen let close = latest in 1 samples of day close\nThen list breaker = tickers with close > 1000\n"
     start = time.time()
