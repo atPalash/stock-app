@@ -176,6 +176,7 @@ class Spread(Strategy):
         self, expiry_prices: dict, strikes: dict, spread: str
     ) -> pandas.DataFrame:
         row_index = 0
+        na = [0, 0, 0]
         if spread in [
             "bullCallSpread",
             "bearCallSpread",
@@ -192,8 +193,8 @@ class Spread(Strategy):
                             strike=sc_strike, key="call", expiry_prices=expiry_prices
                         )
                         self.combination_table.loc[row_index] = {
-                            "BPE": [0, 0],
-                            "SPE": [0, 0],
+                            "BPE": na,
+                            "SPE": na,
                             "SCE": sell_call,
                             "BCE": buy_call,
                         }
@@ -213,8 +214,8 @@ class Spread(Strategy):
                         self.combination_table.loc[row_index] = {
                             "BPE": buy_put,
                             "SPE": sell_put,
-                            "SCE": [0, 0],
-                            "BCE": [0, 0],
+                            "SCE": na,
+                            "BCE": na,
                         }
                         row_index += 1
         elif spread in ["neutralStrangle"]:
@@ -228,10 +229,10 @@ class Spread(Strategy):
                             strike=sp_strike, key="put", expiry_prices=expiry_prices
                         )
                         self.combination_table.loc[row_index] = {
-                            "BPE": [0, 0],
+                            "BPE": na,
                             "SPE": sell_put,
                             "SCE": sell_call,
-                            "BCE": [0, 0],
+                            "BCE": na,
                         }
                         row_index += 1
         elif spread in ["longStrangle"]:
@@ -246,8 +247,8 @@ class Spread(Strategy):
                         )
                         self.combination_table.loc[row_index] = {
                             "BPE": buy_put,
-                            "SPE": [0, 0],
-                            "SCE": [0, 0],
+                            "SPE": na,
+                            "SCE": na,
                             "BCE": buy_call,
                         }
                         row_index += 1
@@ -262,8 +263,8 @@ class Spread(Strategy):
                 if buy_call == buy_put:
                     self.combination_table.loc[row_index] = {
                         "BPE": buy_put,
-                        "SPE": [0, 0],
-                        "SCE": [0, 0],
+                        "SPE": na,
+                        "SCE": na,
                         "BCE": buy_call,
                     }
                     row_index += 1
@@ -308,6 +309,10 @@ class Spread(Strategy):
         row["SCE_strike"] = row["SCE"][1]
         row["BPE_strike"] = row["BPE"][1]
         row["SPE_strike"] = row["SPE"][1]
+        row["BCE_oi"] = row["BCE"][2]
+        row["SCE_oi"] = row["SCE"][2]
+        row["BPE_oi"] = row["BPE"][2]
+        row["SPE_oi"] = row["SPE"][2]
         return row
 
     def debug(self, types):

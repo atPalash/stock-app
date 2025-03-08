@@ -211,6 +211,8 @@ class OptionInterface(System):
                             "strike": strike_price,
                             "call": row["CE"]["lastPrice"],
                             "put": row["PE"]["lastPrice"],
+                            "call_oi": row["CE"]["openInterest"],
+                            "put_oi": row["PE"]["openInterest"],
                         }
                     )
                 result.append(
@@ -249,7 +251,7 @@ if __name__ == "__main__":
     parameter = {
         "ticker": "ADANIPORTS",
         "interval": "day",
-        "date": "25-Feb-2025",
+        "date": "25-Mar-2025",
         "strategies": "bullCallSpread, bullPutSpread",
         "std_deviation": 0.2,
         "n": 4,

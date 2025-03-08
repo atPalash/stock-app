@@ -154,6 +154,10 @@ class IronCondor(Strategy):
         row["SCE_strike"] = row["SCE"][1]
         row["BPE_strike"] = row["BPE"][1]
         row["SPE_strike"] = row["SPE"][1]
+        row["BCE_oi"] = row["BCE"][2]
+        row["SCE_oi"] = row["SCE"][2]
+        row["BPE_oi"] = row["BPE"][2]
+        row["SPE_oi"] = row["SPE"][2]
         return row
 
 

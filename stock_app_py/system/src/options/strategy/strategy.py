@@ -57,7 +57,7 @@ class Strategy:
         return ret.round(2)
 
     def _fetch_price(self, strike, expiry_prices, key):
-        cost = next(filter(lambda row: row["strike"] == strike, expiry_prices), None)[
-            key
-        ]
-        return [cost, strike]
+        data = next(filter(lambda row: row["strike"] == strike, expiry_prices), None)
+        cost = data[key]
+        oi = data[f"{key}_oi"]
+        return [cost, strike, oi]
