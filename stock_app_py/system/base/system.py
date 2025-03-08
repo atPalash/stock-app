@@ -72,6 +72,7 @@ class System(SystemIf):
             ),  # comma separated list
             "ticker_df": parameter.get("ticker_df", None),
             "username": parameter.get("username", ""),
+            "TEST": parameter.get("TEST", None),
         }
 
         return parameters

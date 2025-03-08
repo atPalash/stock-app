@@ -54,6 +54,7 @@ class GherkinBacktest(System):
             net_pos_predictions = 0
             net_neg_predictions = 0
             net_gain_percentage = 0
+            test_result = []
             for i in range(test_count):
                 look_back = random.randint(test_window, 1000)
                 if i == 0:
@@ -124,6 +125,8 @@ class GherkinBacktest(System):
 
                     for k, v in to_add.items():
                         query_df.at[index, k] = v
+                if test_result is not None:
+                    test_result.append(query_df)
 
                 pos_prediction_count = (query_df["prediction"] == 1).sum()
                 neg_prediction_count = (query_df["prediction"] == 0).sum()
@@ -133,7 +136,7 @@ class GherkinBacktest(System):
                 net_pos_predictions += pos_prediction_count
                 net_neg_predictions += neg_prediction_count
                 net_gain_percentage += query_df["gain%"].sum()
-                # print(query_df)
+                print(query_df)
                 # print(
                 #     f"start {start_date} end {end_date}\n\
                 #     Failure % {round(neg_prediction_count * 100/ total_count)}\n\
@@ -146,12 +149,11 @@ class GherkinBacktest(System):
                 positive {round(net_pos_predictions * 100/net_predictions)}% negative {round(net_neg_predictions * 100/net_predictions)}%\n\
                 total gain% {net_gain_percentage}"
             )
+            result[0] = test_result
 
         except Exception as e:
             logger.error(e)
-        return RetVal(
-            obj=result[0], obj_as_str="probable option price", errors=result[1]
-        )
+        return RetVal(obj=result[0], obj_as_str="pandas dataframe", errors=result[1])
 
     def debug(self):
         return self.__get()
@@ -171,7 +173,7 @@ if __name__ == "__main__":
     * list bull = tickers with ema10Change > 0 and vwap10Change > 0 and inrange\n
     * list bear = tickers with ema10Change < 0 and vwap10Change < 0 and inrange\n
     """
-    for window in range(10, 20, 10):
+    for window in range(40, 50, 10):
         ut = GherkinBacktest(
             indicator_config_file=indicator_config_yaml,
             selected_stocks_config_file=selected_stocks_yaml,

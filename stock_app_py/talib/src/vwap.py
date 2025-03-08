@@ -3,6 +3,12 @@ import numpy
 import pandas
 import pandas_ta as ta
 from stock_app_py.talib.base.indicator import Indicator
+import warnings
+
+# Suppress specific warnings
+warnings.filterwarnings(
+    "ignore", category=UserWarning, message="Converting to PeriodArray.*"
+)
 
 
 class Vwap(Indicator):
