@@ -18,7 +18,7 @@ class Strategy:
             columns=list(self.combinations.keys())
         )
         self.option_interface = options_interface
-        self.option_chain = self.option_interface.calculate_probable_price_till_expiry()
+        self.option_chain = self.option_interface.get_option_chain()
         if self.option_chain[1] != "":
             msg = f"Option calculation failed for {self.parameter['ticker']}"
             Exception(msg)

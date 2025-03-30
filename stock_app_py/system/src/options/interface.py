@@ -29,7 +29,7 @@ class OptionInterface(System):
         """Calculate option price using Black-scholes model.
 
         e.g.
-        1. options --do get --ticker ADANIPORTS --date 29-Jan-2025
+        1. options --do get --ticker ADANIPORTS - get all option chain at all expiries
         2. options --do find --ticker ADANIPORTS --date 29-Jan-2025 --std_deviation 0.7 --n 4 --strategies ironCondor, bullCallSpread, bullPutSpread
         Args:
             indicator_config_file (str): indicator configuration
@@ -59,10 +59,9 @@ class OptionInterface(System):
     def __get(self) -> RetVal:
         result = [None, ""]
         try:
-            ohlc = self.yahoofin.read_ohlc(
-                interval=self.parameter["interval"], ticker=self.parameter["ticker"]
-            ).obj
-            result = self.calculate_probable_price_till_expiry(ohlc=ohlc)
+            result[0] = self.get_option_chain()[0]
+            # expiry = self.parameter["date"]
+            # result[0] = [item for item in option_chain if item["expiry"] == expiry]
         except Exception as e:
             logger.error(e)
         return RetVal(
@@ -79,14 +78,14 @@ class OptionInterface(System):
                 interval=self.parameter["interval"], ticker=self.parameter["ticker"]
             ).obj
 
-            nse_python = nsepython.nse_quote(
-                symbol=self.nse_option_chain._formatIndexSymbol(
-                    self.parameter["ticker"]
-                )
-            )
-            filter_nse_python = nse_python["stocks"][0]["marketDeptOrderBook"]
-            lot_size = filter_nse_python["tradeInfo"]["marketLot"]
-            # lot_size = 0
+            # nse_python = nsepython.nse_quote(
+            #     symbol=self.nse_option_chain._formatIndexSymbol(
+            #         self.parameter["ticker"]
+            #     )
+            # )
+            # filter_nse_python = nse_python["stocks"][0]["marketDeptOrderBook"]
+            # lot_size = filter_nse_python["tradeInfo"]["marketLot"]
+            lot_size = 0
 
             daily_volatility = price.calculate_volatility(ohlc=ohlc, trading_days=1)
             today_to_date = date_helper.days_until(
@@ -135,20 +134,20 @@ class OptionInterface(System):
                     target_date=expiry,
                     date_format="%d-%b-%Y",
                 )
-                for strike in nse_python["strikePrices"]:
-                    try:
-                        black_scholz = price.calculate_option_prices(
-                            S=strike,
-                            K=ohlc.iloc[-1]["Close"],
-                            T=days_to_expiry / 365,
-                            r=0.07,
-                            sigma=daily_volatility * np.sqrt(365),
-                            q=0,
-                        )
-                        ret["bsCall"][strike] = black_scholz[0]
-                        ret["bsPut"][strike] = black_scholz[1]
-                    except Exception as e:
-                        logger.info(e.args)
+                # for strike in nse_python["strikePrices"]:
+                #     try:
+                #         black_scholz = price.calculate_option_prices(
+                #             S=strike,
+                #             K=ohlc.iloc[-1]["Close"],
+                #             T=days_to_expiry / 365,
+                #             r=0.07,
+                #             sigma=daily_volatility * np.sqrt(365),
+                #             q=0,
+                #         )
+                #         ret["bsCall"][strike] = black_scholz[0]
+                #         ret["bsPut"][strike] = black_scholz[1]
+                #     except Exception as e:
+                #         logger.info(e.args)
 
                 # df.to_csv(f"{expiry}.csv", index=False)  # debug
             result[0] = jsonify(ret)
@@ -181,11 +180,9 @@ class OptionInterface(System):
                     )
         return result
 
-    def calculate_probable_price_till_expiry(self) -> tuple:
-        """Fetch the current option prices at allowed strike prices for all
-        the allowed expiries. Compute probable prices based on the user std_deviation
-        and the proposed dates. This will allow compariesion to different option
-        choices.
+    def get_option_chain(self) -> tuple:
+        """Fetch the current option chain at allowed strike prices for all
+        the allowed expiries.
 
         Args:
             ticker (str): Calculate option prices for this ticker
@@ -206,13 +203,21 @@ class OptionInterface(System):
                 result_for_expiry = []
                 for row in rows:
                     strike_price = row["strikePrice"]
+                    call = row["CE"]
+                    put = row["PE"]
                     result_for_expiry.append(
                         {
                             "strike": strike_price,
-                            "call": row["CE"]["lastPrice"],
-                            "put": row["PE"]["lastPrice"],
-                            "call_oi": row["CE"]["openInterest"],
-                            "put_oi": row["PE"]["openInterest"],
+                            "call": call["lastPrice"],
+                            "call_oi": call["openInterest"],
+                            "call_volume": call["totalTradedVolume"],
+                            "call_bidprice": call["bidprice"],
+                            "call_askprice": call["askPrice"],
+                            "put": put["lastPrice"],
+                            "put_oi": put["openInterest"],
+                            "put_volume": put["totalTradedVolume"],
+                            "put_bidprice": put["bidprice"],
+                            "put_askprice": put["askPrice"],
                         }
                     )
                 result.append(
@@ -242,7 +247,7 @@ class OptionInterface(System):
         )
 
     def debug(self):
-        return self.__find()
+        return self.__get()
 
 
 if __name__ == "__main__":
@@ -270,4 +275,5 @@ if __name__ == "__main__":
         command_handler=None,
         name="",
     )
-    ohlc = oi.debug().obj
+    option_chain = oi.debug().obj
+    print(option_chain)
