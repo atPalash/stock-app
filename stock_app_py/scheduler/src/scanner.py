@@ -9,7 +9,8 @@ matplotlib.use("Agg")
 
 from stock_app_py.scheduler.base.scheduler import Scheduler
 from stock_app_py.system.src.command_handler import CommandHandler
-import mplfinance as mpf
+
+# import mplfinance as mpf
 from PIL import Image, ImageDraw, ImageFont
 
 

@@ -244,6 +244,7 @@ class GherkinGenericQuery(System):
                             raise Exception(f"No matching steps found {step}")
 
                     except Exception as e:
+                        logger.error(f"{step} {e.args}")
                         errors += f"{step}->{e.args}\n"
                         raise Exception(errors)
 

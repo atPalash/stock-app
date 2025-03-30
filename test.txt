@@ -1,0 +1,98 @@
+-----2-----
+
+                    id: prediction_inrange
+                     total_right_predictions: 408
+                    total_wrong_predictions: 413
+                    total_gain: 9.46000000000001
+
+
+                    id: prediction_moversWithEmaVwapRiseAndRange
+                     total_right_predictions: 151
+                    total_wrong_predictions: 133
+                    total_gain: 9.309999999999999
+
+
+                    id: prediction_moversWithEmaVwapRise
+                     total_right_predictions: 934
+                    total_wrong_predictions: 814
+                    total_gain: 37.300000000000004
+
+
+                    id: prediction_vwapRange
+                     total_right_predictions: 929
+                    total_wrong_predictions: 811
+                    total_gain: 31.609999999999985
+
+
+                    id: prediction_vwapTouchAndEmaVwapChange
+                     total_right_predictions: 285
+                    total_wrong_predictions: 292
+                    total_gain: -8.150000000000002
+
+
+                    id: prediction_vwapTouchAndEmaChange
+                     total_right_predictions: 497
+                    total_wrong_predictions: 495
+                    total_gain: -10.139999999999986
+
+
+                    id: prediction_vwapTouchAndVwapChange
+                     total_right_predictions: 438
+                    total_wrong_predictions: 437
+                    total_gain: -0.7999999999999938
+
+
+                    id: prediction_vwapTouch
+                     total_right_predictions: 378
+                    total_wrong_predictions: 337
+                    total_gain: 14.829999999999988
+
+-----6-----
+
+                    id: prediction_inrange
+                     total_right_predictions: 418
+                    total_wrong_predictions: 456
+                    total_gain: -2.8499999999999974
+
+
+                    id: prediction_moversWithEmaVwapRiseAndRange
+                     total_right_predictions: 128
+                    total_wrong_predictions: 170
+                    total_gain: -2.309999999999998
+
+
+                    id: prediction_moversWithEmaVwapRise
+                     total_right_predictions: 859
+                    total_wrong_predictions: 915
+                    total_gain: 35.819999999999936
+
+
+                    id: prediction_vwapRange
+                     total_right_predictions: 853
+                    total_wrong_predictions: 912
+                    total_gain: 29.629999999999942
+
+
+                    id: prediction_vwapTouchAndEmaVwapChange
+                     total_right_predictions: 229
+                    total_wrong_predictions: 231
+                    total_gain: 10.01
+
+
+                    id: prediction_vwapTouchAndEmaChange
+                     total_right_predictions: 410
+                    total_wrong_predictions: 452
+                    total_gain: 3.840000000000007
+
+
+                    id: prediction_vwapTouchAndVwapChange
+                     total_right_predictions: 412
+                    total_wrong_predictions: 363
+                    total_gain: 27.71999999999999
+
+
+                    id: prediction_vwapTouch
+                     total_right_predictions: 283
+                    total_wrong_predictions: 328
+                    total_gain: -17.379999999999985
+

@@ -30,7 +30,7 @@ nifty100:
   - DABUR
   - DIVISLAB
   - DRREDDY
-  - EICHERMOT
+  #  - EICHERMOT
   - GAIL
   - GODREJCP
   - GRASIM
@@ -76,7 +76,7 @@ nifty100:
   - SBILIFE
   - MOTHERSON
   - SHREECEM
-  - SHRIRAMFIN
+  #  - SHRIRAMFIN
   - SIEMENS
   - SBIN
   - SUNPHARMA
@@ -141,7 +141,7 @@ nifty100quality30:
   - COLPAL
   - DABUR
   - DIVISLAB
-  - EICHERMOT
+  #  - EICHERMOT
   - GODREJCP
   - HCLTECH
   - HDFCBANK
@@ -219,7 +219,7 @@ nifty200:
   - DIVISLAB
   - DIXON
   - DRREDDY
-  - EICHERMOT
+  #  - EICHERMOT
   - ESCORTS
   - EXIDEIND
   - NYKAA
@@ -323,7 +323,7 @@ nifty200:
   - SRF
   - MOTHERSON
   - SHREECEM
-  - SHRIRAMFIN
+  #  - SHRIRAMFIN
   - SIEMENS
   - SOLARINDS
   - SONACOMS
@@ -470,7 +470,7 @@ nifty50:
   - CIPLA
   - COALINDIA
   - DRREDDY
-  - EICHERMOT
+  #  - EICHERMOT
   - GRASIM
   - HCLTECH
   - HDFCBANK
@@ -492,7 +492,7 @@ nifty50:
   - POWERGRID
   - RELIANCE
   - SBILIFE
-  - SHRIRAMFIN
+  #  - SHRIRAMFIN
   - SBIN
   - SUNPHARMA
   - TCS
@@ -650,7 +650,7 @@ nifty500:
   - EIDPARRY
   - EIHOTEL
   - EASEMYTRIP
-  - EICHERMOT
+  #  - EICHERMOT
   - ELECON
   - ELGIEQUIP
   - EMAMILTD
@@ -916,7 +916,7 @@ nifty500:
   - SCI
   - SHREECEM
   - RENUKA
-  - SHRIRAMFIN
+  #  - SHRIRAMFIN
   - SHYAMMETL
   - SIEMENS
   - SIGNATURE
@@ -1151,7 +1151,7 @@ nifty500multicap50:
   - EIDPARRY
   - EIHOTEL
   - EASEMYTRIP
-  - EICHERMOT
+  #  - EICHERMOT
   - ELECON
   - ELGIEQUIP
   - EMAMILTD
@@ -1417,7 +1417,7 @@ nifty500multicap50:
   - SCI
   - SHREECEM
   - RENUKA
-  - SHRIRAMFIN
+  #  - SHRIRAMFIN
   - SHYAMMETL
   - SIEMENS
   - SIGNATURE
@@ -1513,7 +1513,7 @@ niftyauto:
   - BALKRISIND
   - BHARATFORG
   - BOSCHLTD
-  - EICHERMOT
+  #  - EICHERMOT
   - EXIDEIND
   - HEROMOTOCO
   - MRF
@@ -1679,7 +1679,7 @@ niftyindiamanufactu:
   - DIVISLAB
   - DIXON
   - DRREDDY
-  - EICHERMOT
+  #  - EICHERMOT
   - ESCORTS
   - EXIDEIND
   - FLUOROCHEM
@@ -1812,7 +1812,7 @@ niftylargemidcap250:
   - DIVISLAB
   - DIXON
   - DRREDDY
-  - EICHERMOT
+  #  - EICHERMOT
   - EMAMILTD
   - ENDURANCE
   - ESCORTS
@@ -1943,7 +1943,7 @@ niftylargemidcap250:
   - MOTHERSON
   - SCHAEFFLER
   - SHREECEM
-  - SHRIRAMFIN
+  #  - SHRIRAMFIN
   - SIEMENS
   - SOLARINDS
   - SONACOMS
@@ -3870,7 +3870,7 @@ niftytotalma:
   - ESAFSFB
   - EASEMYTRIP
   - EDELWEISS
-  - EICHERMOT
+  #  - EICHERMOT
   - ELECON
   - EMIL
   - ELECTCAST
@@ -4286,7 +4286,7 @@ niftytotalma:
   - SBCL
   - SHREECEM
   - RENUKA
-  - SHRIRAMFIN
+  #  - SHRIRAMFIN
   - SHRIPISTON
   - SHYAMMETL
   - SIEMENS

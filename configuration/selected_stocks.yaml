@@ -20,7 +20,7 @@ stock:
   - CIPLA
   - COALINDIA
   - DRREDDY
-  - EICHERMOT
+  #  - EICHERMOT
   - GRASIM
   - HCLTECH
   - HDFCBANK
@@ -42,7 +42,7 @@ stock:
   - POWERGRID
   - RELIANCE
   - SBILIFE
-  - SHRIRAMFIN
+  # - SHRIRAMFIN
   - SBIN
   - SUNPHARMA
   - TCS

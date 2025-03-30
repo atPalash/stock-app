@@ -287,19 +287,36 @@ if __name__ == "__main__":
     Then list bull = tickers with highT0 > high and (high > vwap and vwap > low)\n
     * list bear = tickers with lowT0 < low and (high > vwap and vwap > low)\n
     """
+    gherkin9 = f"""Feature: v2\n
+    Scenario: {SCENARIO}\n
+    Given stocks from index nifty50\n
+    When let ema10Change = rate in 10 samples of minute5 close ema 10\n
+    * let vwap10Change = rate in 10 samples of minute5 close vwap 10\n
+    * let vwap = latest in 1 samples of minute5 close vwap 10\n
+    * let vwapMin = minimum in 10 samples of minute5 close vwap 10\n
+    * let emaMax = maximum in 10 samples of minute5 close ema 10\n
+    * let emaMin = minimum in 10 samples of minute5 close ema 10\n
+    * let ema10Day = oldest in 2 samples of day close ema 10\n
+    * let close = latest in 1 samples of minute5 close\n
+    * let dayClose = oldest in 2 samples of day close\n
+    Then let vwaprange = abs(close - vwap) / close < 0.01 \n
+    * list bull = tickers with ema10Change > 0 and vwap10Change > 0 and abs(dayClose - close) / dayClose > 0.01 and vwaprange\n
+    * list bear = tickers with ema10Change < 0 and vwap10Change < 0 and abs(dayClose - close) / dayClose > 0.01 and vwaprange\n
+    """
     gherkins = {
-        "inrange": gherkin1,
-        "moversWithEmaVwapRiseAndRange": gherkin2,
+        # "inrange": gherkin1,
+        # "moversWithEmaVwapRiseAndRange": gherkin2,
         "moversWithEmaVwapRise": gherkin3,
-        "vwapRange": gherkin4,
-        "vwapTouchAndEmaVwapChange": gherkin5,
-        "vwapTouchAndEmaChange": gherkin6,
-        "vwapTouchAndVwapChange": gherkin7,
-        "vwapTouch": gherkin8,
+        "vwapRange03": gherkin4,
+        # "vwapTouchAndEmaVwapChange": gherkin5,
+        # "vwapTouchAndEmaChange": gherkin6,
+        # "vwapTouchAndVwapChange": gherkin7,
+        # "vwapTouch": gherkin8,
+        "vwapRange01": gherkin9,
     }
     count = 1
 
-    for window in range(2, 10, 4):
+    for window in range(2, 20, 4):
         # for name, gherkin in gherkins.items():
         print(f"-----{window}-----")
         ut = GherkinBacktest(
