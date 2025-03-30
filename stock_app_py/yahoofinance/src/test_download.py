@@ -13,4 +13,4 @@ data = yf.download(
     ignore_tz=True,
 )
 
-data.to_csv("test.csv")
+# data.to_csv("test.csv")
