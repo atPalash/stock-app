@@ -1,0 +1,5 @@
+.vscode
+venv
+stock-app
+__pycache__
+.env
