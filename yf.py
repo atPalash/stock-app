@@ -1,8 +1,8 @@
 import yfinance as yf
 
-def download_stock_data(ticker:str, interval:str)->None:
+def download_stock_data(ticker:str, interval:str, country:str="India")->None:
     data = yf.download(
-        tickers=[f"{ticker}.NS"],
+        tickers=[f"{ticker}{".NS" if country=="India" else ""}"],
         period="max",
         interval=interval,
         progress=False,

@@ -1,6 +1,6 @@
 import os, time
 import warnings
-from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client import InfluxDBClient, Point, WritePrecision, BucketsApi
 from influxdb_client.client.write_api import SYNCHRONOUS
 import warnings
 from influxdb_client.client.warnings import MissingPivotFunction
@@ -10,6 +10,8 @@ import pandas as pd
 import pandas_ta as ta
 from datetime import datetime, timezone
 
+import requests
+
 from utility import read_config
 import yf
 
@@ -18,6 +20,8 @@ class InfluxDBHandler:
     def __init__(self, url, token, org, bucket, prefix="stock_data"):
         self.client = InfluxDBClient(url=url, token=token, org=org)
         self.write_api = self.client.write_api(write_options=SYNCHRONOUS)
+        self.token = token
+        self.url = url
         self.bucket = bucket
         self.org = org
         self.point_name = f"{prefix}"
@@ -88,6 +92,39 @@ class InfluxDBHandler:
         # Delete all data in the bucket
         self.client.delete_api().delete(start=start, stop=stop, predicate='', bucket=self.bucket, org=self.org)
 
+    def drop_influxdb_bucket(self):
+        # Get bucket ID
+        headers = {
+            "Authorization": f"Token {self.token}",
+            "Content-Type": "application/json"
+        }
+        params = {
+            "name": self.bucket,
+            "org": self.org
+        }
+        resp = requests.get(f"{self.url}/api/v2/buckets", headers=headers, params=params)
+        resp.raise_for_status()
+        buckets = resp.json().get("buckets", [])
+        if not buckets:
+            print("Bucket not found.")
+            return
+        bucket_id = buckets[0]["id"]
+
+        # Delete bucket
+        del_resp = requests.delete(f"{self.url}/api/v2/buckets/{bucket_id}", headers=headers)
+        del_resp.raise_for_status()
+        print(f"Bucket '{self.bucket}' dropped.")
+    
+    def create_bucket_if_not_exists(self):
+        buckets_api = BucketsApi(self.client)
+        buckets = buckets_api.find_buckets().buckets
+        if not any(b.name == self.bucket for b in buckets):
+            buckets_api.create_bucket(bucket_name=self.bucket, org=self.org)
+            print(f"Bucket '{self.bucket}' created.")
+        else:
+            print(f"Bucket '{self.bucket}' already exists.")
+        self.client.close()
+
     def __calculate_indicators(self, df: pd.DataFrame, config:str) -> tuple[pd.DataFrame, tuple]:
         indicator_col_prefixes = ('sma_', 'ema_') # should match the prefixes used ind_type == 'SMA'/'EMA' etc
         indicators = read_config(config).get('indicators', {})
@@ -112,20 +149,22 @@ if __name__ == "__main__":
     token = os.environ.get("INFLUX_TOKEN")
     org = os.environ.get("INFLUX_ORG")
     url = os.environ.get("INFLUX_URL")
-    intervals = read_config(config).get('intervals', [])
-    tickers = read_config(config).get('indexes', []).get('nifty50', [])
+    intervals = ['1m'] # read_config(config).get('intervals', [])
+    tickers = ['GOOGL'] # read_config(config).get('indexes', []).get('nifty50', [])
     bucket=os.environ.get("INFLUX_BUCKET")
     influx_handler = InfluxDBHandler(url, token, org, bucket, prefix="stock_data")
 
-    # influx_handler.clear()
+    # influx_handler.drop_influxdb_bucket()
+    # influx_handler.create_bucket_if_not_exists()
 
-    # for interval in intervals:
-    #     for ticker in tickers:
-    #         data = yf.download_stock_data(ticker, interval=interval)
-    #         influx_handler.write(data, ticker, interval, config)
-    #         time.sleep(1)  # Sleep to avoid hitting rate limits
-    # print(influx_handler.get_tables())
-    df = influx_handler.to_dataframe(interval="1m", ticker="BEL")
+    for interval in intervals:
+        for ticker in tickers:
+            data = yf.download_stock_data(ticker, interval=interval, country="US")
+            print(data)
+            influx_handler.write(data, ticker, interval, config)
+            time.sleep(1)  # Sleep to avoid hitting rate limits
+    print(influx_handler.get_tables())
+    df = influx_handler.to_dataframe(interval="1m", ticker="GOOGL")
     print(df)
     influx_handler.close()
 

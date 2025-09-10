@@ -21,7 +21,6 @@ config = os.environ.get("CONFIG_FILE_DEBUG")
 token = os.environ.get("INFLUX_TOKEN")
 org = os.environ.get("INFLUX_ORG")
 url = os.environ.get("INFLUX_URL")
-intervals = read_config(config).get('intervals', [])
 tickers = read_config(config).get('indexes', []).get('nifty50', [])
 bucket = os.environ.get("INFLUX_BUCKET")
 influx_handler = InfluxDBHandler(url, token, org, bucket, prefix="stock_data")
@@ -35,17 +34,18 @@ async def read_root():
 async def to_dataframe(ticker: str, interval: str):
     df = influx_handler.to_dataframe(interval=interval, ticker=ticker)
     df = df.replace({np.nan: None})
+    df = df.reset_index()
     return {"info":"get data as pandas df","ticker": ticker, "interval": interval, 
-            "data": df.to_dict()}
+            "data": df.to_dict(orient='records')}
 @app.get("/clear")
 async def read_item():
     return {"message": "clear"}
  
 if __name__ == "__main__":
     influx_handler.clear()
-    if not influx_handler.get_tables().empty:
-        logger.error(f"InfluxDB has older data")
-        exit(1)
+    # if not influx_handler.get_tables().empty:
+    #     logger.error(f"InfluxDB has older data")
+    #     exit(1)
 
     def yf_job(interval: str)->None:
         logger.info(f"Downloading data for interval {interval}")
@@ -55,13 +55,14 @@ if __name__ == "__main__":
             # Concatenate so new data is last
             combined_data = pd.concat([previous_data, data])
             combined_data = combined_data[~combined_data.index.duplicated(keep='first')]
-            influx_handler.write(data=data, ticker=ticker, interval=interval, config=config)
+            influx_handler.write(data=combined_data, ticker=ticker, interval=interval, config=config)
 
     cron_schedules = read_config(config).get('cron_schedules', {})
     scheduler = Scheduler()
     scheduler.start()
     for interval, params in cron_schedules.items():
-        scheduler.add_periodic_job(func=lambda: yf_job(interval=interval), params=params, job_id=f"yf_job_{interval}")
+        yf_job(interval=interval)
+        scheduler.add_periodic_job(func=lambda interval=interval: yf_job(interval=interval), params=params, job_id=f"yf_job_{interval}")
 
     uvicorn.run(app, host="localhost", port=8000)
     influx_handler.close()
