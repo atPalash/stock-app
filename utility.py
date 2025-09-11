@@ -32,7 +32,7 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
     return logger
 
-def normalize_index_to_tz(df, tz_str='Asia/Kolkata'):
+def normalize_index_to_tz(df, tz_str):
     """
     Normalize DataFrame index to tz-aware with the given timezone.
     Handles both tz-naive and tz-aware indices.

@@ -22,8 +22,9 @@ token = os.environ.get("INFLUX_TOKEN")
 org = os.environ.get("INFLUX_ORG")
 url = os.environ.get("INFLUX_URL")
 tickers = read_config(config).get('indexes', []).get('nifty50', [])
+tz = read_config(config).get('tz', 'Asia/Kolkata')
 bucket = os.environ.get("INFLUX_BUCKET")
-influx_handler = InfluxDBHandler(url, token, org, bucket, prefix="stock_data")
+influx_handler = InfluxDBHandler(tz, url, token, org, bucket, prefix="stock_data")
 
 @app.get("/")
 async def read_root():
@@ -51,11 +52,11 @@ if __name__ == "__main__":
         logger.info(f"Downloading data for interval {interval}")
         for ticker in tickers:    
             previous_data = influx_handler.to_dataframe(interval=interval, ticker=ticker)
-            data = download_stock_data(ticker=ticker, interval=interval)
+            data = download_stock_data(ticker=ticker, interval=interval, tz=tz)
 
-            # Normalize both to tz-aware Asia/Kolkata using utility
-            previous_data = normalize_index_to_tz(previous_data, 'Asia/Kolkata')
-            data = normalize_index_to_tz(data, 'Asia/Kolkata')
+            # Normalize both to tz-aware utility
+            previous_data = normalize_index_to_tz(previous_data, tz)
+            data = normalize_index_to_tz(data, tz)
 
             # Concatenate so new data is last
             combined_data = pd.concat([previous_data, data])
@@ -63,7 +64,7 @@ if __name__ == "__main__":
             influx_handler.write(data=combined_data, ticker=ticker, interval=interval, config=config)
 
     cron_schedules = read_config(config).get('cron_schedules', {})
-    scheduler = Scheduler()
+    scheduler = Scheduler(tz)
     scheduler.start()
     for interval, params in cron_schedules.items():
         yf_job(interval=interval)

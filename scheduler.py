@@ -10,9 +10,10 @@ from utility import get_logger
 logger = get_logger(__file__, logging.DEBUG)
 
 class Scheduler:
-    def __init__(self):
-        # Initialize the scheduler
+    def __init__(self, tz):
+        # Initialize the schedulers
         self.scheduler = BackgroundScheduler()
+        self.tz = tz
         
     def start(self):
         # Start the scheduler
@@ -26,7 +27,7 @@ class Scheduler:
         # Add a job with static day_of_week and timezone, rest from params
         cron_params = {k: v for k, v in params.items() if v is not None}
         cron_params['day_of_week'] = 'mon-fri'
-        cron_params['timezone'] = pytz.timezone('Asia/Kolkata')
+        cron_params['timezone'] = pytz.timezone(self.tz)
         self.scheduler.add_job(
             func,
             trigger=CronTrigger(**cron_params),
