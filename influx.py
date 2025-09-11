@@ -1,4 +1,5 @@
 import os, time
+import pytz
 import warnings
 from influxdb_client import InfluxDBClient, Point, WritePrecision, BucketsApi
 from influxdb_client.client.write_api import SYNCHRONOUS
@@ -40,9 +41,10 @@ class InfluxDBHandler:
         # Rename _time to Datetime and set as DatetimeIndex
         if '_time' in df.columns:
             dt = pd.to_datetime(df['_time'])
-            # Remove timezone info if present
-            if hasattr(dt.dt, 'tz') and dt.dt.tz is not None:
-                dt = dt.dt.tz_localize(None)
+            # Always localize to UTC first, then convert to Asia/Kolkata for user-facing results
+            if dt.dt.tz is None:
+                dt = dt.dt.tz_localize('UTC')
+            dt = dt.dt.tz_convert('Asia/Kolkata')
             df['Datetime'] = dt
             df = df.drop(columns=['_time'])
             df = df.set_index('Datetime')
@@ -60,10 +62,17 @@ class InfluxDBHandler:
     def close(self):
         self.client.close()
 
-    def write(self, data:pd.DataFrame, ticker:str, interval:str, config:str):
-        points = [] # List to hold multiple points for batch writing
+    def write(self, data: pd.DataFrame, ticker: str, interval: str, config: str):
+        points = []  # List to hold multiple points for batch writing
         df, indicator_col_prefixes = self.__calculate_indicators(data, config)
-        for index, row in df.iterrows():
+        # Ensure index is DatetimeIndex and in UTC for InfluxDB
+        idx = df.index
+        # Convert all index values to string, then back to DatetimeIndex to avoid tz-naive/tz-aware mix
+        idx = pd.to_datetime(idx.astype(str), format="mixed", errors="coerce", utc=False)
+        idx = pd.DatetimeIndex(idx).tz_localize(None)  # Make tz-naive
+        idx_utc = idx.tz_localize('Asia/Kolkata').tz_convert('UTC')
+        for index, row in zip(idx_utc, df.iterrows()):
+            _, row = row
             point = (
                 Point(self.point_name)
                 .tag("ticker", ticker)
@@ -150,7 +159,7 @@ if __name__ == "__main__":
     org = os.environ.get("INFLUX_ORG")
     url = os.environ.get("INFLUX_URL")
     intervals = ['1m'] # read_config(config).get('intervals', [])
-    tickers = ['GOOGL'] # read_config(config).get('indexes', []).get('nifty50', [])
+    tickers = ['BEL'] # read_config(config).get('indexes', []).get('nifty50', [])
     bucket=os.environ.get("INFLUX_BUCKET")
     influx_handler = InfluxDBHandler(url, token, org, bucket, prefix="stock_data")
 
@@ -159,12 +168,12 @@ if __name__ == "__main__":
 
     for interval in intervals:
         for ticker in tickers:
-            data = yf.download_stock_data(ticker, interval=interval, country="US")
+            data = yf.download_stock_data(ticker, interval=interval, country="India")
             print(data)
             influx_handler.write(data, ticker, interval, config)
             time.sleep(1)  # Sleep to avoid hitting rate limits
     print(influx_handler.get_tables())
-    df = influx_handler.to_dataframe(interval="1m", ticker="GOOGL")
+    df = influx_handler.to_dataframe(interval="1m", ticker="BEL")
     print(df)
     influx_handler.close()
 

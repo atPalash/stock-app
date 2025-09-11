@@ -52,6 +52,20 @@ if __name__ == "__main__":
         for ticker in tickers:    
             previous_data = influx_handler.to_dataframe(interval=interval, ticker=ticker)
             data = download_stock_data(ticker=ticker, interval=interval)
+
+            # Normalize both to tz-aware Asia/Kolkata
+            previous_data.index = pd.to_datetime(previous_data.index, errors='coerce')
+            if previous_data.index.tz is None:
+                previous_data.index = previous_data.index.tz_localize('Asia/Kolkata')
+            else:
+                previous_data.index = previous_data.index.tz_convert('Asia/Kolkata')
+
+            data.index = pd.to_datetime(data.index, errors='coerce')
+            if data.index.tz is None:
+                data.index = data.index.tz_localize('Asia/Kolkata')
+            else:
+                data.index = data.index.tz_convert('Asia/Kolkata')
+
             # Concatenate so new data is last
             combined_data = pd.concat([previous_data, data])
             combined_data = combined_data[~combined_data.index.duplicated(keep='first')]
