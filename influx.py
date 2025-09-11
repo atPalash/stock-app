@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from utility import read_config
+from utility import read_config, normalize_index_to_tz
 import yf
 
 
@@ -48,6 +48,7 @@ class InfluxDBHandler:
             df['Datetime'] = dt
             df = df.drop(columns=['_time'])
             df = df.set_index('Datetime')
+        df = normalize_index_to_tz(df, 'Asia/Kolkata')
         return df
 
     def get_tables(self) -> pd.DataFrame:
@@ -65,13 +66,10 @@ class InfluxDBHandler:
     def write(self, data: pd.DataFrame, ticker: str, interval: str, config: str):
         points = []  # List to hold multiple points for batch writing
         df, indicator_col_prefixes = self.__calculate_indicators(data, config)
-        # Ensure index is DatetimeIndex and in UTC for InfluxDB
-        idx = df.index
-        # Convert all index values to string, then back to DatetimeIndex to avoid tz-naive/tz-aware mix
-        idx = pd.to_datetime(idx.astype(str), format="mixed", errors="coerce", utc=False)
-        idx = pd.DatetimeIndex(idx).tz_localize(None)  # Make tz-naive
-        idx_utc = idx.tz_localize('Asia/Kolkata').tz_convert('UTC')
-        for index, row in zip(idx_utc, df.iterrows()):
+        # Normalize index to Asia/Kolkata before converting to UTC
+        df = normalize_index_to_tz(df, 'Asia/Kolkata')
+        idx = df.index.tz_convert('UTC')
+        for index, row in zip(idx, df.iterrows()):
             _, row = row
             point = (
                 Point(self.point_name)

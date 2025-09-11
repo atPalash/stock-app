@@ -11,7 +11,7 @@ import logging
 from scheduler import Scheduler
 from influx import InfluxDBHandler
 from yf import download_stock_data
-from utility import get_logger
+from utility import get_logger, normalize_index_to_tz
 
 app = FastAPI()
 logger = get_logger('main', logging.DEBUG)
@@ -53,18 +53,9 @@ if __name__ == "__main__":
             previous_data = influx_handler.to_dataframe(interval=interval, ticker=ticker)
             data = download_stock_data(ticker=ticker, interval=interval)
 
-            # Normalize both to tz-aware Asia/Kolkata
-            previous_data.index = pd.to_datetime(previous_data.index, errors='coerce')
-            if previous_data.index.tz is None:
-                previous_data.index = previous_data.index.tz_localize('Asia/Kolkata')
-            else:
-                previous_data.index = previous_data.index.tz_convert('Asia/Kolkata')
-
-            data.index = pd.to_datetime(data.index, errors='coerce')
-            if data.index.tz is None:
-                data.index = data.index.tz_localize('Asia/Kolkata')
-            else:
-                data.index = data.index.tz_convert('Asia/Kolkata')
+            # Normalize both to tz-aware Asia/Kolkata using utility
+            previous_data = normalize_index_to_tz(previous_data, 'Asia/Kolkata')
+            data = normalize_index_to_tz(data, 'Asia/Kolkata')
 
             # Concatenate so new data is last
             combined_data = pd.concat([previous_data, data])
