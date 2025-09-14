@@ -7,6 +7,7 @@ from fastapi import FastAPI
 import os
 from utility import read_config
 import logging
+import concurrent.futures
 
 from scheduler import Scheduler
 from influx import InfluxDBHandler
@@ -43,25 +44,49 @@ async def read_item():
     return {"message": "clear"}
  
 if __name__ == "__main__":
-    influx_handler.clear()
-    # if not influx_handler.get_tables().empty:
-    #     logger.error(f"InfluxDB has older data")
-    #     exit(1)
+    # We'll clear data per ticker/interval before writing, so no need for a global clear
+    # Ensure bucket exists
+    influx_handler.create_bucket_if_not_exists()
 
-    def yf_job(interval: str)->None:
-        logger.info(f"Downloading data for interval {interval}")
-        for ticker in tickers:    
-            previous_data = influx_handler.to_dataframe(interval=interval, ticker=ticker)
+    def process_ticker(ticker: str, interval: str)->None:
+        try:
+            # Download fresh data directly from source first
             data = download_stock_data(ticker=ticker, interval=interval, tz=tz)
-
-            # Normalize both to tz-aware utility
-            previous_data = normalize_index_to_tz(previous_data, tz)
+            
+            # Normalize to tz-aware
             data = normalize_index_to_tz(data, tz)
-
-            # Concatenate so new data is last
-            combined_data = pd.concat([previous_data, data])
-            combined_data = combined_data[~combined_data.index.duplicated(keep='first')]
-            influx_handler.write(data=combined_data, ticker=ticker, interval=interval, config=config)
+            
+            if data.empty:
+                logger.warning(f"Received empty data for {ticker} at interval {interval}, skipping update")
+                return
+            
+            # Use the atomic replace method to minimize data unavailability window
+            success = influx_handler.replace_data(data=data, ticker=ticker, interval=interval, config=config)
+            
+            if not success:
+                logger.error(f"Failed to update data for {ticker} at interval {interval}")
+            return success
+        
+        except Exception as e:
+            logger.error(f"Error processing {ticker} at interval {interval}: {e}")
+    
+    def yf_job(interval: str)->None:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        # Use a ThreadPoolExecutor as this is primarily I/O bound
+        max_workers = min(10, len(tickers))  # Limit number of threads
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks to the executor and map them to their tickers for error reporting
+            future_to_ticker = {executor.submit(process_ticker, ticker, interval): ticker for ticker in tickers}
+            
+            # Process results as they complete and handle exceptions
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                try:
+                    # Get the result (or exception) from the future
+                    future.result()
+                except Exception as e:
+                    # Log any exceptions that weren't caught in process_ticker
+                    logger.error(f"Uncaught exception in process_ticker for {ticker} at {interval}: {e}")
 
     cron_schedules = read_config(config).get('cron_schedules', {})
     scheduler = Scheduler(tz)

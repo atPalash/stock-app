@@ -1,14 +1,14 @@
 # intervals: [1m, 2m, 5m, 15m, 30m] #1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 4h, 1d, 5d, 1wk, 1mo, 3mo
-tz: America/New_York
+tz: Asia/Kolkata
 cron_schedules:
-  "1m": { "minute": "*/1" } # debug every minute
-  "2m": { "minute": "*/2" }
-  "5m": { "minute": "*/5" }
-  # "5m": { "minute": "*/5", "hour": 9-16 }
-  # "15m": { "minute": "*/15", "hour": 9-16 }
-  # "1h": { "hour": 9-16 }
-  # "1d": { "hour": 16 }
-  # "1wk": { "hour": 16 }
+  "1m": { "minute": "*/1", "hour": 9-16, "second": "0" } # runs at 0 seconds of every minute
+  "2m": { "minute": "*/2", "hour": 9-16, "second": "5" } # runs at 5 seconds of every 2nd minute
+  "5m": { "minute": "*/5", "hour": 9-16, "second": "10" } # runs at 10 seconds of every 5th minute
+  "15m": { "minute": "*/15", "hour": 9-16, "second": "15" } # runs at 15 seconds of every 15th minute
+  "30m": { "minute": "*/30", "hour": 9-16, "second": "20" } # runs at 20 seconds of every 30th minute
+  "1h": { "minute": "0", "hour": "9-16", "second": "25" } # runs at 25 seconds of the 0th minute each hour
+  "1d": { "hour": 16, "minute": 6, "second": "30" } # runs at 16:06:30
+  # "1wk": { "hour": 16, "minute": 7, "second": "35" } # runs on Friday at 16:07
 indicators:
   sma:
     periods: [5, 10]
@@ -21,4 +21,4 @@ indicators:
     sources: ["Close"]
 
 indexes:
-  nifty50: ["AAPL", "GOOGL"]
+  nifty50: ["BEL", "TCS", "RELIANCE", "HDFCBANK", "INFY"]

@@ -34,13 +34,10 @@ class Scheduler:
             id=job_id,
             replace_existing=True
         )
-        logger.info(f"Job '{job_id}' added with cron params: {cron_params}")
-
+        
     def remove_job(self, job_id):
         # Remove a job by id
         self.scheduler.remove_job(job_id)
-        # logger.info(f"Job '{job_id}' removed.")
-
 
 # Usage example
 if __name__ == '__main__':
