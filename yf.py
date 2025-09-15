@@ -1,15 +1,16 @@
 import yfinance as yf
 
 def download_stock_data(ticker:str, interval:str, tz:str)->None:
+    ticker_symbol = f"{ticker}{".NS" if tz=="Asia/Kolkata" else ""}"
     data = yf.download(
-        tickers=[f"{ticker}{".NS" if tz=="Asia/Kolkata" else ""}"],
+        tickers=[ticker_symbol],
         period="max",
         interval=interval,
         progress=False,
         group_by="ticker",
         rounding=True,
         actions=True,
-        threads=True,
+        threads=False,  # Set to False to avoid thread issues with multiple downloads
         multi_level_index=False,
         ignore_tz=True,
         auto_adjust=True,

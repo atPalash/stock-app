@@ -71,22 +71,13 @@ if __name__ == "__main__":
             logger.error(f"Error processing {ticker} at interval {interval}: {e}")
     
     def yf_job(interval: str)->None:
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        # Use a ThreadPoolExecutor as this is primarily I/O bound
-        max_workers = min(10, len(tickers))  # Limit number of threads
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks to the executor and map them to their tickers for error reporting
-            future_to_ticker = {executor.submit(process_ticker, ticker, interval): ticker for ticker in tickers}
-            
-            # Process results as they complete and handle exceptions
-            for future in as_completed(future_to_ticker):
-                ticker = future_to_ticker[future]
-                try:
-                    # Get the result (or exception) from the future
-                    future.result()
-                except Exception as e:
-                    # Log any exceptions that weren't caught in process_ticker
-                    logger.error(f"Uncaught exception in process_ticker for {ticker} at {interval}: {e}")
+        for ticker in tickers:
+            try:
+                # Process each ticker sequentially
+                process_ticker(ticker, interval)
+            except Exception as e:
+                # Log any exceptions
+                logger.error(f"Error processing ticker {ticker} at interval {interval}: {e}")
 
     cron_schedules = read_config(config).get('cron_schedules', {})
     scheduler = Scheduler(tz)

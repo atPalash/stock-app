@@ -361,15 +361,18 @@ class InfluxDBHandler:
             for src in sources:
                 src_col = src.lower() if src.lower() in df.columns else src.capitalize()
                 for period in periods:
-                    col_name = f"{ind_type}_{period}_{src}"
-                    if ind_type == 'sma':
-                        df[col_name] = ta.sma(df[src_col], length=period).round(2)
-                    elif ind_type == 'ema':
-                        df[col_name] = ta.ema(df[src_col], length=period).round(2)
-                    elif ind_type == 'atr':
-                        df[col_name] = ta.atr(df['High'], df['Low'], df['Close'], length=period).round(2)
-                    else:
-                        logger.warning(f"Unsupported indicator type: {ind_type}")
+                    try:
+                        col_name = f"{ind_type}_{period}_{src}"
+                        if ind_type == 'sma':
+                            df[col_name] = ta.sma(df[src_col], length=period).round(2)
+                        elif ind_type == 'ema':
+                            df[col_name] = ta.ema(df[src_col], length=period).round(2)
+                        elif ind_type == 'atr':
+                            df[col_name] = ta.atr(df['High'], df['Low'], df['Close'], length=period).round(2)
+                        else:
+                            logger.warning(f"Unsupported indicator type: {ind_type}")
+                    except Exception as e:
+                        logger.error(f"Error calculating {ind_type} for period {period} and source {src}: {e}")
         indicator_col_prefixes = tuple(f"{k.lower()}_" for k in indicators.keys())
         return df, indicator_col_prefixes
 
@@ -386,16 +389,15 @@ if __name__ == "__main__":
     tz = read_config(config).get('tz', 'Asia/Kolkata')
     bucket=os.environ.get("INFLUX_BUCKET")
     influx_handler = InfluxDBHandler(tz, url, token, org, bucket, prefix="stock_data")
-
     # influx_handler.drop_influxdb_bucket()
     # influx_handler.create_bucket_if_not_exists()
 
-    for interval in intervals:
-        for ticker in tickers:
-            data = yf.download_stock_data(ticker, interval=interval, tz=tz)
-            influx_handler.replace_data(data, ticker, interval, config)
-            influx_handler.clear_ticker_interval('BEL', interval)
-            time.sleep(1)  # Sleep to avoid hitting rate limits
+    # for interval in intervals:
+    #     for ticker in tickers:
+    #         data = yf.download_stock_data(ticker, interval=interval, tz=tz)
+    #         influx_handler.replace_data(data, ticker, interval, config)
+    #         influx_handler.clear_ticker_interval('BEL', interval)
+    #         time.sleep(1)  # Sleep to avoid hitting rate limits
     print(influx_handler.get_tables())
     df = influx_handler.to_dataframe(interval="1m", ticker="TCS")
     print(df.tail(10))
