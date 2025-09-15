@@ -8,6 +8,8 @@ import os
 from utility import read_config
 import logging
 import concurrent.futures
+import multiprocessing
+from functools import partial
 
 from scheduler import Scheduler
 from influx import InfluxDBHandler
@@ -43,41 +45,55 @@ async def to_dataframe(ticker: str, interval: str):
 async def read_item():
     return {"message": "clear"}
  
+# Define a function that can be pickled for multiprocessing
+def mp_process_ticker(ticker, interval, tz_str, url_str, token_str, org_str, bucket_str, config_file):
+    try:
+        # Create a process-specific logger
+        process_logger = get_logger(f'process_{ticker}', logging.DEBUG)
+        
+        # Create a new InfluxDB handler for this process
+        local_influx = InfluxDBHandler(tz_str, url_str, token_str, org_str, bucket_str, prefix="stock_data")
+        
+        # Download fresh data directly from source
+        data = download_stock_data(ticker=ticker, interval=interval, tz=tz_str)
+        
+        # Normalize to tz-aware
+        data = normalize_index_to_tz(data, tz_str)
+        if data.empty:
+            process_logger.warning(f"Received empty data for {ticker} at {interval}, skipping update")
+            return False
+        
+        # Use the atomic replace method to minimize data unavailability window
+        success = local_influx.replace_data(data=data, ticker=ticker, interval=interval, config=config_file)
+        
+        # Close the connection when done
+        local_influx.close()
+        
+        if not success:
+            process_logger.error(f"Failed to update data for {ticker} at {interval}")
+        return success
+    except Exception as e:
+        print(f"Error processing ticker {ticker} at interval {interval}: {e}")
+        return False
+
 if __name__ == "__main__":
     # We'll clear data per ticker/interval before writing, so no need for a global clear
     # Ensure bucket exists
     influx_handler.create_bucket_if_not_exists()
-
-    def process_ticker(ticker: str, interval: str)->None:
-        try:
-            # Download fresh data directly from source first
-            data = download_stock_data(ticker=ticker, interval=interval, tz=tz)
-            
-            # Normalize to tz-aware
-            data = normalize_index_to_tz(data, tz)
-            
-            if data.empty:
-                logger.warning(f"Received empty data for {ticker} at interval {interval}, skipping update")
-                return
-            
-            # Use the atomic replace method to minimize data unavailability window
-            success = influx_handler.replace_data(data=data, ticker=ticker, interval=interval, config=config)
-            
-            if not success:
-                logger.error(f"Failed to update data for {ticker} at interval {interval}")
-            return success
-        
-        except Exception as e:
-            logger.error(f"Error processing {ticker} at interval {interval}: {e}")
     
     def yf_job(interval: str)->None:
-        for ticker in tickers:
-            try:
-                # Process each ticker sequentially
-                process_ticker(ticker, interval)
-            except Exception as e:
-                # Log any exceptions
-                logger.error(f"Error processing ticker {ticker} at interval {interval}: {e}")
+        # Create a pool of processes (one for each CPU core)
+        num_processes = min(multiprocessing.cpu_count(), len(tickers))
+        # Prepare the parameters for each process
+        process_args = [
+            (ticker, interval, tz, url, token, org, bucket, config) 
+            for ticker in tickers
+        ]
+        
+        # Use a process pool executor for true parallelism
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            # Map the processing function to all tickers with their parameters
+            results = pool.starmap(mp_process_ticker, process_args)
 
     cron_schedules = read_config(config).get('cron_schedules', {})
     scheduler = Scheduler(tz)

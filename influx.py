@@ -174,7 +174,6 @@ class InfluxDBHandler:
         try:
             if hasattr(self, 'client'):
                 self.client.close()
-                logger.info("InfluxDB client connection closed successfully")
         except Exception as e:
             logger.error(f"Error closing InfluxDB client connection: {e}")
 
@@ -389,7 +388,8 @@ if __name__ == "__main__":
     tz = read_config(config).get('tz', 'Asia/Kolkata')
     bucket=os.environ.get("INFLUX_BUCKET")
     influx_handler = InfluxDBHandler(tz, url, token, org, bucket, prefix="stock_data")
-    # influx_handler.drop_influxdb_bucket()
+    influx_handler.drop_influxdb_bucket()
+    exit(0)
     # influx_handler.create_bucket_if_not_exists()
 
     # for interval in intervals:

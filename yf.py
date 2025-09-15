@@ -10,7 +10,7 @@ def download_stock_data(ticker:str, interval:str, tz:str)->None:
         group_by="ticker",
         rounding=True,
         actions=True,
-        threads=False,  # Set to False to avoid thread issues with multiple downloads
+        threads=True,
         multi_level_index=False,
         ignore_tz=True,
         auto_adjust=True,
