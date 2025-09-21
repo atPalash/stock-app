@@ -15,6 +15,7 @@ from scheduler import Scheduler
 from influx import InfluxDBHandler
 from yf import download_stock_data
 from utility import get_logger, normalize_index_to_tz
+import yf
 
 app = FastAPI()
 logger = get_logger('main', logging.DEBUG)
@@ -25,6 +26,8 @@ token = os.environ.get("INFLUX_TOKEN")
 org = os.environ.get("INFLUX_ORG")
 url = os.environ.get("INFLUX_URL")
 tickers = read_config(config).get('indexes', []).get('nifty50', [])
+indicators = read_config(config).get('indicators', {})
+cron_schedules = read_config(config).get('cron_schedules', {})
 tz = read_config(config).get('tz', 'Asia/Kolkata')
 bucket = os.environ.get("INFLUX_BUCKET")
 influx_handler = InfluxDBHandler(tz, url, token, org, bucket, prefix="stock_data")
@@ -41,22 +44,16 @@ async def to_dataframe(ticker: str, interval: str):
     df = df.reset_index()
     return {"info":"get data as pandas df","ticker": ticker, "interval": interval, 
             "data": df.to_dict(orient='records')}
-@app.get("/clear")
-async def read_item():
-    return {"message": "clear"}
  
 # Define a function that can be pickled for multiprocessing
-def mp_process_ticker(ticker, interval, tz_str, url_str, token_str, org_str, bucket_str, config_file):
+def mp_process_ticker(data, ticker, interval, tz_str, url_str, token_str, org_str, bucket_str):
     try:
         # Create a process-specific logger
         process_logger = get_logger(f'process_{ticker}', logging.DEBUG)
         
         # Create a new InfluxDB handler for this process
         local_influx = InfluxDBHandler(tz_str, url_str, token_str, org_str, bucket_str, prefix="stock_data")
-        
-        # Download fresh data directly from source
-        data = download_stock_data(ticker=ticker, interval=interval, tz=tz_str)
-        
+                
         # Normalize to tz-aware
         data = normalize_index_to_tz(data, tz_str)
         if data.empty:
@@ -64,7 +61,7 @@ def mp_process_ticker(ticker, interval, tz_str, url_str, token_str, org_str, buc
             return False
         
         # Use the atomic replace method to minimize data unavailability window
-        success = local_influx.replace_data(data=data, ticker=ticker, interval=interval, config=config_file)
+        success = local_influx.replace_data(data=data, ticker=ticker, interval=interval)
         
         # Close the connection when done
         local_influx.close()
@@ -79,23 +76,24 @@ def mp_process_ticker(ticker, interval, tz_str, url_str, token_str, org_str, buc
 if __name__ == "__main__":
     # We'll clear data per ticker/interval before writing, so no need for a global clear
     # Ensure bucket exists
+    influx_handler.drop_influxdb_bucket()
     influx_handler.create_bucket_if_not_exists()
     
     def yf_job(interval: str)->None:
+        data = yf.get_tickers_table(tickers=tickers, interval=interval, tz=tz, indicators=indicators)
         # Create a pool of processes (one for each CPU core)
         num_processes = min(multiprocessing.cpu_count(), len(tickers))
         # Prepare the parameters for each process
         process_args = [
-            (ticker, interval, tz, url, token, org, bucket, config) 
+            (data[ticker], ticker, interval, tz, url, token, org, bucket) 
             for ticker in tickers
         ]
         
         # Use a process pool executor for true parallelism
         with multiprocessing.Pool(processes=num_processes) as pool:
             # Map the processing function to all tickers with their parameters
-            results = pool.starmap(mp_process_ticker, process_args)
+            pool.starmap(mp_process_ticker, process_args)
 
-    cron_schedules = read_config(config).get('cron_schedules', {})
     scheduler = Scheduler(tz)
     scheduler.start()
     for interval, params in cron_schedules.items():

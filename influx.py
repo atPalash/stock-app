@@ -222,7 +222,7 @@ class InfluxDBHandler:
         # Execute with retry mechanism
         return self._with_retry(f"clearing data for ticker={ticker}, interval={interval}", delete_operation)
         
-    def replace_data(self, data, ticker, interval, config):
+    def replace_data(self, data, ticker, interval):
         """
         Atomically replace data for a ticker and interval.
         This method first checks if the new data is valid, then performs a clear and write
@@ -232,7 +232,6 @@ class InfluxDBHandler:
             data: DataFrame with new data to write
             ticker: Stock ticker symbol
             interval: Time interval (1m, 5m, etc.)
-            config: Config file path for indicator calculations
         
         Returns:
             bool: True if replacement was successful, False otherwise
@@ -242,9 +241,9 @@ class InfluxDBHandler:
             return False
             
         # First prepare all the points to write
-        df, indicator_col_prefixes = self.__calculate_indicators(data, config)
+        # df, indicator_col_prefixes = self.__calculate_indicators(data, config)
         # Normalize index to tz before converting to UTC
-        df = normalize_index_to_tz(df, self.tz)
+        df = normalize_index_to_tz(data, self.tz)
         # Ensure index is tz-aware before converting
         if df.index.tz is None:
             idx = df.index.tz_localize('UTC')
@@ -258,18 +257,11 @@ class InfluxDBHandler:
                 Point(self.point_name)
                 .tag("ticker", ticker)
                 .tag("interval", interval)
-                .field("Open", float(row["Open"]))
-                .field("High", float(row["High"]))
-                .field("Low", float(row["Low"]))
-                .field("Close", float(row["Close"]))
-                .field("Volume", int(row["Volume"]))
-                .field("Dividends", int(row["Dividends"]))
-                .field("Stock Splits", int(row["Stock Splits"]))
                 .time(index, WritePrecision.S)
             )
             # Add all indicator fields
             for col in df.columns:
-                if col.lower().startswith(indicator_col_prefixes) and not pd.isna(row[col]):
+                if not pd.isna(row[col]):
                     point.field(col, float(row[col]))
             points.append(point)
         
@@ -290,7 +282,7 @@ class InfluxDBHandler:
             self.client.delete_api().delete(start=start, stop=stop, predicate=predicate, bucket=self.bucket, org=self.org)
             
             # Immediately write the new points
-            self.write_api.write(bucket=self.bucket, org=self.org, record=points)
+            result = self.write_api.write(bucket=self.bucket, org=self.org, record=points)
             return True
         
         # Execute with retry mechanism
@@ -352,29 +344,6 @@ class InfluxDBHandler:
         # Only close the client when the InfluxDBHandler instance is no longer needed
         return result
 
-    def __calculate_indicators(self, df: pd.DataFrame, config:str) -> tuple[pd.DataFrame, tuple]:
-        indicators = read_config(config).get('indicators', {})
-        for ind_type, ind_conf in indicators.items():
-            periods = ind_conf.get('periods', [])
-            sources = ind_conf.get('sources', [])
-            for src in sources:
-                src_col = src.lower() if src.lower() in df.columns else src.capitalize()
-                for period in periods:
-                    try:
-                        col_name = f"{ind_type}_{period}_{src}"
-                        if ind_type == 'sma':
-                            df[col_name] = ta.sma(df[src_col], length=period).round(2)
-                        elif ind_type == 'ema':
-                            df[col_name] = ta.ema(df[src_col], length=period).round(2)
-                        elif ind_type == 'atr':
-                            df[col_name] = ta.atr(df['High'], df['Low'], df['Close'], length=period).round(2)
-                        else:
-                            logger.warning(f"Unsupported indicator type: {ind_type}")
-                    except Exception as e:
-                        logger.error(f"Error calculating {ind_type} for period {period} and source {src}: {e}")
-        indicator_col_prefixes = tuple(f"{k.lower()}_" for k in indicators.keys())
-        return df, indicator_col_prefixes
-
 if __name__ == "__main__":
     # Load the .env file
     load_dotenv()
@@ -383,26 +352,28 @@ if __name__ == "__main__":
     token = os.environ.get("INFLUX_TOKEN")
     org = os.environ.get("INFLUX_ORG")
     url = os.environ.get("INFLUX_URL")
-    intervals = ['1m'] # read_config(config).get('intervals', [])
-    tickers = ['TCS'] # read_config(config).get('indexes', []).get('nifty50', [])
+    intervals = ['2m', '5m'] #read_config(config).get('intervals', [])
+    tickers = read_config(config).get('indexes', []).get('nifty50', [])
+    indicators = read_config(config).get('indicators', {})  
     tz = read_config(config).get('tz', 'Asia/Kolkata')
     bucket=os.environ.get("INFLUX_BUCKET")
     influx_handler = InfluxDBHandler(tz, url, token, org, bucket, prefix="stock_data")
-    influx_handler.drop_influxdb_bucket()
-    exit(0)
+    # influx_handler.drop_influxdb_bucket()
+    # exit(0)
     # influx_handler.create_bucket_if_not_exists()
-
+    
     # for interval in intervals:
+    #     data = yf.get_tickers_table(tickers=tickers, interval=interval, tz=tz, indicators=indicators)
     #     for ticker in tickers:
-    #         data = yf.download_stock_data(ticker, interval=interval, tz=tz)
-    #         influx_handler.replace_data(data, ticker, interval, config)
-    #         influx_handler.clear_ticker_interval('BEL', interval)
-    #         time.sleep(1)  # Sleep to avoid hitting rate limits
+    #         ticker_data = data[ticker] if ticker in data else None
+    #         if not ticker_data.empty and not ticker_data is None:
+    #             influx_handler.replace_data(ticker=ticker, data=ticker_data, interval=interval)
+
     print(influx_handler.get_tables())
-    df = influx_handler.to_dataframe(interval="1m", ticker="TCS")
-    print(df.tail(10))
-    df = influx_handler.to_dataframe(interval="1m", ticker="BEL")
-    print(df.tail(10))
+    df = influx_handler.to_dataframe(interval="2m", ticker="TCS")
+    print(df.head(10))
+    df = influx_handler.to_dataframe(interval="2m", ticker="BEL")
+    print(df.shape)
     influx_handler.close()
 
 # '''
