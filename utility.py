@@ -2,6 +2,7 @@ import yaml
 import logging
 import pandas as pd
 
+
 def read_config(file_path):
     logger = get_logger('utility', logging.DEBUG)
     try:

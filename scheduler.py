@@ -46,13 +46,13 @@ if __name__ == '__main__':
         print("hello")
         logger.info(f"Job executed at {datetime.now()}")
     # Instantiate the scheduler
-    my_scheduler = Scheduler()
+    my_scheduler = Scheduler('Asia/Kolkata')
     
     # Start the scheduler
     my_scheduler.start()
     
     # Add a periodic job to run every 10 seconds
-    my_scheduler.add_periodic_job(example_job, 10, 'example_job_id')
+    my_scheduler.add_periodic_job(example_job, {'second': '*/10'}, 'example_job_id')
 
     try:
         # Keep the script running

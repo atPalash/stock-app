@@ -21,7 +21,7 @@ def download_stock_data(ticker:str, interval:str, tz:str)->pd.DataFrame:
     Returns:
         pd.DataFrame: Stock data for the specified ticker and interval.
     """
-    ticker_symbol = f"{ticker}{".NS" if tz=="Asia/Kolkata" else ""}"
+    ticker_symbol = f"{ticker}{'.NS' if tz=='Asia/Kolkata' else ''}"
     data = yf.download(
         tickers=[ticker_symbol],
         period="max",
