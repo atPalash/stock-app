@@ -6,7 +6,7 @@ import yfinance as yf
 import pandas_ta as ta
 
 # from main import mp_process_ticker
-from utility import get_logger, normalize_index_to_tz, read_config
+from pytick.utility.utility import get_logger, normalize_index_to_tz, read_config
 
 logger = get_logger('yf', logging.DEBUG)
 

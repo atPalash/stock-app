@@ -1,8 +1,9 @@
 import logging
 import re
 
-from utility import get_logger
-from steps import StepData
+# from utility.utility import get_logger
+from pytick.query.steps import StepData
+from pytick.utility.utility import get_logger
 
 logger = get_logger(__name__, logging.DEBUG)
 

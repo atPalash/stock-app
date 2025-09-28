@@ -1,5 +1,4 @@
-import pytest
-from query import parse_gherkin
+from pytick.query.query import parse_gherkin
 
 def test_valid_gherkin():
     gherkin = """

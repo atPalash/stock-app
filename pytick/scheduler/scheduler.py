@@ -5,7 +5,7 @@ import logging
 import time
 import pytz
 
-from utility import get_logger
+from pytick.utility.utility import get_logger
 
 logger = get_logger(__file__, logging.DEBUG)
 
