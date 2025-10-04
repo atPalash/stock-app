@@ -40,8 +40,10 @@ from fastapi import Request
 
 @app.post("/gherkin")
 async def parse_gherkin_query(request: Request):
-    body = await request.body()
-    gherkin_text = body.decode("utf-8")
+    jsn = await request.json()
+    gherkin_text = jsn.get("gherkin", "")
+    if not gherkin_text:
+        return {"success": False, "errors": "No Gherkin text provided"}
     is_valid, step_data, errors = parse_gherkin(gherkin_text)
     if not is_valid:
         return {"success": False, "errors": errors}

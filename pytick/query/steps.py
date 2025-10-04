@@ -1,9 +1,21 @@
+import logging
+import os
 import re
 from enum import Enum
 from typing import Callable
+from dotenv import load_dotenv
 import numpy
 import pandas
+from pytick.query import logic
+from pytick.utility.utility import get_logger, read_config
+load_dotenv()
 
+config = os.environ.get("CONFIG_FILE_DEBUG")
+indexes = list(read_config(config).get('indexes', []).keys())
+tickers = read_config(config).get('indexes', {}).get('nifty50', [])
+indicators = read_config(config).get('indicators', {})
+tz = read_config(config).get('tz', 'Asia/Kolkata')
+logger = get_logger(__name__, logging.DEBUG)
 
 class PipeType(Enum):
     OR = 1
@@ -142,8 +154,8 @@ class StepData:
     def given_steps(self):
         return {
             r"^stocks from index (.+)$": StepData(
-                # logic=stocks.get_stocks,
-                variables={3: ['nifty50']},
+                logic=logic.get_index_tickers,
+                variables={3: indexes},
                 placeholders={3: VariablePlaceholder.MULTISELECTION.value},
                 query_type=QueryType.ANY,
                 meta={
@@ -154,8 +166,8 @@ class StepData:
                 },
             ),
             r"^stocks from list (.+)$": StepData(
-                # logic=stocks.get_stocks,
-                variables={3: ['BEL', 'TCS']},
+                logic=logic.get_stocks,
+                variables={3: tickers},
                 placeholders={3: VariablePlaceholder.MULTISELECTION.value},
                 query_type=QueryType.ANY,
                 meta={
@@ -172,7 +184,7 @@ class StepData:
             #  let ema20 = latest in  5   samples of (day)  close  ema    window
             #  0    1    2  3    4    5     6     7   8     9     10    11
             r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (\w+) (\w+) (\d+)$": StepData(
-                # logic=indicator.calculate,
+                logic=logic.calculate_indicators,
                 variables={
                     1: StepData.word,
                     3: StepData.operator,
@@ -210,7 +222,7 @@ class StepData:
             #  let close = latest in  5   samples of  day  close
             #   0   1    2  3    4    5     6     7    8    9
             r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (\w+)$": StepData(
-                # logic=ohlc.calculate,
+                logic=logic.calculate_ohlc,
                 variables={
                     1: StepData.word,
                     3: StepData.operator,
@@ -292,7 +304,7 @@ class StepData:
         return {
             # list tickers with <logic>, user can ask for multiple list names
             r"^list (\w+) = tickers with (.+)$": StepData(
-                # logic=list_stocks.calculate,
+                logic=logic.calculate_conditions,
                 variables={
                     1: StepData.word,
                     5: StepData.condition,
@@ -310,7 +322,7 @@ class StepData:
                 },
             ),
             r"^let (\w+) = (.+)$": StepData(
-                # logic=condition.calculate,
+                logic=logic.calculate_conditions,
                 variables={
                     1: StepData.word,
                     3: StepData.condition,

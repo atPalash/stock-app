@@ -129,7 +129,7 @@ class DataFrameHandler:
                 df = df.dropna(subset=['Open', 'High', 'Low', 'Close', 'Volume'], how='all')
                 if df.empty:
                     logger.warning(f"No data found for ticker: {ticker}")
-                clean_ohlc[ticker] = df  # if you want to store back
+                clean_ohlc[ticker] = df
 
             # Create a pool of processes (one for each CPU core)
             num_processes = min(multiprocessing.cpu_count(), len(tickers))
@@ -147,9 +147,11 @@ class DataFrameHandler:
             for point in results:
                 ticker = point['ticker'].split('.')[0]
                 df = point['df']
+                # Convert columns to lowercase for consistency
                 df = df.replace({np.nan: None})
                 df = normalize_index_to_tz(df, self.tz)
                 df = df.reset_index()
+                df.columns = [c.lower() for c in df.columns]
                 result[ticker] = df
                 if df is None or df.empty:
                     logger.warning(f"No data found for ticker: {ticker}")

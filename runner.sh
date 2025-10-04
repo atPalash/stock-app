@@ -20,6 +20,4 @@ function initDeveloper() {
     eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_ed25519_asus
     source /usr/share/bash-completion/completions/git
-    sudo service influxdb start 
-    sudo service influxdb status
 }

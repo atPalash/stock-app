@@ -9,7 +9,7 @@ def read_config(file_path):
         with open(file_path, "r") as f:
             return yaml.safe_load(f)
     except Exception as e:
-        logger.error(f"Error reading config file: {e}")
+        logger.error(f"Error reading config file {file_path}: {e}")
         return e
 
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
