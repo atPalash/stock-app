@@ -5,9 +5,9 @@ from fastapi import FastAPI
 import os
 import logging
 
+from pytick.query import query
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.utility import get_logger, read_config
-from pytick.query.query import parse_gherkin
 import pytick.dataframe.dataframe as dataframe
 
 app = FastAPI()
@@ -20,6 +20,7 @@ indicators = read_config(config).get('indicators', {})
 cron_schedules = read_config(config).get('cron_schedules', {})
 tz = read_config(config).get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
+gherkin_handler = query.QueryHandler(data_handler=data_handler)
 
 @app.get("/")
 async def read_root():
@@ -44,18 +45,18 @@ async def parse_gherkin_query(request: Request):
     gherkin_text = jsn.get("gherkin", "")
     if not gherkin_text:
         return {"success": False, "errors": "No Gherkin text provided"}
-    is_valid, step_data, errors = parse_gherkin(gherkin_text)
+    is_valid, step_data, errors = gherkin_handler.get_gherkin_result(gherkin_str=gherkin_text)
     if not is_valid:
         return {"success": False, "errors": errors}
     return {"success": True, "data": step_data}
 
 if __name__ == "__main__":   
-    # scheduler = Scheduler(tz)
-    # scheduler.start()
-    # for interval, params in cron_schedules.items():
-    #     data_handler.set_tables(tickers=tickers, interval=interval)
-    #     scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
+    scheduler = Scheduler(tz)
+    scheduler.start()
+    for interval, params in cron_schedules.items():
+        data_handler.set_tables(tickers=tickers, interval=interval)
+        scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
 
     uvicorn.run(app, host="localhost", port=8000)
 
-    # scheduler.stop()
+    scheduler.stop()
