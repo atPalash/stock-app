@@ -85,23 +85,25 @@ def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
         return False, None, errors
 
         
-def __eval_operator(operator, span: int, data: numpy.array):
+def __eval_operator(operator, span: str, data: numpy.array):
     try:
+        span_window = int(span)
+        data_for_span = data[-span_window:]
         result = None
         if operator == "latest":
-            result = data[-1]
+            result = data_for_span[-1]
         elif operator == "oldest":
-            result = data[0]
+            result = data_for_span[0]
         elif operator == "minimum":
-            result = numpy.min(data)
+            result = numpy.min(data_for_span)
         elif operator == "maximum":
-            result = numpy.max(data)
+            result = numpy.max(data_for_span)
         elif operator == "average":
-            result = round(numpy.mean(data), 2)
+            result = round(numpy.mean(data_for_span), 2)
         elif operator == "rate":
-            result = round((data[-1] - data[0]) / span, 2)
+            result = round((data_for_span[-1] - data_for_span[0]) / span_window, 2)
         elif operator == "change":
-            result = round((data[-1] - data[0]) / data[0], 2)
+            result = round((data_for_span[-1] - data_for_span[0]) / data[0], 2)
         else:
             raise Exception(f"Unsupported operator: {operator}")
         return round(float(result), 2)

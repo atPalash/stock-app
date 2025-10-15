@@ -62,6 +62,12 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
                         df[col_name] = ta.ema(df[src_col], length=period).round(2)
                     elif ind_type == 'atr':
                         df[col_name] = ta.atr(df['High'], df['Low'], df['Close'], length=period).round(2)
+                    elif ind_type == 'vwap':
+                        df[col_name] = ta.vwap(df['High'], df['Low'], df['Close'], df['Volume']).round(2)
+                    elif ind_type == 'rvol':
+                        df["avgVolume"] = df["Volume"].rolling(window=period).mean().shift(1)
+                        df[col_name] = df["Volume"] / df["avgVolume"]
+                        df.drop(columns="avgVolume", inplace=True)
                     else:
                         logger.warning(f"Unsupported indicator type: {ind_type}")
                 except Exception as e:

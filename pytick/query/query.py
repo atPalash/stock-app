@@ -149,7 +149,7 @@ class QueryHandler:
                 result.loc[result['ticker'] == ticker, id] = val
                 if not success:
                     logger.error(f"Error calculating variables: {errors}")
-                    return False, {}, errors
+                    return False, None, errors
         return True, result, []
 
     def __process_then_steps(self, then_steps:list, when_results:pandas.DataFrame) -> tuple[bool, pandas.DataFrame, list]:
