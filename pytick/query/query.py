@@ -93,7 +93,7 @@ class QueryHandler:
         return len(errors) == 0, match_values
 
     @staticmethod
-    def __parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
+    def parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
         """
         Validates that the Gherkin string contains only Given, When, Then steps in correct order.
         Returns (True, []) if valid, (False, [error messages]) otherwise.
@@ -166,7 +166,7 @@ class QueryHandler:
         return True, result, []
 
     def get_gherkin_result(self, gherkin_str:str) -> tuple[bool, dict, list]:
-        is_valid, step_data, errors = QueryHandler.__parse_gherkin(gherkin_str)
+        is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
         if not is_valid:
             return False, {}, errors
         

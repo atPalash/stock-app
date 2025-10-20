@@ -5,6 +5,8 @@ from fastapi import FastAPI
 import os
 import logging
 
+from pytick.bot.discordbot import DiscordBot
+import threading
 from pytick.query import query
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.utility import get_logger, read_config
@@ -21,6 +23,7 @@ cron_schedules = read_config(config).get('cron_schedules', {})
 tz = read_config(config).get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
 gherkin_handler = query.QueryHandler(data_handler=data_handler)
+discord_bot = DiscordBot(token=os.getenv('DISCORD_BOT_TOKEN'), command_prefix='/')
 
 @app.get("/")
 async def read_root():
@@ -50,13 +53,30 @@ async def parse_gherkin_query(request: Request):
         return {"success": False, "errors": errors}
     return {"success": True, "data": step_data}
 
-if __name__ == "__main__":   
+if __name__ == "__main__":
+    # start scheduler
     scheduler = Scheduler(tz)
     scheduler.start()
     for interval, params in cron_schedules.items():
         data_handler.set_tables(tickers=tickers, interval=interval)
         scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
 
-    uvicorn.run(app, host="localhost", port=8000)
+    # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
+    def _run_discord():
+        try:
+            discord_bot.run()
+        except Exception:
+            logger.exception("Discord bot stopped with an exception")
 
-    scheduler.stop()
+    discord_thread = threading.Thread(target=_run_discord, name="discord-bot-thread", daemon=True)
+    discord_thread.start()
+    
+    # Run the FastAPI app using uvicorn. When uvicorn exits, we'll stop the scheduler.
+    try:
+        uvicorn.run(app, host="localhost", port=8000)
+    finally:
+        # ensure scheduler stops on shutdown
+        try:
+            scheduler.stop()
+        except Exception:
+            logger.exception("Error stopping scheduler")
