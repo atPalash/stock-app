@@ -2,10 +2,12 @@ from importlib import import_module
 import inspect
 import os
 import logging
+from typing import Iterable, Iterator
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 
+from pytick.llm.graph import Graph
 from pytick.utility.utility import get_logger
 
 logger = get_logger(__file__, logging.DEBUG)
@@ -18,11 +20,13 @@ class DiscordBot:
         bot.run()
     """
 
-    def __init__(self, token: str, command_prefix='/'):
+    def __init__(self, token: str, query_handler, command_prefix='/'):
         intents = discord.Intents.default()
         intents.message_content = True
         self.bot = commands.Bot(command_prefix=command_prefix, intents=intents)
         self.token = token 
+        self.llm_handlers = {}
+        self.query_handler = query_handler  
 
         self.__register_commands()
 
@@ -30,7 +34,12 @@ class DiscordBot:
         self.bot.event(self.on_ready)
         # register an error handler to control behavior for missing commands
         self.bot.event(self.on_command_error)
-
+    
+    def get_llm_handler(self, user_id: int) -> Graph:
+        if user_id not in self.llm_handlers:
+            self.llm_handlers[user_id] = Graph()
+        return self.llm_handlers.get(user_id)
+    
     async def on_ready(self):
         print(f'Logged in as {self.bot.user}')
     
@@ -76,13 +85,38 @@ class DiscordBot:
 
         # Register each function as a discord command using its function name
         for name, func in supported_commands.items():
-            cmd = commands.Command(func, name=name, help=func.__doc__)
+            cmd = commands.Command(func, name=name, help=func.__doc__, extras={'discordbot': self})
             self.bot.add_command(cmd)
 
     def run(self):
         if not self.token:
             raise RuntimeError('Discord bot token not provided (env DISCORD_BOT_TOKEN)')
         self.bot.run(self.token)
+
+    @staticmethod
+    def chunk_lines(parts: Iterable[str], max_len: int = 4096, sep: str = "\n") -> Iterator[str]:
+        """
+        Yield newline-joined chunks of parts so each chunk's length <= max_len.
+        sep controls the join separator (default newline).
+        """
+        chunk: list[str] = []
+        length = 0
+        sep_len = len(sep)
+
+        for p in parts:
+            # length added if we append p (include separator only if chunk not empty)
+            add_len = len(p) if not chunk else sep_len + len(p)
+            if length + add_len > max_len:
+                if chunk:
+                    yield sep.join(chunk)
+                chunk = [p]
+                length = len(p)
+            else:
+                chunk.append(p)
+                length += add_len
+
+        if chunk:
+            yield sep.join(chunk)
 
 
 if __name__ == '__main__':

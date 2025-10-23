@@ -4,9 +4,10 @@ import uvicorn
 from fastapi import FastAPI
 import os
 import logging
+from fastapi import Request
+import threading
 
 from pytick.bot.discordbot import DiscordBot
-import threading
 from pytick.query import query
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.utility import get_logger, read_config
@@ -23,7 +24,7 @@ cron_schedules = read_config(config).get('cron_schedules', {})
 tz = read_config(config).get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
 gherkin_handler = query.QueryHandler(data_handler=data_handler)
-discord_bot = DiscordBot(token=os.getenv('DISCORD_BOT_TOKEN'), command_prefix='/')
+discord_bot = DiscordBot(token=os.getenv('DISCORD_BOT_TOKEN'), command_prefix='/', query_handler=gherkin_handler)
 
 @app.get("/")
 async def read_root():
@@ -39,8 +40,6 @@ async def to_dataframe(ticker: str, interval: str):
             "data": df.to_dict(orient='records')}
     else:
         return {"success": False, "message": f"No data found for ticker {ticker} at interval {interval}"}
-
-from fastapi import Request
 
 @app.post("/gherkin")
 async def parse_gherkin_query(request: Request):
@@ -77,6 +76,7 @@ if __name__ == "__main__":
     finally:
         # ensure scheduler stops on shutdown
         try:
+            # i=1
             scheduler.stop()
         except Exception:
             logger.exception("Error stopping scheduler")

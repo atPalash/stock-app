@@ -53,27 +53,29 @@ Input: "ema10 > close"
 Output:
 Feature: pytick llm
 Scenario: EMA10 greater than close price analysis
-  Given stocks from index nifty50
-  When let ema10 = latest in 1 samples of day close ema 10
-  Then list result = tickers with ema10 > close
+Given stocks from index nifty50
+When let ema10 = latest in 1 samples of day close ema 10
+* let close = latest in 1 samples of day close
+Then list result = tickers with ema10 > close
 
-Input: "sma20 < close"  
+Input: "sma20 < open"  
 Output:
 Feature: pytick llm
 Scenario: SMA20 less than close price analysis
-  Given stocks from index nifty50
-  When let sma20 = latest in 1 samples of day close sma 20
-  Then list result = tickers with sma20 < close
+Given stocks from index nifty50
+When let sma20 = latest in 1 samples of day close sma 20
+* let open = latest in 1 samples of day open
+Then list result = tickers with sma20 < open
 
 Input: "ema10 > close and rsi > 80 and close > 1000"
 Output:
 Feature: pytick llm
 Scenario: Multiple indicator and price analysis
-  Given stocks from index nifty50
-  When let ema10 = latest in 1 samples of day close ema 10
-  * let rsi = latest in 1 samples of day close rsi 14
-  * let close = latest in 1 samples of day close
-  Then list result = tickers with ema10 > close and rsi > 80 and close > 1000
+Given stocks from index nifty50
+When let ema10 = latest in 1 samples of day close ema 10
+* let rsi = latest in 1 samples of day close rsi 14
+* let close = latest in 1 samples of day close
+Then list result = tickers with ema10 > close and rsi > 80 and close > 1000
 
 Convert the following user input:"""
     return SYSTEM_PROMPT
