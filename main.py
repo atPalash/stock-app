@@ -12,6 +12,7 @@ from pytick.query import query
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.utility import get_logger, read_config
 import pytick.dataframe.dataframe as dataframe
+import pytick.dataframe.notification as notification
 
 app = FastAPI()
 logger = get_logger(__file__, logging.DEBUG)
@@ -23,6 +24,7 @@ indicators = read_config(config).get('indicators', {})
 cron_schedules = read_config(config).get('cron_schedules', {})
 tz = read_config(config).get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
+notification_handler = notification.NotificationHandler(tz=tz)
 gherkin_handler = query.QueryHandler(data_handler=data_handler)
 discord_bot = DiscordBot(token=os.getenv('DISCORD_BOT_TOKEN'), command_prefix='/', query_handler=gherkin_handler)
 
@@ -41,6 +43,16 @@ async def to_dataframe(ticker: str, interval: str):
     else:
         return {"success": False, "message": f"No data found for ticker {ticker} at interval {interval}"}
 
+@app.get("/notification/{ticker}")
+async def notification(ticker: str):
+    result = notification_handler.get_corporate_actions(tickers=[ticker])
+    if result['success'] and ticker in result['data']:
+        df = result['data'][ticker]
+        return {"success": True, "ticker": ticker,
+            "data": df.to_dict(orient='records')}
+    else:
+        return {"success": False, "message": f"No data found for ticker {ticker} notifications"}
+
 @app.post("/gherkin")
 async def parse_gherkin_query(request: Request):
     jsn = await request.json()
@@ -56,9 +68,15 @@ if __name__ == "__main__":
     # start scheduler
     scheduler = Scheduler(tz)
     scheduler.start()
+    
+    # Schedule ohlc fetching jobs
     for interval, params in cron_schedules.items():
         data_handler.set_tables(tickers=tickers, interval=interval)
         scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
+    # Schedule corporate actions fetching job in 5 minutes interval
+    notification_handler.set_corporate_actions(tickers=tickers)
+    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 
+                               params=cron_schedules.get('notification'), job_id="corp_actions_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
     def _run_discord():

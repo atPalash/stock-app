@@ -9,6 +9,7 @@ cron_schedules:
   "1h": { "minute": "0", "hour": "9-16", "second": "25" } # runs at 25 seconds of the 0th minute each hour
   "1d": { "hour": 16, "minute": 6, "second": "30" } # runs at 16:06:30
   "1wk": { "hour": 16, "minute": 7, "second": "35" } # runs on Friday at 16:07
+  "notification": { "minute": "*/7" } # runs every 7th minute
 indicators:
   sma:
     periods: [5, 10, 20, 50, 100, 200]
