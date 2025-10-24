@@ -10,7 +10,7 @@ from pytick.dataframe.dataframe import calculate_indicators
 
 load_dotenv()
 
-config = os.environ.get("CONFIG_FILE_DEBUG")
+config = os.environ.get("CONFIG_FILE")
 logger = get_logger(__name__, logging.DEBUG)
 
 def get_index_tickers(**kwargs) -> tuple:

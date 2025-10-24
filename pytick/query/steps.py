@@ -10,7 +10,7 @@ from pytick.query import logic
 from pytick.utility.utility import get_logger, read_config
 load_dotenv()
 
-config = os.environ.get("CONFIG_FILE_DEBUG")
+config = os.environ.get("CONFIG_FILE")
 indexes = list(read_config(config).get('indexes', []).keys())
 tickers = read_config(config).get('indexes', {}).get('nifty50', [])
 indicators = read_config(config).get('indicators', {})

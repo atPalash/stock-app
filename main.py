@@ -17,7 +17,7 @@ app = FastAPI()
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
-config = os.environ.get("CONFIG_FILE_DEBUG")
+config = os.environ.get("CONFIG_FILE")
 tickers = read_config(config).get('indexes', []).get('nifty50', [])
 indicators = read_config(config).get('indicators', {})
 cron_schedules = read_config(config).get('cron_schedules', {})
