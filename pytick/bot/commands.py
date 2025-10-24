@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import pandas
 
 from pytick.llm.graph import Graph
+from pytick.query.query import QueryHandler
 from pytick.utility.utility import get_logger
 
 logger = get_logger(__file__, logging.DEBUG)
@@ -25,15 +26,30 @@ async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]:
         return False, llm_handler
     return True, llm_handler, query_handler
 
-async def helpme(ctx: commands.Context):
-    """Show available bot commands via DM (falls back to channel)."""
-    lines = ["**Bot Commands:**"]
-    for cmd in ctx.bot.commands:
+async def helpme(ctx: commands.Context, *args: str):
+    """Show available bot commands.
+    
+    Usage:
+    1. /helpme
+    2. /helpme <command>
+    """
+    lines = []
+    
+    await ctx.send(f"""**Bot Commands:**""")
+
+    def func(cmd):
         if getattr(cmd, "hidden", False):
-            continue
+            return
         signature = cmd.qualified_name
         brief = cmd.help or cmd.brief or ""
-        lines.append(f"`/{signature}` - {brief}")
+        lines.append(f"```/{signature} - {brief}```")
+
+    if len(args) > 0 and args[0] != "":
+        cmd = ctx.bot.get_command(args[0])
+        func(cmd)
+    else:
+        for cmd in ctx.bot.commands:
+            func(cmd)
 
     help_text = "\n".join(lines)
     try:
@@ -43,36 +59,53 @@ async def helpme(ctx: commands.Context):
     except Exception:
         await ctx.send("Unable to deliver help right now.")
 
-async def save(ctx: commands.Context):
-    """Save the current gherkin query."""
-    await ctx.send("(save) functionality not implemented.")
+# async def save(ctx: commands.Context):
+#     """Save the current gherkin query."""
+#     await ctx.send("(save) functionality not implemented.")
     
-async def delete(ctx: commands.Context):
-    """Delete a gherkin from server."""
-    await ctx.send("(delete_gherkin) functionality not implemented.")
+# async def delete(ctx: commands.Context):
+#     """Delete a gherkin from server."""
+#     await ctx.send("(delete_gherkin) functionality not implemented.")
 
-async def get(ctx: commands.Context):
-    """Get gherkin by id or all stored gherkin query."""
-    await ctx.send("(get_gherkin) functionality not implemented.")
+# async def get(ctx: commands.Context):
+#     """Get gherkin by id or all stored gherkin query."""
+#     await ctx.send("(get_gherkin) functionality not implemented.")
 
-async def convert(ctx: commands.Context, *args: str):
-    """Convert the user query to valid gherkin. Usage: `/convert` <text>
+async def edit(ctx: commands.Context, *args: str):
+    """User tries different queries to convert it to valid gherkin. 
+
+    Usage: 
+    1. /edit <text>
     """
     valid, llm_handler, _ = await __validate(ctx, *args)
     if not valid:
+        await ctx.send(f"""Cannot convert the query to gherkin. Usage: `/convert` <text>""")
         return
     try:
         data = f"{llm_handler.run(" ".join(args))}"
-        await ctx.send(f"""**Query**\n```{data}```""")
+        await ctx.send(f"""**Query**""")
+        await ctx.send(f"""```{data}```""")
         return data
     except Exception as e:
         await ctx.send(f"Error during conversion: {e}")
         return None
 
 async def run(ctx: commands.Context, *args: str):
-    """Convert the query and run to fetch results. Usage: `/run` <text>
+    """Convert a query to gherkin and execute to fetch result. If replying to a
+    message or a already valid gherkin execute
+
+    Usage: 
+    1. /run <text>
+    2. /run as a reply to a message containing gherkin text.
+    3. /run <gherkin text>
     """
-    query = await convert(ctx, *args)
+    query = pre_check(ctx, *args)
+    if query == "":
+        query = await edit(ctx, *args)
+    else:
+        await ctx.send(f"""**Query**""")
+        await ctx.send(f"""```{query}```""")
+    args = (query,)
     valid, _, query_handler = await __validate(ctx, *args)
     if not valid or not query:
         return
@@ -106,3 +139,21 @@ async def run(ctx: commands.Context, *args: str):
         msg = f"Error during execution: {e}"
         await ctx.send(msg)
         logger.error(msg)
+
+def pre_check(ctx: commands.Context, *args: str) -> bool:
+    """Pre-check to extract gherkin text from reply or arguments.
+    """
+    gherkin_text = ""
+    try:
+        replied_text = ctx.message.reference.resolved.content
+        if replied_text != "":
+            gherkin_text = replied_text.strip('`')
+    except Exception:
+        try:
+            gherkin_text = (' ').join(ctx.message.content.split(' ')[1:]).strip('`')
+            is_valid, _, errors = QueryHandler.parse_gherkin(gherkin_text)
+            if not is_valid:
+                gherkin_text = ""
+        except Exception:
+            pass
+    return gherkin_text
