@@ -1,3 +1,4 @@
+import sys
 import yaml
 import logging
 import pandas as pd
@@ -26,6 +27,7 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
 
         console_handler = logging.StreamHandler()
         console_handler.setLevel(level)
+        console_handler.setStream(sys.stdout)
         formatter = logging.Formatter('%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s')
         console_handler.setFormatter(formatter)
 

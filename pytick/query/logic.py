@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 from dotenv import load_dotenv
 import numpy
@@ -78,12 +79,12 @@ def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
     
     try:
         # Parse and evaluate condition for all rows
-        result[id] = eval(condition, None, result.to_dict(orient='series'))
+        condition = to_bitwise(condition)
+        result[id] = result.eval(condition)
         return True, result, errors
     except Exception as e:
         errors.append(f"Error evaluating condition '{condition}': {e}")
         return False, None, errors
-
         
 def __eval_operator(operator, span: str, data: numpy.array):
     try:
@@ -109,3 +110,14 @@ def __eval_operator(operator, span: str, data: numpy.array):
         return round(float(result), 2)
     except Exception as e:
         raise Exception(f"Error in operator {operator} {e.args}")
+
+def to_bitwise(expr:str) -> str:
+    """Convert logical operators in expression to bitwise operators.
+
+    Args:
+        expr (str): The expression string.
+    """
+    expr = re.sub(r'\bnot\b', '~', expr)
+    expr = re.sub(r'\band\b', '&', expr)
+    expr = re.sub(r'\bor\b',  '|', expr)
+    return expr   

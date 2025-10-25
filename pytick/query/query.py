@@ -198,7 +198,14 @@ class QueryHandler:
         return True, conditional_tickers, []
 
 if __name__ == "__main__":
-    gherkin = """Feature: v2\nScenario: test\nGiven stocks from index nifty50\nWhen let ema10Change = rate in 10 samples of minute5 close ema 10\n* let vwap10Change = rate in 10 samples of minute5 close vwap 10\n* let vwap = latest in 1 samples of minute5 close vwap 10\n* let atr = latest in 1 samples of minute5 close atr 10\n* let ema10 = latest in 1 samples of minute5 close ema 10\n* let ema10Day = oldest in 2 samples of day close ema 10\n* let close = latest in 1 samples of minute5 close\n* let dayClose = oldest in 2 samples of day close\n* let rvol = latest in 1 samples of minute5 volume rvol 20\n* let low = latest in 1 samples of minute5 low\n* let high = latest in 1 samples of minute5 high\n* let open = latest in 1 samples of minute5 open\n* let close1 = oldest in 2 samples of minute5 close\n* let open1 = oldest in 2 samples of minute5 open\n* let high1 = oldest in 2 samples of minute5 high\n* let low1 = oldest in 2 samples of minute5 low\n* let atrDay = oldest in 2 samples of day close atr 14\n* let notify = latest in 5 samples of minute5 notification\nThen list movers = tickers with abs(dayClose - close) / dayClose > 0.01\n* let vwaprange = abs(close - vwap)  < atr\n* list bulls = tickers with ema10Change > 0 and vwap10Change > 0 and vwaprange\n* list bears = tickers with ema10Change < 0 and vwap10Change < 0 and vwaprange\n* let bullEngulf = close1 < open1 and open <= close1 and close >= open1\n* let bearEngulf = close1 > open1 and open >= close1 and close <= open1\n* list reversal = tickers with abs(close - vwap) > atr * 2\n* let hammer = abs(open- low) >= 2 * abs(close- open) and abs(high- close) <= abs(close- open)\n* let shootingStar = abs(high- open) >= 2 * abs(open- close) and abs(low- close) <= abs(open- close)\n* list stockInPlay = tickers with rvol > 3 or notify\n"""
+    gherkin = """
+Feature: pytick llm
+Scenario: Multiple indicator and price analysis
+Given stocks from index nifty50
+When let ema10 = latest in 1 samples of day close ema 10
+* let ema100 = latest in 1 samples of day close ema 100
+* let close = latest in 1 samples of day close
+Then list result = tickers with close > ema10"""
     config = os.environ.get("CONFIG_FILE")
     tickers = read_config(config).get('indexes', []).get('nifty50', [])
     indicators = read_config(config).get('indicators', {})
