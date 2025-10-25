@@ -70,8 +70,8 @@ class Graph:
 
         if self.conversation_state.get("messages") and len(self.conversation_state["messages"]) > 0:
             last_message = self.conversation_state["messages"][-1]
-            # # Retain only system messages to avoid state bloat
-            # self.conversation_state["messages"] = [m for m in self.conversation_state["messages"] if isinstance(m, SystemMessage)]
+            # Retain only system messages to avoid state bloat
+            self.conversation_state["messages"] = [m for m in self.conversation_state["messages"] if isinstance(m, SystemMessage)]
             return last_message.content
         return "Can't process request to gherkin"
 
