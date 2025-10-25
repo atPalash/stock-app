@@ -19,15 +19,34 @@ link_type = os.getenv("LINK_TYPE", "zerodha").lower()
 async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]: 
     llm_handler = ctx.command.extras.get('discordbot').get_llm_handler(ctx.author.id)
     query_handler = ctx.command.extras.get('discordbot').query_handler
+    llm_convert_msg = ctx.command.extras.get('discordbot').llm_convert_msg
     if not llm_handler:
         raise Exception("LLM handler not found.")
     if not args:
         await ctx.send(f"Usage: `/{ctx.invoked_with}` <text>")
         return False, llm_handler
-    return True, llm_handler, query_handler
+    return True, llm_handler, query_handler, llm_convert_msg
 
 async def helpme(ctx: commands.Context, *args: str):
-    """Show available bot commands.
+    """Show available bot commands. 
+    
+    Supported indicators and their configuration are:
+        sma:
+            periods: [5, 10, 20, 50, 100, 200]
+            sources: ["Open", "High", "Low", "Close"]
+        ema:
+            periods: [5, 10, 20, 50, 100, 200]
+            sources: ["Open", "High", "Low", "Close"]
+        atr:
+            periods: [10, 14]
+            sources: ["Close"]
+        vwap:
+            periods: [10]
+            sources: ["Open", "High", "Low", "Close"]
+        rvol:
+            periods: [10, 20]
+            sources: ["Volume"]
+    Supported indexes are: nifty50
     
     Usage:
     1. /helpme
@@ -77,12 +96,15 @@ async def edit(ctx: commands.Context, *args: str):
     Usage: 
     1. /edit <text>
     """
-    valid, llm_handler, _ = await __validate(ctx, *args)
+    valid, llm_handler, _, llm_convert_msg = await __validate(ctx, *args)
     if not valid:
         await ctx.send(f"""Cannot convert the query to gherkin. Usage: `/convert` <text>""")
         return
     try:
-        data = f"{llm_handler.run(" ".join(args))}"
+        to_convert = " ".join(args)
+        logger.info(f"Converting query to gherkin: {to_convert}")
+        await ctx.send(f"""**{llm_convert_msg}**""")
+        data = f"{llm_handler.run(to_convert)}"
         await ctx.send(f"""**Query**""")
         await ctx.send(f"""```{data}```""")
         return data
@@ -106,12 +128,12 @@ async def run(ctx: commands.Context, *args: str):
         await ctx.send(f"""**Query**""")
         await ctx.send(f"""```{query}```""")
     args = (query,)
-    valid, _, query_handler = await __validate(ctx, *args)
+    valid, _, query_handler, _ = await __validate(ctx, *args)
     if not valid or not query:
         return
     
     try:
-        success, results, errors = query_handler.get_gherkin_result(gherkin_str=query)
+        success, results, errors, _ = query_handler.get_gherkin_result(gherkin_str=query)
         if not success:
             msg = f"Error during query execution: {errors}"
             await ctx.send(msg)

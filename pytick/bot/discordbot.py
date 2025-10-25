@@ -20,13 +20,14 @@ class DiscordBot:
         bot.run()
     """
 
-    def __init__(self, token: str, query_handler, command_prefix='/'):
+    def __init__(self, token: str, query_handler, command_prefix='/', llm_convert_msg: str = ''):
         intents = discord.Intents.default()
         intents.message_content = True
         self.bot = commands.Bot(command_prefix=command_prefix, intents=intents)
         self.token = token 
         self.llm_handlers = {}
-        self.query_handler = query_handler  
+        self.query_handler = query_handler 
+        self.llm_convert_msg = llm_convert_msg
 
         self.__register_commands()
 
