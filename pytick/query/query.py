@@ -13,8 +13,9 @@ from pytick.utility.utility import get_logger, read_config
 logger = get_logger(__name__, logging.DEBUG)
 
 class QueryHandler:
-    def __init__(self, data_handler: DataFrameHandler):
+    def __init__(self, data_handler: DataFrameHandler, interval_translation: dict):
         self.data_handler = data_handler
+        self.interval_translation = interval_translation
 
     @staticmethod
     def __validate_step_order(lines, errors):
@@ -141,7 +142,7 @@ class QueryHandler:
                     new_row = {'ticker': ticker}
                     result = pandas.concat([result, pandas.DataFrame([new_row])], ignore_index=True)
                 
-                df = self.data_handler.get_tables(tickers=[ticker], interval='1d').get('data', {}).get(ticker, None)
+                df = self.data_handler.get_tables(tickers=[ticker], interval=self.interval_translation[interval]).get('data', {}).get(ticker, None)
                 if df is None or df.empty:
                     logger.error(f"No data found for ticker {ticker} with interval {interval}")
                     continue
@@ -195,7 +196,7 @@ class QueryHandler:
                 true_tickers = then_results[then_results[id] == True]['ticker'].tolist()
                 conditional_tickers.append({id: true_tickers})
 
-        return True, conditional_tickers, []
+        return True, conditional_tickers, [], then_results
 
 if __name__ == "__main__":
     gherkin = """

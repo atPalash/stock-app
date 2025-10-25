@@ -19,14 +19,16 @@ logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
-tickers = read_config(config).get('indexes', []).get('nifty50', [])
-indicators = read_config(config).get('indicators', {})
-cron_schedules = read_config(config).get('cron_schedules', {})
-tz = read_config(config).get('tz', 'Asia/Kolkata')
+read_config = read_config(file_path=config)
+tickers = read_config.get('indexes', []).get('nifty50', [])
+indicators = read_config.get('indicators', {})
+cron_schedules = read_config.get('cron_schedules', {})
+tz = read_config.get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
 notification_handler = notification.NotificationHandler(tz=tz)
-gherkin_handler = query.QueryHandler(data_handler=data_handler)
-discord_bot = DiscordBot(token=os.getenv('DISCORD_BOT_TOKEN'), command_prefix='/', query_handler=gherkin_handler)
+gherkin_handler = query.QueryHandler(data_handler=data_handler, interval_translation={v: k for k, v in read_config.get('interval_translation', {}).items()})
+discord_bot = DiscordBot(token=os.getenv('DISCORD_BOT_TOKEN'), command_prefix='/', 
+                         query_handler=gherkin_handler, llm_convert_msg=read_config.get('discord_llm_msg', ''))
 
 @app.get("/")
 async def read_root():
@@ -59,10 +61,10 @@ async def parse_gherkin_query(request: Request):
     gherkin_text = jsn.get("gherkin", "")
     if not gherkin_text:
         return {"success": False, "errors": "No Gherkin text provided"}
-    is_valid, step_data, errors = gherkin_handler.get_gherkin_result(gherkin_str=gherkin_text)
+    is_valid, step_data, errors, df = gherkin_handler.get_gherkin_result(gherkin_str=gherkin_text)
     if not is_valid:
         return {"success": False, "errors": errors}
-    return {"success": True, "data": step_data}
+    return {"success": True, "tickers": step_data, "data": df.to_dict(orient='records')}
 
 if __name__ == "__main__":
     # start scheduler
@@ -74,9 +76,9 @@ if __name__ == "__main__":
         data_handler.set_tables(tickers=tickers, interval=interval)
         scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
     # Schedule corporate actions fetching job in 5 minutes interval
-    notification_handler.set_corporate_actions(tickers=tickers)
-    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 
-                               params=cron_schedules.get('notification'), job_id="corp_actions_job")
+    # notification_handler.set_corporate_actions(tickers=tickers)
+    # scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 
+    #                            params=cron_schedules.get('notification'), job_id="corp_actions_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
     def _run_discord():
