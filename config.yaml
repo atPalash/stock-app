@@ -12,15 +12,39 @@ interval_translation:
   "1d": "day"
   "1wk": "week"
   "1mo": "month"
+trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
+zerodha_url: "https://kite.zerodha.com/markets/chart/web/tvc/NSE/"
+zerodha_instrument_tokens_path: "instruments.csv"
+link_type: zerodha
 cron_schedules:
-  # "1m": { "minute": "*/1", "hour": 9-16, "second": "0" } # runs at 0 seconds of every minute
-  # "2m": { "minute": "*/2", "hour": 9-16, "second": "5" } # runs at 5 seconds of every 2nd minute
-  "5m": { "minute": "*/5", "hour": 9-16, "second": "10" } # runs at 10 seconds of every 5th minute
-  "15m": { "minute": "*/15", "hour": 9-16, "second": "15" } # runs at 15 seconds of every 15th minute
-  "30m": { "minute": "*/30", "hour": 9-16, "second": "20" } # runs at 20 seconds of every 30th minute
-  "1h": { "minute": "0", "hour": "9-16", "second": "25" } # runs at 25 seconds of the 0th minute each hour
-  "1d": { "hour": 16, "minute": 6, "second": "30" } # runs at 16:06:30
-  "1wk": { "hour": 16, "minute": 7, "second": "35" } # runs on Friday at 16:07
+  # "1m": { "minute": "*/1", "second": "0", "day_of_week": "mon-fri" } # runs at 0 seconds of every minute
+  # "2m": { "minute": "*/2", "hour": 9-16, "second": "5", "day_of_week": "mon-fri" } # runs at 5 seconds of every 2nd minute
+  "5m": {
+      "minute": "*/5",
+      "hour": 9-16,
+      "second": "10",
+      "day_of_week": "mon-fri",
+    } # runs at 10 seconds of every 5th minute
+  "15m": {
+      "minute": "*/15",
+      "hour": 9-16,
+      "second": "15",
+      "day_of_week": "mon-fri",
+    } # runs at 15 seconds of every 15th minute
+  "30m": {
+      "minute": "*/30",
+      "hour": 9-16,
+      "second": "20",
+      "day_of_week": "mon-fri",
+    } # runs at 20 seconds of every 30th minute
+  "1h": {
+      "minute": "0",
+      "hour": "9-16",
+      "second": "25",
+      "day_of_week": "mon-fri",
+    } # runs at 25 seconds of the 0th minute each hour
+  "1d": { "hour": 16, "minute": 6, "second": "30", "day_of_week": "mon-fri" } # runs at 16:06:30
+  "1wk": { "hour": 16, "minute": 7, "second": "35", "day_of_week": "mon-fri" } # runs on Friday at 16:07
   "notification": { "minute": "*/7" } # runs every 7th minute
 indicators:
   sma:

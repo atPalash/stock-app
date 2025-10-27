@@ -1,4 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.base import STATE_RUNNING, STATE_PAUSED
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 import logging
@@ -10,14 +12,20 @@ from pytick.utility.utility import get_logger
 logger = get_logger(__file__, logging.DEBUG)
 
 class Scheduler:
-    def __init__(self, tz):
+    def __init__(self, tz, is_async=False):
         # Initialize the schedulers
-        self.scheduler = BackgroundScheduler()
+        if is_async:
+            self.scheduler = AsyncIOScheduler()
+        else:
+            self.scheduler = BackgroundScheduler()
         self.tz = tz
         
     def start(self):
         # Start the scheduler
-        self.scheduler.start()
+        if self.scheduler.state == STATE_PAUSED:
+            self.scheduler.resume()
+        elif self.scheduler.state != STATE_RUNNING:
+            self.scheduler.start()
 
     def stop(self):
         # Shutdown the scheduler
@@ -26,7 +34,6 @@ class Scheduler:
     def add_periodic_job(self, func, params, job_id):
         # Add a job with static day_of_week and timezone, rest from params
         cron_params = {k: v for k, v in params.items() if v is not None}
-        cron_params['day_of_week'] = 'mon-fri'
         cron_params['timezone'] = pytz.timezone(self.tz)
         self.scheduler.add_job(
             func,

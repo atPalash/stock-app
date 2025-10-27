@@ -77,6 +77,15 @@ When let close = latest in 1 samples of minute5 close
 * let ema100 = latest in 1 samples of minute5 close ema 100
 Then list result = tickers with (close > ema10) & (close > ema100)
 
+Input: "close > previous close"
+Output:
+Feature: pytick llm
+Scenario: Today close greater than previous close analysis
+Given stocks from index nifty50
+When let close = latest in 1 samples of minute5 close
+* let prev_close = oldest in 2 samples of minute5 close
+Then list result = tickers with (close > prev_close)
+
 Convert the following user input:"""
     return SYSTEM_PROMPT
 

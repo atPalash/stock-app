@@ -1,5 +1,6 @@
 #! venv/bin/python3
 from dotenv import load_dotenv
+import pandas
 import uvicorn
 from fastapi import FastAPI
 import os
@@ -7,10 +8,10 @@ import logging
 from fastapi import Request
 import threading
 
-from pytick.bot.discordbot import DiscordBot
+from pytick.bot.discordbot import BotConfig, DiscordBot
 from pytick.query import query
 from pytick.scheduler.scheduler import Scheduler
-from pytick.utility.utility import get_logger, read_config
+from pytick.utility.utility import get_logger, read_config, save_config
 import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
 
@@ -19,16 +20,34 @@ logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
-read_config = read_config(file_path=config)
-tickers = read_config.get('indexes', []).get('nifty50', [])
-indicators = read_config.get('indicators', {})
-cron_schedules = read_config.get('cron_schedules', {})
-tz = read_config.get('tz', 'Asia/Kolkata')
+users_config_path = os.environ.get("CONFIG_USERS")
+app_config = read_config(file_path=config)
+users_config = read_config(file_path=users_config_path)
+tickers = app_config.get('indexes', []).get('nifty50', [])
+indicators = app_config.get('indicators', {})
+cron_schedules = app_config.get('cron_schedules', {})
+tz = app_config.get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
 notification_handler = notification.NotificationHandler(tz=tz)
-gherkin_handler = query.QueryHandler(data_handler=data_handler, interval_translation={v: k for k, v in read_config.get('interval_translation', {}).items()})
-discord_bot = DiscordBot(token=os.getenv('DISCORD_BOT_TOKEN'), command_prefix='/', 
-                         query_handler=gherkin_handler, llm_convert_msg=read_config.get('discord_llm_msg', ''))
+gherkin_handler = query.QueryHandler(data_handler=data_handler, interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
+
+def save_users(key:str, data):
+    save_config(key, data, users_config_path)
+bot_config = BotConfig(
+    token=os.getenv('DISCORD_BOT_TOKEN'), 
+    command_prefix='/', 
+    query_handler=gherkin_handler, 
+    llm_convert_msg=app_config.get('discord_llm_msg', ''), 
+    tz=tz,
+    schedules=cron_schedules, 
+    users_config=users_config.get('users', {}), 
+    update_users_callback=save_users,
+    zerodha_df=pandas.read_csv(app_config.get("zerodha_instrument_tokens_path", "")),
+    trading_view_url=app_config.get('trading_view_url', ''),
+    zerodha_url=app_config.get('zerodha_url', ''),
+    link_type=app_config.get('link_type', 'zerodha')
+)
+discord_bot = DiscordBot(config=bot_config)
 
 @app.get("/")
 async def read_root():

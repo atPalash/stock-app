@@ -2,7 +2,7 @@ import sys
 import yaml
 import logging
 import pandas as pd
-
+import fcntl
 
 def read_config(file_path):
     logger = get_logger('utility', logging.DEBUG)
@@ -13,6 +13,15 @@ def read_config(file_path):
         logger.error(f"Error reading config file {file_path}: {e}")
         return e
 
+def save_config(key:str, data:dict, path:str):   
+    # Save the dictionary to a YAML file
+    to_write = read_config(path)
+    with open(path, "w") as file:
+        fcntl.flock(file, fcntl.LOCK_EX)
+        to_write[key] = data
+        yaml.dump(to_write, file, default_style='"')
+        fcntl.flock(file, fcntl.LOCK_UN)
+        
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
     Get a logger configured to log to the console.
