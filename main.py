@@ -26,6 +26,7 @@ users_config = read_config(file_path=users_config_path)
 tickers = app_config.get('indexes', []).get('nifty50', [])
 indicators = app_config.get('indicators', {})
 cron_schedules = app_config.get('cron_schedules', {})
+cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
 notification_handler = notification.NotificationHandler(tz=tz)
@@ -37,6 +38,7 @@ bot_config = BotConfig(
     token=os.getenv('DISCORD_BOT_TOKEN'), 
     command_prefix='/', 
     query_handler=gherkin_handler, 
+    notification_handler=notification_handler,
     llm_convert_msg=app_config.get('discord_llm_msg', ''), 
     tz=tz,
     schedules=cron_schedules, 
@@ -95,9 +97,9 @@ if __name__ == "__main__":
         data_handler.set_tables(tickers=tickers, interval=interval)
         scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
     # Schedule corporate actions fetching job in 5 minutes interval
-    # notification_handler.set_corporate_actions(tickers=tickers)
-    # scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 
-    #                            params=cron_schedules.get('notification'), job_id="corp_actions_job")
+    notification_handler.set_corporate_actions(tickers=tickers)
+    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 
+                               params=cron_notification, job_id="corp_actions_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
     def _run_discord():
