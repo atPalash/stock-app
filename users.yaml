@@ -2,11 +2,63 @@
   !!int "686175319383736344":
     "author": "palash"
     "subscribed_queries":
-      - "period": "5m"
-        "query":
-          "Feature: pytick llm  \nScenario: Absolute change in previous day close\
-          \ and current close greater than 5% analysis  \nGiven stocks from index nifty50\
-          \  \nWhen let prev_day_close = oldest in 2 samples of day close  \n* let close_5min\
-          \ = latest in 1 samples of minute5 close  \nThen list result = tickers with\
-          \ (abs(prev_day_close - close_5min) / prev_day_close > 0.05)  "
-        "tickers": []
+    - "period": "5m"
+      "query": "Feature: pytick llm  \nScenario: Engulfing pattern analysis with previous\
+        \ two ticks  \nGiven stocks from index nifty50  \nWhen let current_high =\
+        \ latest in 1 samples of minute5 high  \n* let current_low = latest in 1 samples\
+        \ of minute5 low  \n* let prev1_high = oldest in 2 samples of minute5 high\
+        \  \n* let prev1_low = oldest in 2 samples of minute5 low  \n* let prev2_high\
+        \ = oldest in 3 samples of minute5 high  \n* let prev2_low = oldest in 3 samples\
+        \ of minute5 low  \nThen list engulfing = tickers with (current_high > prev1_high)\
+        \ & (current_low < prev1_low) & (current_high > prev2_high) & (current_low\
+        \ < prev2_low)"
+      "tickers":
+      - "engulfing": []
+    - "period": "5m"
+      "query": "Feature: pytick llm  \nScenario: Multiple condition analysis with\
+        \ previous day close, VWAP, and EMA  \nGiven stocks from index nifty50  \n\
+        When let prev_close = oldest in 2 samples of day close  \n* let close = latest\
+        \ in 1 samples of minute5 close  \n* let vwap10 = latest in 1 samples of minute5\
+        \ close vwap 10  \n* let ema10 = latest in 1 samples of minute5 close ema\
+        \ 10  \n* let atr10 = latest in 1 samples of minute5 close atr 10  \nThen\
+        \ list movers = tickers with (abs(prev_close - close) / prev_close > 0.01)\
+        \  \n* list reversal = tickers with (abs(vwap10 - close) > 2 * atr10)"
+      "tickers":
+      - "movers":
+        - "BAJFINANCE"
+        - "BAJAJFINSV"
+        - "BHARTIARTL"
+        - "DRREDDY"
+        - "EICHERMOT"
+        - "HDFCLIFE"
+        - "INFY"
+        - "INDIGO"
+        - "LT"
+        - "MAXHEALTH"
+        - "POWERGRID"
+        - "SUNPHARMA"
+        - "TECHM"
+      - "reversal":
+        - "ADANIENT"
+        - "ADANIPORTS"
+        - "AXISBANK"
+        - "BAJFINANCE"
+        - "BAJAJFINSV"
+        - "BHARTIARTL"
+        - "DRREDDY"
+        - "GRASIM"
+        - "HDFCBANK"
+        - "HDFCLIFE"
+        - "HINDALCO"
+        - "HINDUNILVR"
+        - "INDIGO"
+        - "LT"
+        - "MARUTI"
+        - "NTPC"
+        - "POWERGRID"
+        - "SHRIRAMFIN"
+        - "SUNPHARMA"
+        - "TECHM"
+        - "TITAN"
+        - "ULTRACEMCO"
+        - "WIPRO"
