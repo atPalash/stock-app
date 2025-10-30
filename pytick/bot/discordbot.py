@@ -23,6 +23,7 @@ class BotConfig:
     command_prefix: str
     token: str
     query_handler: object
+    notification_handler: object
     llm_convert_msg: str
     tz: tzinfo
     schedules: dict

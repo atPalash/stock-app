@@ -120,13 +120,21 @@ async def run(ctx: commands.Context, *args: str):
         await ctx.send(f"""**Query**""")
         await ctx.send(f"""```{query}```""")
     args = (query,)
-    valid, bot_config, user_config, _, _ = await __validate(ctx, *args)
+    valid, bot_config, _, _, _ = await __validate(ctx, *args)
     if not valid or not query:
         return
     
     try:
         _, parts = __do_run(bot_config, query)
-        # __update_result(ctx, user_config, query, tickers)
+        for i in range(len(parts)):
+            part = parts[i]
+            if part.startswith("**") or part.strip() == "":
+                continue
+            ticker = part.split(']')[0].strip('[')
+            notification = bot_config.notification_handler.get_corporate_actions(tickers=[ticker])[ticker]
+            if notification != None:
+                part += f" - [info]({notification.file})"
+                parts[i] = part
         await __sendEmbedResults(ctx=ctx, parts=parts)
     except Exception as e:
         msg = f"Error during execution: {e}"
@@ -150,43 +158,74 @@ async def sub(ctx: commands.Context, *args: str):
     
     Usage: 
     1. /sub <period>
+    2. /sub list - to list queries available for subscriptions
+    3. /sub remove <query> - to remove a subscription
     """
     valid, bot_config, user_config, _, scheduler = await __validate(ctx, *args)
     valid_periods = list(bot_config.schedules.keys())
     check_error_msg = f"Usage: `/{ctx.invoked_with}` <period>. Valid period are {', '.join(valid_periods)}"
-    if len(args) != 1 or args[0] not in valid_periods:
+    if len(args) != 1:
         await ctx.send(check_error_msg)
         return
     period = args[0]
     
     query = __pre_check(ctx, *args)
-    if query == "":
-        await ctx.send(check_error_msg)
-        return
-    else:
-        await ctx.send(f"""**Subscribed to Query with period {period}**""")
-    if not valid or not query:
-        return
-    
+
     subscription_exists = False
     subscribed_queries = user_config.get('subscribed_queries', [])
-    for sub in subscribed_queries:
-        if sub['query'] == query:
-            subscription_exists = True
-            if period != sub['period']:
-                sub['period'] = period
-                sub['tickers'] = []
-                ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
-                return
-    if not subscription_exists:
-        subscribed_queries.append({'query': query, 'period': period, 'tickers': []})
-        ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
-
     try:
-        job_func = __make_run_job(ctx, user_config, bot_config, query)
-        scheduler.start()
-        scheduler.add_periodic_job(job_func, params=bot_config.schedules.get(period), job_id=f"sub_job_{period}")
-        # scheduler.add_periodic_job(job_func, params={"second": "*/2"}, job_id=f"sub_job_{period}")
+        if period == 'list':    
+            if not subscribed_queries:
+                await ctx.send(f"No subscriptions found.")
+                return
+            await ctx.send("**Subscribed Queries:**")
+            for sub in subscribed_queries:
+                await ctx.send(f"```{sub['query']}```")
+                await ctx.send(f"```{sub['period']}```")
+            return
+        if period == 'remove':
+            for sub in subscribed_queries:
+                if sub['query'] == query:
+                    subscribed_queries.remove(sub)
+                    ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
+                    await ctx.send(f"Removed subscription for query.")
+                    return
+            await ctx.send(f"No subscription found for the given query.")
+            scheduler.remove_job(f"sub_job_{query}")
+            return
+        elif period in valid_periods:
+            if query == "":
+                await ctx.send(check_error_msg)
+                return
+            else:
+                await ctx.send(f"""**Subscribed to Query with period {period}**""")
+            if not valid or not query:
+                return
+            for sub in subscribed_queries:
+                if sub['query'] == query:
+                    subscription_exists = True
+                    if period != sub['period']:
+                        sub['period'] = period
+                        sub['tickers'] = []
+                        ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
+                        return
+            if not subscription_exists:
+                subscribed_queries.append({'query': query, 'period': period, 'tickers': []})
+                ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
+
+            try:
+                job_func = __make_run_job(ctx, user_config, bot_config, query)
+                scheduler.start()
+                scheduler.add_periodic_job(job_func, params=bot_config.schedules.get(period), job_id=f"sub_job_{query}")
+                # scheduler.add_periodic_job(job_func, params={"second": "*/2"}, job_id=f"sub_job_{period}")
+            except Exception as e:
+                msg = f"Error during subscription: {e}"
+                await ctx.send(msg)
+                logger.error(msg)
+        else:
+            msg=f"Invalid sub args"
+            await ctx.send(msg)
+            logger.warning(msg)
     except Exception as e:
         msg = f"Error during subscription: {e}"
         await ctx.send(msg)
@@ -212,7 +251,7 @@ def __do_run(bot_config: BotConfig, query: str):
                 else: # link type tradingview
                     parts.append("\n".join(f"[{t}]({bot_config.trading_view_url}{t})" for t in tickers))
                     parts.append("")
-        return tickers, parts    
+        return results, parts    
     except Exception as e:
         msg = f"Error during execution: {e}"
         logger.error(msg)
@@ -237,12 +276,12 @@ def __pre_check(ctx: commands.Context, *args: str) -> bool:
             pass
     return gherkin_text
 
-def __update_result(ctx, user_config:dict, query:str, tickers:list[str]) -> bool:
+def __update_result(ctx, user_config:dict, query:str, tickers:dict) -> bool:
     subscribed_queries = user_config.get('subscribed_queries', [])
     to_update = True
     for qry in subscribed_queries:
         if qry['query'] == query:
-            last_result = qry.get('tickers', [])
+            last_result = qry.get('tickers', {})
             to_update = False
             if last_result != tickers:
                 last_result = tickers
