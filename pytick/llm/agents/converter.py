@@ -86,6 +86,17 @@ When let close = latest in 1 samples of minute5 close
 * let prev_close = oldest in 2 samples of minute5 close
 Then list result = tickers with (close > prev_close)
 
+Input: multiple condition abs(prev day close in 2 sample - close)/prev day close in 2 sample > 0.01,  abs(vwap10 - close)/vwap > 0.01, abs(ema10-close)/ema10
+Output:
+Feature: pytick llm  
+Scenario: Multiple condition analysis with previous day close and VWAP  
+Given stocks from index nifty50  
+When let prev_close = oldest in 2 samples of day close  
+* let close = latest in 1 samples of day close  
+* let vwap10 = latest in 1 samples of day close vwap 10  
+Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) 
+* list consolidation = tickers with (abs(vwap10 - close) / vwap10 > 0.01)
+
 Convert the following user input:"""
     return SYSTEM_PROMPT
 
