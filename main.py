@@ -1,5 +1,6 @@
 #! venv/bin/python3
 from dotenv import load_dotenv
+import numpy
 import pandas
 import uvicorn
 from fastapi import FastAPI
@@ -61,6 +62,7 @@ async def to_dataframe(ticker: str, interval: str):
     result = data_handler.get_tables(tickers=[ticker], interval=interval)
     if result['success'] and ticker in result['data']:
         df = result['data'][ticker]
+        df = df.replace({numpy.nan: None})
         return {"success": True, "ticker": ticker, "interval": interval,
             "data": df.to_dict(orient='records')}
     else:
