@@ -154,7 +154,7 @@ class DataFrameHandler:
                 ticker = point['ticker'].split('.')[0]
                 df = point['df']
                 # Convert columns to lowercase for consistency
-                df = df.replace({np.nan: None})
+                # df = df.replace({np.nan: None})
                 df = normalize_index_to_tz(df, self.tz)
                 df = df.reset_index()
                 df.columns = [c.lower() for c in df.columns]

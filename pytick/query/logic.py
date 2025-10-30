@@ -45,7 +45,7 @@ def get_stocks(**kwargs) -> tuple:
     tickers = [ticker.strip() for ticker in tickers_str.split(",") if ticker.strip()]
     if not tickers:
         errors.append("No valid tickers found.")
-        return False, None, errors
+        return False, [], errors
     return True, tickers, errors
 
 def calculate_indicators(
@@ -58,7 +58,7 @@ def calculate_indicators(
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
         errors.append(f"Error calculating variable {kwargs['id']}: {e}")
-        return False, None, errors
+        return False, numpy.nan, errors
 
 def calculate_ohlc(
     df, **kwargs
@@ -70,7 +70,7 @@ def calculate_ohlc(
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
         errors.append(f"Error calculating variable {kwargs['id']}: {e}")
-        return False, None, errors
+        return False, numpy.nan, errors
 
 def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
     errors = []
@@ -84,13 +84,13 @@ def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
         return True, result, errors
     except Exception as e:
         errors.append(f"Error evaluating condition '{condition}': {e}")
-        return False, None, errors
+        return False, False, errors
         
 def __eval_operator(operator, span: str, data: numpy.array):
     try:
         span_window = int(span)
         data_for_span = data[-span_window:]
-        result = None
+        result = numpy.nan
         if operator == "latest":
             result = data_for_span[-1]
         elif operator == "oldest":

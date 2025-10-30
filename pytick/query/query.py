@@ -3,6 +3,7 @@ import os
 import re
 
 from fastapi.params import Query
+import numpy
 import pandas
 
 # from utility.utility import get_logger
@@ -134,7 +135,7 @@ class QueryHandler:
 
             # Add column if it doesn't exist
             if id not in result.columns:
-                result[id] = None
+                result[id] = numpy.nan
             
             for ticker in given_result:
                 # Add row for ticker if it doesn't exist
@@ -169,7 +170,7 @@ class QueryHandler:
     def get_gherkin_result(self, gherkin_str:str) -> tuple[bool, dict, list]:
         is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
         if not is_valid:
-            return False, {}, errors
+            return False, {}, errors, {}
         
         given_steps = [step for step in step_data if step.get('step') == 'Given']
         when_steps = [step for step in step_data if step.get('step') == 'When']
@@ -178,15 +179,15 @@ class QueryHandler:
         # Process Given steps to get tickers
         success, tickers, errors = self.__process_given_steps(given_steps)
         if not success:
-            return False, {}, errors
+            return False, {}, errors, {}
         # Process When steps to calculate variables
         success, when_results, errors = self.__process_when_steps(when_steps, tickers)
         if not success:
-            return False, {}, errors
+            return False, {}, errors, {}
         # Process Then steps to get final results
         success, then_results, errors = self.__process_then_steps(then_steps, when_results)
         if not success:
-            return False, {}, errors
+            return False, {}, errors, {}
         conditional_tickers = []
         for step in then_steps:
             values = [v['value'] for v in step.get('values', [])]
@@ -200,18 +201,21 @@ class QueryHandler:
 
 if __name__ == "__main__":
     gherkin = """
-Feature: pytick llm
-Scenario: Multiple indicator and price analysis
-Given stocks from index nifty50
-When let ema10 = latest in 1 samples of day close ema 10
-* let ema100 = latest in 1 samples of day close ema 100
-* let close = latest in 1 samples of day close
-Then list result = tickers with close > ema10"""
+Feature: pytick llm  
+Scenario: Multiple condition analysis with previous day close, VWAP, and EMA  
+Given stocks from index nifty50  
+When let prev_close = oldest in 2 samples of day close  
+* let close = latest in 1 samples of day close  
+* let vwap10 = latest in 1 samples of day close vwap 10  
+* let ema10 = latest in 1 samples of day close ema 10
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01)  
+* list reversal = tickers with (abs(vwap10 - close) >  2 * atr10)"""
     config = os.environ.get("CONFIG_FILE")
     tickers = read_config(config).get('indexes', []).get('nifty50', [])
     indicators = read_config(config).get('indicators', {})
     tz = read_config(config).get('tz', 'Asia/Kolkata')
     data_handler = DataFrameHandler(tz=tz, indicators=indicators)
     data_handler.set_tables(tickers=tickers, interval='1d')
-    query_handler = QueryHandler(data_handler)
+    query_handler = QueryHandler(data_handler, interval_translation={v: k for k, v in read_config(config).get('interval_translation', {}).items()})
     print(query_handler.get_gherkin_result(gherkin))
