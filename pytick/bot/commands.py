@@ -132,8 +132,8 @@ async def run(ctx: commands.Context, *args: str):
                 continue
             ticker = part.split(']')[0].strip('[')
             notification = bot_config.notification_handler.get_corporate_actions(tickers=[ticker])[ticker]
-            if notification != None:
-                part += f" - [info]({notification.file})"
+            if not notification.empty:
+                part += f" - [info]({notification['file'].tolist()[0]})"
                 parts[i] = part
         await __sendEmbedResults(ctx=ctx, parts=parts)
     except Exception as e:
@@ -245,8 +245,12 @@ def __do_run(bot_config: BotConfig, query: str):
                 parts.append(f"**{qid}**")
                 if bot_config.link_type == "zerodha":
                     for t in tickers:
-                        token = bot_config.zerodha_df.query(f"tradingsymbol == '{t}' and exchange == 'NSE'")['instrument_token'].iloc[0]
-                        parts.append(f"[{t}]({bot_config.zerodha_url}{t}/{token})")
+                        try:
+                            token = bot_config.zerodha_df.query(f"tradingsymbol == '{t}' and exchange == 'NSE'")['instrument_token'].iloc[0]
+                            parts.append(f"[{t}]({bot_config.zerodha_url}{t}/{token})")
+                        except Exception as e:
+                            parts.append(f"[{t}]")
+                            logger.warning(f"Error fetching zerodha link for {t}: {e}")
                     parts.append("")
                 else: # link type tradingview
                     parts.append("\n".join(f"[{t}]({bot_config.trading_view_url}{t})" for t in tickers))
