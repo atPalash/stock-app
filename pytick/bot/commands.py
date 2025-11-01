@@ -119,22 +119,40 @@ async def run(ctx: commands.Context, *args: str):
     else:
         await ctx.send(f"""**Query**""")
         await ctx.send(f"""```{query}```""")
-    args = (query,)
+    data = args[0]
+    if len(data) == 1:
+        query = data[0]
+    elif len(data) == 3:
+        query = data[0]
+        changed = data[1]
+        parts = data[2]
+    # args = (query,)
     valid, bot_config, _, _, _ = await __validate(ctx, *args)
     if not valid or not query:
         return
     
     try:
-        _, parts = __do_run(bot_config, query)
+        if len(data) == 1:
+            _, parts = __do_run(bot_config, query)
+        title = ""
+        title_index = -1
+        # changes = []
         for i in range(len(parts)):
             part = parts[i]
             if part.startswith("**") or part.strip() == "":
+                title = parts[i].replace('*','')
+                if part.strip() != "":
+                    title_index += 1
                 continue
             ticker = part.split(']')[0].strip('[')
             notification = bot_config.notification_handler.get_corporate_actions(tickers=[ticker])[ticker]
-            if not notification.empty:
-                part += f" - [info]({notification['file'].tolist()[0]})"
+            if notification is not None and not notification.empty:
+                part += f" [🔔]({notification['file'].tolist()[0]})"
                 parts[i] = part
+            if len(changed) > 0:
+                if title != "" and ticker in list(changed[title_index].values())[0]:
+                    part += " 🟢"
+                    parts[i] = part
         await __sendEmbedResults(ctx=ctx, parts=parts)
     except Exception as e:
         msg = f"Error during execution: {e}"
@@ -183,15 +201,15 @@ async def sub(ctx: commands.Context, *args: str):
                 await ctx.send(f"```{sub['query']}```")
                 await ctx.send(f"```{sub['period']}```")
             return
-        if period == 'remove':
+        elif period == 'remove':
             for sub in subscribed_queries:
                 if sub['query'] == query:
                     subscribed_queries.remove(sub)
-                    ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
+                    ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
+                    scheduler.remove_job(f"sub_job_{query}")
                     await ctx.send(f"Removed subscription for query.")
                     return
             await ctx.send(f"No subscription found for the given query.")
-            scheduler.remove_job(f"sub_job_{query}")
             return
         elif period in valid_periods:
             if query == "":
@@ -207,14 +225,14 @@ async def sub(ctx: commands.Context, *args: str):
                     if period != sub['period']:
                         sub['period'] = period
                         sub['tickers'] = []
-                        ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
+                        ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
                         return
             if not subscription_exists:
                 subscribed_queries.append({'query': query, 'period': period, 'tickers': []})
-                ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
+                ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
 
             try:
-                job_func = __make_run_job(ctx, user_config, bot_config, query)
+                job_func = __make_run_job(ctx, bot_config, query)
                 scheduler.start()
                 scheduler.add_periodic_job(job_func, params=bot_config.schedules.get(period), job_id=f"sub_job_{query}")
                 # scheduler.add_periodic_job(job_func, params={"second": "*/2"}, job_id=f"sub_job_{period}")
@@ -231,7 +249,7 @@ async def sub(ctx: commands.Context, *args: str):
         await ctx.send(msg)
         logger.error(msg)
 
-def __do_run(bot_config: BotConfig, query: str):
+def __do_run(bot_config: BotConfig, query: str) -> tuple[list[dict], list[str]]:
     try:
         success, results, errors, _ = bot_config.query_handler.get_gherkin_result(gherkin_str=query)
         if not success:
@@ -280,27 +298,49 @@ def __pre_check(ctx: commands.Context, *args: str) -> bool:
             pass
     return gherkin_text
 
-def __update_result(ctx, user_config:dict, query:str, tickers:dict) -> bool:
+def __update_result(ctx, user_config:dict, query:str, tickers:list[dict]) -> tuple[bool, list[dict]]:
     subscribed_queries = user_config.get('subscribed_queries', [])
     to_update = True
+    changed = []
     for qry in subscribed_queries:
         if qry['query'] == query:
             last_result = qry.get('tickers', {})
             to_update = False
             if last_result != tickers:
+                tickers_changed = []
+                for i in range(len(tickers)):
+                    id = list(tickers[i].keys())[0]
+                    last_tickers = []
+                    current_tickers = []
+                    try:
+                        last_tickers = last_result[i][id]
+                        current_tickers = tickers[i][id]
+                    except Exception:
+                        pass
+                    tickers_changed = list(set(current_tickers)-set(last_tickers))
+                    changed.append({id: tickers_changed})
                 last_result = tickers
                 qry['tickers'] = last_result
                 to_update = True
+               
     if to_update:
-        ctx.command.extras.get('discordbot').update_subscription(ctx.author.id, subscribed_queries)
-    return to_update
+        ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
+                
+    return to_update, changed 
 
-def __make_run_job(ctx, user_config:dict, bot_config:BotConfig, query: str):
+def __make_run_job(ctx, bot_config:BotConfig, query: str):
     async def job():
-        tickers, _ = __do_run(bot_config, query)
-        if __update_result(ctx, user_config, query, tickers):
-            # logger.info(f"Sending subscription result to user {user_config.get('user_name')}")
-            await run(ctx, (query,))
-        # else:
-            # logger.info(f"No change in result for user {user_config.get('user_name')}, not sending update.")
+        try:
+            user_config = ctx.command.extras.get('discordbot').get_user_config(ctx)
+            tickers, parts = __do_run(bot_config, query)
+            to_update, changed = __update_result(ctx, user_config, query, tickers)
+            if to_update:
+                # logger.info(f"Sending subscription result to user {user_config.get('user_name')}")
+                await run(ctx, (query, changed, parts, ))
+            # else:
+                # logger.info(f"No change in result for user {user_config.get('user_name')}, not sending update.")
+        except Exception as e:
+            msg = f"Error during subscription job execution: {e}"
+            await ctx.send(msg)
+            logger.error(msg)
     return job

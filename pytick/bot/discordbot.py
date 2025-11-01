@@ -13,7 +13,7 @@ import pandas
 
 from pytick.llm.graph import Graph
 from pytick.scheduler.scheduler import Scheduler
-from pytick.utility.utility import get_logger
+from pytick.utility.utility import get_logger, read_config
 
 logger = get_logger(__file__, logging.DEBUG)
 
@@ -27,7 +27,7 @@ class BotConfig:
     llm_convert_msg: str
     tz: tzinfo
     schedules: dict
-    users_config: dict
+    users_config_path: str
     update_users_callback: Callable[[str, dict], None]
     zerodha_df: pandas.DataFrame
     trading_view_url: str
@@ -47,7 +47,7 @@ class DiscordBot:
         intents.message_content = True
         self.bot = commands.Bot(command_prefix=config.command_prefix, intents=intents)
         self.config = config
-        self.users_config = config.users_config
+        self.users_config_path = config.users_config_path
         self.llm_handlers = {}
         self.schedulers = {}
         self.__register_commands()
@@ -71,13 +71,15 @@ class DiscordBot:
         user_id = ctx.author.id
         user_name = ctx.author.name
         author = ctx.author.global_name
-        if user_id not in self.users_config:
-            self.users_config[user_id] = {           
+        users_config = read_config(self.users_config_path).get('users', {})
+        if user_id not in users_config:
+            users_config[user_id] = {           
                 'user_name': user_name,
                 'author': author,
                 'subscribed_queries': []
             }
-        return self.users_config.get(user_id)
+            self.config.update_users_callback('users', users_config)
+        return users_config.get(user_id)
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user}\nSubscribing to queries')
@@ -130,9 +132,10 @@ class DiscordBot:
     def run(self):
         self.bot.run(self.config.token)
 
-    def update_subscription(self, user_id: int , subscribed_queries: list[dict]):
-        self.users_config[user_id]['subscribed_queries'] = subscribed_queries
-        self.config.update_users_callback('users', self.users_config)
+    def update_subscription(self, ctx: commands.Context , subscribed_queries: list[dict]):
+        to_update = read_config(self.users_config_path).get('users', {})
+        to_update[ctx.author.id]['subscribed_queries'] = subscribed_queries
+        self.config.update_users_callback('users', to_update)
         
     @staticmethod
     def chunk_lines(parts: Iterable[str], max_len: int = 4096, sep: str = "\n") -> Iterator[str]:
