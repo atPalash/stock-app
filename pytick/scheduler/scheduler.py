@@ -39,7 +39,8 @@ class Scheduler:
             func,
             trigger=CronTrigger(**cron_params),
             id=job_id,
-            replace_existing=True
+            replace_existing=True,
+            misfire_grace_time=300
         )
         
     def remove_job(self, job_id):
