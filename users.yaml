@@ -14,8 +14,31 @@
       "tickers":
       - "movers":
         - "ADANIENT"
-        - "APOLLOHOSP"
-        - "BAJAJFINSV"
+        - "BAJAJ-AUTO"
         - "BEL"
-      - "reversal":
-        - "BEL"
+        - "BHARTIARTL"
+        - "ETERNAL"
+        - "HDFCLIFE"
+        - "INDIGO"
+        - "JIOFIN"
+        - "LT"
+        - "MARUTI"
+        - "NTPC"
+        - "ONGC"
+        - "POWERGRID"
+        - "TCS"
+        - "TATACONSUM"
+        - "TMPV"
+        - "TATASTEEL"
+        - "TITAN"
+        - "WIPRO"
+      - "reversal": []
+    - "period": "5m"
+      "query": "Feature: pytick llm  \nScenario: High greater than VWAP10 and Close\
+        \ less than VWAP10 analysis  \nGiven stocks from index nifty50  \nWhen let\
+        \ high = latest in 1 samples of minute5 high  \n* let vwap10 = latest in 1\
+        \ samples of minute5 close vwap 10  \n* let close = latest in 1 samples of\
+        \ minute5 close  \nThen list result = tickers with (high > vwap10) & (close\
+        \ < vwap10)"
+      "tickers":
+      - "result": []

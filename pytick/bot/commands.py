@@ -114,25 +114,30 @@ async def run(ctx: commands.Context, *args: str):
     3. /run <gherkin text>
     """
     query = __pre_check(ctx, *args)
+    changed = []
+    parts = []
+    if len(args) == 1:
+        data = args[0]
+        if len(data) == 1:
+            query = data[0]
+        elif len(data) == 3:
+            query = data[0]
+            changed = data[1]
+            parts = data[2]
+    
     if query == "":
         query = await edit(ctx, *args)
     else:
         await ctx.send(f"""**Query**""")
         await ctx.send(f"""```{query}```""")
-    data = args[0]
-    if len(data) == 1:
-        query = data[0]
-    elif len(data) == 3:
-        query = data[0]
-        changed = data[1]
-        parts = data[2]
-    # args = (query,)
+
+    args = (query,)
     valid, bot_config, _, _, _ = await __validate(ctx, *args)
     if not valid or not query:
         return
     
     try:
-        if len(data) == 1:
+        if len(parts) == 0:
             _, parts = __do_run(bot_config, query)
         title = ""
         title_index = -1
