@@ -14,25 +14,27 @@
       "tickers":
       - "movers":
         - "ADANIENT"
-        - "BAJAJ-AUTO"
+        - "ASIANPAINT"
+        - "BAJFINANCE"
         - "BEL"
-        - "BHARTIARTL"
+        - "COALINDIA"
+        - "EICHERMOT"
         - "ETERNAL"
-        - "HDFCLIFE"
-        - "INDIGO"
+        - "GRASIM"
+        - "HINDALCO"
+        - "ICICIBANK"
+        - "JSWSTEEL"
         - "JIOFIN"
-        - "LT"
-        - "MARUTI"
         - "NTPC"
-        - "ONGC"
         - "POWERGRID"
-        - "TCS"
-        - "TATACONSUM"
-        - "TMPV"
+        - "RELIANCE"
         - "TATASTEEL"
         - "TITAN"
-        - "WIPRO"
-      - "reversal": []
+      - "reversal":
+        - "ADANIENT"
+        - "ADANIPORTS"
+        - "GRASIM"
+        - "INDIGO"
     - "period": "5m"
       "query": "Feature: pytick llm  \nScenario: High greater than VWAP10 and Close\
         \ less than VWAP10 analysis  \nGiven stocks from index nifty50  \nWhen let\
@@ -41,4 +43,15 @@
         \ minute5 close  \nThen list result = tickers with (high > vwap10) & (close\
         \ < vwap10)"
       "tickers":
-      - "result": []
+      - "result":
+        - "APOLLOHOSP"
+        - "BAJAJFINSV"
+        - "KOTAKBANK"
+        - "MARUTI"
+        - "MAXHEALTH"
+        - "NESTLEIND"
+        - "RELIANCE"
+        - "SHRIRAMFIN"
+        - "TATACONSUM"
+        - "TMPV"
+        - "TECHM"
