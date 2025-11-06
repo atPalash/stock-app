@@ -183,9 +183,9 @@ class QueryHandler:
             return False, {}, ["Backtest can only be performed on 'bull' and 'bear' conditions."]
         
         errors = []
-        then_results['close_cl'] = 0.0
-        then_results['close_ref'] = 0.0
-        then_results['bt_score'] = 0
+        then_results['close_start'] = 0.0
+        then_results['close_reference'] = 0.0
+        then_results['score'] = 0
         for ticker in list(then_results['ticker']):
             try:
                 full_df = self.data_handler.get_tables(tickers=[ticker], 
@@ -202,12 +202,12 @@ class QueryHandler:
                 reference_close  = reference_df['close'].iat[-1]
                 is_bull = reference_close > clipped_close
                 is_bear = not is_bull
+                then_results.loc[then_results['ticker'] == ticker, 'close_start'] = clipped_close
+                then_results.loc[then_results['ticker'] == ticker, 'close_reference'] = reference_close
                 if result_is_bull == result_is_bear:
                     continue
                 score = 1 if (is_bull and result_is_bull) or (is_bear and result_is_bear) else -1
-                then_results.loc[then_results['ticker'] == ticker, 'close_cl'] = clipped_close
-                then_results.loc[then_results['ticker'] == ticker, 'close_ref'] = reference_close
-                then_results.loc[then_results['ticker'] == ticker, 'bt_score'] = score          
+                then_results.loc[then_results['ticker'] == ticker, 'score'] = score          
             except Exception as e:
                 errors.append(f"BT Error {ticker}: {e}")
                 continue
@@ -249,8 +249,8 @@ class QueryHandler:
             valid, result, errors = self.__process_backtest(then_results, bt_config)
             if not valid:
                 return False, {}, errors, {}
-            percent_correct = (result['bt_score'] == 1).sum() / max(1, (result['bt_score'] !=0).sum()) * 100
-            percent_false = (result['bt_score'] == -1).sum() / max(1, (result['bt_score'] !=0).sum()) * 100
+            percent_correct = (result['score'] == 1).sum() / max(1, (result['score'] !=0).sum()) * 100
+            percent_false = (result['score'] == -1).sum() / max(1, (result['score'] !=0).sum()) * 100
             return True, (percent_correct, percent_false), [], result
         return True, conditional_tickers, [], then_results
 

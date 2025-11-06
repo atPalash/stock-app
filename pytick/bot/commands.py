@@ -256,10 +256,15 @@ async def sub(ctx: commands.Context, *args: str):
         logger.error(msg)
 
 async def bt(ctx: commands.Context, *args: str):
-    """Back a query. The query to include 2 list conditions named bull & bear. 
+    """Backtest a query. The query to include 2 list conditions named bull & bear.
+    By default 10 iterations of backtest are run starting from random position with
+    lookback from the reference. e.g. if lookback is 10 and interval is 5m, 10 backtests
+    are run with 5 minute interval ohlc. Starting from random positions with 10 
+    candles back as the starting point to simulate forward testing for next 10 candles. 
     
     Usage: 
     1. /bt <lookback> <interval> - reply to a query with backtest conditions
+    <lookback> is integer number. <interval> is one of 1m, 5m, 15m, 30m, 1h, 1d
     """
     valid, bot_config, _, _, _ = await __validate(ctx, *args)
     check_error_msg = f"Usage: `/{ctx.invoked_with}` <lookback> <interval>. lookback is integer number. interval is one of {', '.join(bot_config.schedules.keys())} "
@@ -298,13 +303,16 @@ async def bt(ctx: commands.Context, *args: str):
         await ctx.send(f"Backtest completed with {len(bk_errors)} errors. e.g {bk_errors[0]}")
     
     for bt in backtests:
-        await ctx.send(f"**Backtest Iteration {bt['iteration']} (Lookback: {bt['lookback']})**")
-        await ctx.send(f"Positive Signals: {bt['positive%']:.2f}%, Negative Signals: {bt['negative%']:.2f}%")
-        # if bt['table'] is not None and not bt['table'].empty:
-        #     table_str = bt['table'].to_markdown()
-        #     if len(table_str) > 1990:
-        #         table_str = table_str[:1990] + "\n..."
-        #     await ctx.send(f"```{table_str}```")
+        await ctx.send(f"**Backtest Iteration {bt['iteration']}**\nPositive Signals: {bt['positive%']:.2f}%, Negative Signals: {bt['negative%']:.2f}%\nNote: table shows only non-zero score entries.")
+        bt_table = bt['table']
+        if bt_table is not None and not bt_table.empty:
+            bt_table.set_index('ticker', inplace=True)
+            bt_table = bt_table.filter(items=['ticker', 'bull', 'bear', 'close_start', 'close_reference', 'score'])
+            bt_table = bt_table[bt_table['score'].ne(0)]
+            table_str = bt_table.to_markdown()
+            if len(table_str) > 1990:
+                table_str = table_str[:1990] + "\n..."
+            await ctx.send(f"```{table_str}```")
 
 def __do_run(bot_config: BotConfig, query: str) -> tuple[list[dict], list[str]]:
     try:
