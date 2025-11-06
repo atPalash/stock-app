@@ -47,7 +47,8 @@ bot_config = BotConfig(
     zerodha_df=pandas.read_csv(app_config.get("zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
     zerodha_url=app_config.get('zerodha_url', ''),
-    link_type=app_config.get('link_type', 'zerodha')
+    link_type=app_config.get('link_type', 'zerodha'),
+    backtest_iterations=app_config.get('backtest_iterations', 10)
 )
 discord_bot = DiscordBot(config=bot_config)
 

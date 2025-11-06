@@ -33,6 +33,7 @@ class BotConfig:
     trading_view_url: str
     zerodha_url: str
     link_type: str
+    backtest_iterations: int
 
 class DiscordBot:
     """Encapsulates a Discord bot that prefers sending replies as DMs and falls back to channel messages.
