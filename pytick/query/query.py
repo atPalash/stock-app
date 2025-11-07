@@ -11,7 +11,7 @@ from pytick.dataframe.dataframe import DataFrameHandler
 from pytick.query.steps import StepData
 from pytick.utility.utility import get_logger, read_config
 
-logger = get_logger(__name__, logging.DEBUG)
+logger = get_logger(__file__, logging.DEBUG)
 
 class QueryHandler:
     def __init__(self, data_handler: DataFrameHandler, interval_translation: dict):
@@ -256,16 +256,16 @@ class QueryHandler:
 
 if __name__ == "__main__":
     gherkin = """
-Feature: pytick llm  
-Scenario: Multiple condition analysis with previous minute5 close, VWAP, and EMA  
-Given stocks from index nifty50  
-When let prev_close = oldest in 2 samples of minute5 close  
-* let close = latest in 1 samples of minute5 close  
-* let vwap10 = latest in 1 samples of minute5 close vwap 10  
+Feature: pytick llm
+Scenario: Multiple condition analysis with previous day close, VWAP, and EMA
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of minute5 close
+* let vwap10 = latest in 1 samples of minute5 close vwap 10
 * let ema10 = latest in 1 samples of minute5 close ema 10
-* let atr10 = latest in 1 samples of minute5 close atr 10  
-Then list bull = tickers with (abs(prev_close - close) / prev_close > 0.01)  
-* list bear = tickers with (abs(prev_close - close) / prev_close < 0.01)"""
+* let atr10 = latest in 1 samples of day close atr 10
+Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01)
+* list reversal = tickers with (abs(vwap10 - close) > 0.5 * atr10)"""
     config = os.environ.get("CONFIG_FILE")
     tickers = read_config(config).get('indexes', []).get('nifty50', [])
     indicators = read_config(config).get('indicators', {})
@@ -273,4 +273,5 @@ Then list bull = tickers with (abs(prev_close - close) / prev_close > 0.01)
     data_handler = DataFrameHandler(tz=tz, indicators=indicators)
     data_handler.set_tables(tickers=tickers, interval='5m')
     query_handler = QueryHandler(data_handler, interval_translation={v: k for k, v in read_config(config).get('interval_translation', {}).items()})
-    print(query_handler.get_gherkin_result(gherkin, bt_config={'clip': 20, 'forward': 10, 'interval': '5m'}))
+    # print(query_handler.get_gherkin_result(gherkin, bt_config={'clip': 20, 'forward': 10, 'interval': '5m'}))
+    print(query_handler.get_gherkin_result(gherkin))
