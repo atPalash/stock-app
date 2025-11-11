@@ -55,7 +55,7 @@ cron_schedules:
       "second": "35",
       "day_of_week": "mon-fri",
     } # runs on Friday at 16:07
-cron_notification: { "minute": "*/2", "second": "5" } # runs every 2nd minute
+cron_notification: { "minute": "*/4", "second": "5" } # runs every 4th minute
 backtest_iterations: 10
 indicators:
   sma:

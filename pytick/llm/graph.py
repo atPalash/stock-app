@@ -80,6 +80,7 @@ if __name__ == "__main__":
     test_messages = [
         "sma20 < close",
         "add ema10 > close and rsi > 80 and close > 1000",
+        "add close > vwap",
     ]
     handler = Graph()
     for msg in test_messages:

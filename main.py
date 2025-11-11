@@ -55,7 +55,7 @@ discord_bot = DiscordBot(config=bot_config)
 @app.get("/")
 async def read_root():
     return {"info": "This is a FastAPI application which fetches data from "
-    "yahoo finance computes indicator values and stores them in influx db."}
+    "yahoo finance computes indicator values and replies to client query in discord."}
 
 @app.get("/df/{ticker}/{interval}")
 async def to_dataframe(ticker: str, interval: str):
