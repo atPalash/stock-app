@@ -19,6 +19,76 @@ class QueryHandler:
         self.interval_translation = interval_translation
 
     @staticmethod
+    def parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
+        """
+        Validates that the Gherkin string contains only Given, When, Then steps in correct order.
+        Returns (True, []) if valid, (False, [error messages]) otherwise.
+        """
+        lines = [line.strip() for line in gherkin_str.strip().splitlines() if line.strip()]
+        errors = []
+        if not QueryHandler.__validate_step_order(lines, errors):
+            return False, {}, errors
+        success, step_data = QueryHandler.__fetch_step_data(lines)
+        if not success:
+            return False, {}, errors
+        return True, step_data, errors
+    
+    def get_gherkin_result(self, gherkin_str:str, bt_config: dict=None) -> tuple[bool, dict, list]:
+        """ Compute Gherkin result depending on the string, also perform backtest
+        queries.
+        """
+        is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
+        if not is_valid:
+            return False, {}, errors, {}
+        
+        given_steps = [step for step in step_data if step.get('step') == 'Given']
+        when_steps = [step for step in step_data if step.get('step') == 'When']
+        then_steps = [step for step in step_data if step.get('step') == 'Then']
+
+        # Process Given steps to get tickers
+        success, tickers, errors = self.__process_given_steps(given_steps)
+        if not success:
+            return False, {}, errors, {}
+        # Process When steps to calculate variables
+        success, when_results, errors = self.__process_when_steps(when_steps, tickers, bt_config)
+        if not success:
+            return False, {}, errors, {}
+        # Process Then steps to get final results
+        success, then_results, errors = self.__process_then_steps(then_steps, when_results)
+        if not success:
+            return False, {}, errors, {}
+        conditional_tickers = []
+        for step in then_steps:
+            values = [v['value'] for v in step.get('values', [])]
+            if 'list' in step.get('statement'):
+                id = values[0]
+                # Get tickers where the condition is True
+                true_tickers = then_results[then_results[id] == True]['ticker'].tolist()
+                conditional_tickers.append({id: true_tickers})
+
+        if bt_config is not None:
+            valid, result, errors = self.__process_backtest(then_results, bt_config)
+            if not valid:
+                return False, {}, errors, {}
+            percent_correct = (result['score'] == 1).sum() / max(1, (result['score'] !=0).sum()) * 100
+            percent_false = (result['score'] == -1).sum() / max(1, (result['score'] !=0).sum()) * 100
+            return True, (percent_correct, percent_false), [], result
+        return True, conditional_tickers, [], then_results
+
+    def get_clip_time(self, bt_config: dict) -> str:
+        """ Get clipped time from defualt ticker
+        """
+        interval = bt_config.get('interval', None)
+        clip = bt_config.get('clip', 0) 
+        ticker = bt_config.get('default_ticker', None)
+        if interval is None or clip <=0 or ticker is None:
+            raise ValueError("Base interval or clip or ticker is missing from clipping.")
+        bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
+                                                  interval=interval).get('data', {}).get(ticker, None)
+            
+        return bt_interval_df.iloc[:-clip]['datetime'].iat[-1]
+
+    @staticmethod
     def __validate_step_order(lines, errors):
         feature_found = False
         scenario_found = False
@@ -94,21 +164,6 @@ class QueryHandler:
                 errors.append(f"Regex match for \"{line}\" not found in {list(step_patterns[current_step].keys())}")
         return len(errors) == 0, match_values
 
-    @staticmethod
-    def parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
-        """
-        Validates that the Gherkin string contains only Given, When, Then steps in correct order.
-        Returns (True, []) if valid, (False, [error messages]) otherwise.
-        """
-        lines = [line.strip() for line in gherkin_str.strip().splitlines() if line.strip()]
-        errors = []
-        if not QueryHandler.__validate_step_order(lines, errors):
-            return False, {}, errors
-        success, step_data = QueryHandler.__fetch_step_data(lines)
-        if not success:
-            return False, {}, errors
-        return True, step_data, errors
-    
     def __process_given_steps(self, given_steps:list)-> tuple[bool, list, list]:
         tickers = []
         for step in given_steps:
@@ -233,61 +288,6 @@ class QueryHandler:
             ret = df.iloc[:-clip]
         return ret
     
-    def get_gherkin_result(self, gherkin_str:str, bt_config: dict=None) -> tuple[bool, dict, list]:
-        """ Compute Gherkin result depending on the string, also perform backtest
-        queries.
-        """
-        is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
-        if not is_valid:
-            return False, {}, errors, {}
-        
-        given_steps = [step for step in step_data if step.get('step') == 'Given']
-        when_steps = [step for step in step_data if step.get('step') == 'When']
-        then_steps = [step for step in step_data if step.get('step') == 'Then']
-
-        # Process Given steps to get tickers
-        success, tickers, errors = self.__process_given_steps(given_steps)
-        if not success:
-            return False, {}, errors, {}
-        # Process When steps to calculate variables
-        success, when_results, errors = self.__process_when_steps(when_steps, tickers, bt_config)
-        if not success:
-            return False, {}, errors, {}
-        # Process Then steps to get final results
-        success, then_results, errors = self.__process_then_steps(then_steps, when_results)
-        if not success:
-            return False, {}, errors, {}
-        conditional_tickers = []
-        for step in then_steps:
-            values = [v['value'] for v in step.get('values', [])]
-            if 'list' in step.get('statement'):
-                id = values[0]
-                # Get tickers where the condition is True
-                true_tickers = then_results[then_results[id] == True]['ticker'].tolist()
-                conditional_tickers.append({id: true_tickers})
-
-        if bt_config is not None:
-            valid, result, errors = self.__process_backtest(then_results, bt_config)
-            if not valid:
-                return False, {}, errors, {}
-            percent_correct = (result['score'] == 1).sum() / max(1, (result['score'] !=0).sum()) * 100
-            percent_false = (result['score'] == -1).sum() / max(1, (result['score'] !=0).sum()) * 100
-            return True, (percent_correct, percent_false), [], result
-        return True, conditional_tickers, [], then_results
-
-    def get_clip_time(self, bt_config: dict) -> str:
-        """ Get clipped time from defualt ticker
-        """
-        interval = bt_config.get('interval', None)
-        clip = bt_config.get('clip', 0) 
-        ticker = bt_config.get('default_ticker', None)
-        if interval is None or clip <=0 or ticker is None:
-            raise ValueError("Base interval or clip or ticker is missing from clipping.")
-        bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
-                                                  interval=interval).get('data', {}).get(ticker, None)
-            
-        return bt_interval_df.iloc[:-clip]['datetime'].iat[-1]
-
 if __name__ == "__main__":
     gherkin = """
 Feature: pytick llm
