@@ -115,7 +115,6 @@ class DataFrameHandler:
             tickers (list): List of ticker symbols.
             interval (str): Time interval for the data. e.g., '1d', '1h'.
         """
-        logger.info(f"Setting DataFrame for interval {interval} and tickers: {tickers}")
         ret = {'success': False, 'data': None}
         try:
             tickers_yf = [f"{ticker}{'.NS' if self.tz=='Asia/Kolkata' else ''}" for ticker in tickers]
@@ -162,6 +161,8 @@ class DataFrameHandler:
                 df = normalize_index_to_tz(df, self.tz)
                 df = df.reset_index()
                 df.columns = [c.lower() for c in df.columns]
+                if 'date' in df.columns:
+                    df = df.rename(columns={'date': 'datetime'})
                 result[ticker] = df
                 if df is None or df.empty:
                     logger.warning(f"No data found for ticker: {ticker}")

@@ -30,7 +30,8 @@ cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
 notification_handler = notification.NotificationHandler(tz=tz)
-gherkin_handler = query.QueryHandler(data_handler=data_handler, interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
+gherkin_handler = query.QueryHandler(data_handler=data_handler, 
+                                    interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
 
 def save_users(key:str, data):
     save_config(key, data, users_config_path)
@@ -48,7 +49,8 @@ bot_config = BotConfig(
     trading_view_url=app_config.get('trading_view_url', ''),
     zerodha_url=app_config.get('zerodha_url', ''),
     link_type=app_config.get('link_type', 'zerodha'),
-    backtest_iterations=app_config.get('backtest_iterations', 10)
+    backtest_iterations=app_config.get('backtest_iterations', 10),
+    default_ticker=app_config.get('default_ticker', 'SBIN')
 )
 discord_bot = DiscordBot(config=bot_config)
 

@@ -292,18 +292,24 @@ async def bt(ctx: commands.Context, *args: str):
     bk_errors = []
     for i in range(bot_config.backtest_iterations):
         try:
-            lookback_i = lookback + i * randint(1, 5)
-            success, results, errors, table = __do_backtest(bot_config, query, bt_config={'clip': lookback_i, 'forward': lookback, 'interval': interval})
+            lookback_i = min(lookback + i * randint(1, lookback), 1000)
+            success, results, errors, table, datetime = __do_backtest(bot_config, query, 
+                                                                      bt_config={
+                                                                        'clip': lookback_i, 
+                                                                        'forward': lookback, 
+                                                                        'interval': interval,
+                                                                        'default_ticker': bot_config.default_ticker})
             if not success:
                 bk_errors.append(errors)
-            backtests.append({'iteration': i, 'lookback': lookback_i, 'positive%': results[0], 'negative%': results[1], 'table': table})
+            backtests.append({'iteration': i, 'lookback': lookback_i, 'positive%': results[0], 
+                              'negative%': results[1], 'table': table, 'datetime': datetime})
         except Exception as e:
             bk_errors.append(e)
     if len(bk_errors) > 0:
         await ctx.send(f"Backtest completed with {len(bk_errors)} errors. e.g {bk_errors[0]}")
     
     for bt in backtests:
-        await ctx.send(f"**Backtest Iteration {bt['iteration']}**\nPositive Signals: {bt['positive%']:.2f}%, Negative Signals: {bt['negative%']:.2f}%\nNote: table shows only non-zero score entries.")
+        await ctx.send(f"**Backtest Iteration {bt['iteration']} on {bt['datetime']}**\nPositive Signals: {bt['positive%']:.2f}%, Negative Signals: {bt['negative%']:.2f}%\nNote: table shows only non-zero score entries.")
         bt_table = bt['table']
         if bt_table is not None and not bt_table.empty:
             bt_table.set_index('ticker', inplace=True)
@@ -412,11 +418,12 @@ def __make_run_job(ctx, bot_config:BotConfig, query: str):
 def __do_backtest(bot_config: BotConfig, query: str, bt_config:None) -> tuple[list[dict], list[str]]:
     try:
         success, results, errors, table = bot_config.query_handler.get_gherkin_result(gherkin_str=query, bt_config=bt_config)
+        datetime = bot_config.query_handler.get_clip_time(bt_config=bt_config)
         if not success:
             msg = f"Error during query execution: {errors}"
             logger.error(msg)
             raise Exception(msg)
-        return success, results, errors, table
+        return success, results, errors, table, datetime
     except Exception as e:
         msg = f"Error during execution: {e}"
         logger.error(msg)

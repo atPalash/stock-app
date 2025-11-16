@@ -73,6 +73,7 @@ indicators:
   rvol:
     periods: [10, 20]
     sources: ["Volume"]
+default_ticker: SBIN
 indexes:
   nifty50:
     [

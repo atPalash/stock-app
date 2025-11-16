@@ -148,7 +148,8 @@ class QueryHandler:
                 
                 df = full_df
                 if bt_config is not None:
-                    df = full_df.iloc[:-bt_config.get('clip', 0)]
+                    # Start backtest from trading of the base interval given by user
+                    df = self.__clip_backtest_data(df, ticker, interval, bt_config)
                 if df is None or df.empty:
                     logger.error(f"No data found for ticker {ticker} with interval {interval}")
                     continue
@@ -214,8 +215,28 @@ class QueryHandler:
         if len(errors) > 0:
             return False, None, errors
         return True, then_results, errors
-               
+    
+    def __clip_backtest_data(self, df: pandas.DataFrame, ticker, interval:str, bt_config: dict) -> pandas.DataFrame:
+        ret = df
+        bt_interval = bt_config.get('interval', None)
+        clip = bt_config.get('clip', 0) 
+        if bt_interval is None or clip <=0:
+            raise ValueError("Base interval or clip is missing from clipping.")
+           
+        if self.interval_translation[interval] != bt_interval:
+            bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
+                                                  interval=bt_interval).get('data', {}).get(ticker, None)
+            bt_interval_df = bt_interval_df.iloc[:-clip]
+            last_bt_datetime = bt_interval_df['datetime'].iat[-1]
+            ret = df[df['datetime'] <= last_bt_datetime]
+        else:
+            ret = df.iloc[:-clip]
+        return ret
+    
     def get_gherkin_result(self, gherkin_str:str, bt_config: dict=None) -> tuple[bool, dict, list]:
+        """ Compute Gherkin result depending on the string, also perform backtest
+        queries.
+        """
         is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
         if not is_valid:
             return False, {}, errors, {}
@@ -253,6 +274,19 @@ class QueryHandler:
             percent_false = (result['score'] == -1).sum() / max(1, (result['score'] !=0).sum()) * 100
             return True, (percent_correct, percent_false), [], result
         return True, conditional_tickers, [], then_results
+
+    def get_clip_time(self, bt_config: dict) -> str:
+        """ Get clipped time from defualt ticker
+        """
+        interval = bt_config.get('interval', None)
+        clip = bt_config.get('clip', 0) 
+        ticker = bt_config.get('default_ticker', None)
+        if interval is None or clip <=0 or ticker is None:
+            raise ValueError("Base interval or clip or ticker is missing from clipping.")
+        bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
+                                                  interval=interval).get('data', {}).get(ticker, None)
+            
+        return bt_interval_df.iloc[:-clip]['datetime'].iat[-1]
 
 if __name__ == "__main__":
     gherkin = """
