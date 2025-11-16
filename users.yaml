@@ -13,28 +13,34 @@
         * list reversal = tickers with (abs(vwap10 - close) > 0.5 * atr10)"
       "tickers":
       - "movers":
-        - "ADANIPORTS"
-        - "BAJAJ-AUTO"
-        - "BAJFINANCE"
+        - "ADANIENT"
+        - "APOLLOHOSP"
+        - "ASIANPAINT"
+        - "AXISBANK"
         - "BAJAJFINSV"
-        - "BEL"
         - "BHARTIARTL"
         - "DRREDDY"
+        - "EICHERMOT"
         - "ETERNAL"
-        - "HCLTECH"
         - "HDFCLIFE"
+        - "HINDALCO"
+        - "ICICIBANK"
         - "INFY"
         - "INDIGO"
         - "JSWSTEEL"
         - "JIOFIN"
+        - "LT"
         - "M&M"
+        - "ONGC"
+        - "POWERGRID"
         - "SHRIRAMFIN"
+        - "SBIN"
         - "SUNPHARMA"
-        - "TATACONSUM"
+        - "TMPV"
+        - "TATASTEEL"
+        - "TECHM"
       - "reversal":
-        - "INDIGO"
-        - "JIOFIN"
-        - "SHRIRAMFIN"
+        - "ITC"
     - "period": "5m"
       "query": "Feature: pytick llm  \nScenario: High greater than VWAP10 and Close\
         \ less than VWAP10 analysis  \nGiven stocks from index nifty50  \nWhen let\
@@ -45,3 +51,103 @@
       "tickers":
       - "result":
         - "BHARTIARTL"
+    - "period": "5m"
+      "query": "Feature: pytick llm  \nScenario: Relative volume greater than twice\
+        \ the average volume analysis  \nGiven stocks from index nifty50  \nWhen let\
+        \ rvol = latest in 1 samples of minute5 volume rvol 10 \n* let avg_volume\
+        \ = average in 10 samples of minute5 volume  \nThen list result = tickers\
+        \ with (rvol > 2 * avg_volume)"
+      "tickers":
+      - "result": []
+    - "period": "5m"
+      "query": "Feature: pytick llm\nScenario: Gap between yesterday's close and today's\
+        \ open greater than 1% with minute 5 close less than today's open\nGiven stocks\
+        \ from index nifty50\nWhen let yesterday_close = oldest in 2 samples of day\
+        \ close\n* let today_open = latest in 1 samples of day open\n* let minute5_close\
+        \ = latest in 1 samples of minute5 close\nThen list bull = tickers with ((today_open\
+        \ - yesterday_close) / yesterday_close > 0.005) & (minute5_close > today_open)\n\
+        * list bear = tickers with ((yesterday_close > today_open) & (abs(today_open\
+        \ - yesterday_close) / yesterday_close > 0.003) & (minute5_close < today_open))"
+      "tickers":
+      - "bull":
+        - "ADANIENT"
+        - "ASIANPAINT"
+        - "BAJAJFINSV"
+        - "BHARTIARTL"
+        - "CIPLA"
+        - "INDIGO"
+        - "LT"
+        - "POWERGRID"
+      - "bear":
+        - "APOLLOHOSP"
+        - "EICHERMOT"
+        - "HDFCLIFE"
+        - "INFY"
+        - "M&M"
+        - "SHRIRAMFIN"
+        - "TATASTEEL"
+        - "TECHM"
+        - "TITAN"
+    - "period": "5m"
+      "query": "Feature: pytick llm  \nScenario: 2% momentum analysis in minute5 \
+        \ \nGiven stocks from index nifty50  \nWhen let close = latest in 1 samples\
+        \ of minute5 close  \n* let min_close = minimum in 10 samples of minute5 close\
+        \  \n* let max_close = maximum in 10 samples of minute5 close  \nThen list\
+        \ bull = tickers with (abs(close - min_close) / min_close > 0.003)  \n* list\
+        \ bear = tickers with (abs(close - max_close) / max_close > 0.003)  "
+      "tickers":
+      - "bull":
+        - "ADANIENT"
+        - "ADANIPORTS"
+        - "APOLLOHOSP"
+        - "AXISBANK"
+        - "BAJAJ-AUTO"
+        - "BAJFINANCE"
+        - "BAJAJFINSV"
+        - "BEL"
+        - "BHARTIARTL"
+        - "COALINDIA"
+        - "DRREDDY"
+        - "EICHERMOT"
+        - "ETERNAL"
+        - "GRASIM"
+        - "HCLTECH"
+        - "HDFCBANK"
+        - "HDFCLIFE"
+        - "HINDALCO"
+        - "HINDUNILVR"
+        - "ICICIBANK"
+        - "ITC"
+        - "INFY"
+        - "INDIGO"
+        - "JSWSTEEL"
+        - "JIOFIN"
+        - "KOTAKBANK"
+        - "LT"
+        - "M&M"
+        - "MARUTI"
+        - "MAXHEALTH"
+        - "NTPC"
+        - "NESTLEIND"
+        - "ONGC"
+        - "POWERGRID"
+        - "RELIANCE"
+        - "SBILIFE"
+        - "SBIN"
+        - "SUNPHARMA"
+        - "TCS"
+        - "TMPV"
+        - "TATASTEEL"
+        - "TECHM"
+        - "TRENT"
+        - "ULTRACEMCO"
+        - "WIPRO"
+      - "bear":
+        - "ADANIENT"
+        - "BEL"
+        - "BHARTIARTL"
+        - "HINDALCO"
+        - "NESTLEIND"
+        - "TATACONSUM"
+        - "TITAN"
+        - "WIPRO"

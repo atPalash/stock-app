@@ -115,6 +115,7 @@ class DataFrameHandler:
             tickers (list): List of ticker symbols.
             interval (str): Time interval for the data. e.g., '1d', '1h'.
         """
+        logger.info(f"Setting DataFrame for interval {interval} and tickers: {tickers}")
         ret = {'success': False, 'data': None}
         try:
             tickers_yf = [f"{ticker}{'.NS' if self.tz=='Asia/Kolkata' else ''}" for ticker in tickers]
@@ -130,6 +131,7 @@ class DataFrameHandler:
                 multi_level_index=False,
                 ignore_tz=True,
                 auto_adjust=True,
+                timeout=100,
             )
             clean_ohlc = {}
             for ticker in tickers_yf:

@@ -22,9 +22,9 @@ class NotificationHandler:
 
             with requests.session() as s:
                 s.headers.update(headers)
-
                 s.get(
-                    "https://www.nseindia.com/companies-listing/corporate-filings-announcements"
+                    "https://www.nseindia.com/companies-listing/corporate-filings-announcements",
+                    timeout=100,
                 )
                 data = s.get(url).json()
                 df = pd.DataFrame(data)

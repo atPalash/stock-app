@@ -97,7 +97,9 @@ if __name__ == "__main__":
     # Schedule ohlc fetching jobs
     for interval, params in cron_schedules.items():
         data_handler.set_tables(tickers=tickers, interval=interval)
-        scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
+        scheduler.add_periodic_job(func=lambda tickers=tickers, 
+                                   interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), 
+                                   params=params, job_id=f"yf_job_{interval}")
     # Schedule corporate actions fetching job in 5 minutes interval
     notification_handler.set_corporate_actions(tickers=tickers)
     scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 
