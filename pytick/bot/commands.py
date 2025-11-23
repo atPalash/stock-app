@@ -88,21 +88,25 @@ async def edit(ctx: commands.Context, *args: str):
 
     Usage: 
     1. /edit <text>
+    2. /edit as a reply to a message containing gherkin text.
     """
     valid, bot_config, _, llm_handler, _ = await __validate(ctx, *args)
+    query = __pre_check(ctx, *args)
     if not valid:
         await ctx.send(f"""Cannot convert the query to gherkin. Usage: `/convert` <text>""")
         return
     try:
         to_convert = " ".join(args)
-        logger.info(f"Converting query to gherkin: {to_convert}")
+        to_convert = to_convert + '\n' +  query
         await ctx.send(f"""**{bot_config.llm_convert_msg}**""")
         data = f"{llm_handler.run(to_convert)}"
         await ctx.send(f"""**Query**""")
         await ctx.send(f"""```{data}```""")
         return data
     except Exception as e:
-        await ctx.send(f"Error during conversion: {e}")
+        msg = f"Error during conversion: {e}"
+        logger.error(msg)
+        await ctx.send(msg)
         return None
 
 async def run(ctx: commands.Context, *args: str):
