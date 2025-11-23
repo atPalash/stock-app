@@ -33,6 +33,8 @@ class BotConfig:
     trading_view_url: str
     zerodha_url: str
     link_type: str
+    backtest_iterations: int
+    default_ticker: str
 
 class DiscordBot:
     """Encapsulates a Discord bot that prefers sending replies as DMs and falls back to channel messages.
@@ -71,15 +73,21 @@ class DiscordBot:
         user_id = ctx.author.id
         user_name = ctx.author.name
         author = ctx.author.global_name
-        users_config = read_config(self.users_config_path).get('users', {})
-        if user_id not in users_config:
-            users_config[user_id] = {           
-                'user_name': user_name,
-                'author': author,
-                'subscribed_queries': []
-            }
-            self.config.update_users_callback('users', users_config)
-        return users_config.get(user_id)
+        user_config_file = f"{self.users_config_path}/{user_id}.yaml"
+        user_config = {}
+        if not os.path.exists(user_config_file):
+            # Create an empty user config file if it doesn't exist
+            with open(user_config_file, 'w') as f:
+                user_config = {           
+                    'user_id': user_id,
+                    'user_name': user_name,
+                    'author': author,
+                    'subscribed_queries': []
+                }
+            self.config.update_users_callback(user_config_file, user_config, None )
+        else: 
+            user_config = read_config(user_config_file)  
+        return user_config
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user}\nSubscribing to queries')
@@ -133,9 +141,12 @@ class DiscordBot:
         self.bot.run(self.config.token)
 
     def update_subscription(self, ctx: commands.Context , subscribed_queries: list[dict]):
-        to_update = read_config(self.users_config_path).get('users', {})
-        to_update[ctx.author.id]['subscribed_queries'] = subscribed_queries
-        self.config.update_users_callback('users', to_update)
+        user_id = ctx.author.id
+        user_config_file = f"{self.users_config_path}/{user_id}.yaml"
+        
+        to_update = read_config(user_config_file)
+        # to_update['subscribed_queries'] = subscribed_queries
+        self.config.update_users_callback(user_config_file, subscribed_queries,'subscribed_queries')
         
     @staticmethod
     def chunk_lines(parts: Iterable[str], max_len: int = 4096, sep: str = "\n") -> Iterator[str]:

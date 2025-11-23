@@ -8,7 +8,7 @@ import pandas_ta as ta
 # from main import mp_process_ticker
 from pytick.utility.utility import get_logger, normalize_index_to_tz, read_config
 
-logger = get_logger('yf', logging.DEBUG)
+logger = get_logger(__file__, logging.DEBUG)
 
 def download_stock_data(ticker:str, interval:str, tz:str)->pd.DataFrame:
     """Download stock data from Yahoo Finance.
@@ -48,6 +48,7 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
     Returns:
         dict: dictionary containing the calculated indicators.
     """
+    errors = []
     for ind_type, ind_conf in indicators.items():
         periods = ind_conf.get('periods', [])
         sources = ind_conf.get('sources', [])
@@ -71,8 +72,9 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
                     else:
                         logger.warning(f"Unsupported indicator type: {ind_type}")
                 except Exception as e:
-                    logger.error(f"Error calculating {ind_type} for period {period} and source {src}: {e}")
-    return {'ticker': ticker, 'df' : df}
+                    msg = f"Error calculating {ind_type} for period {period} and source {src}: {e}"
+                    errors.append(msg)
+    return {'ticker': ticker, 'df' : df, 'errors': errors}
 
 def get_nifty50_tickers() -> list:
     nifty50 = pd.read_csv('ind_nifty50list.csv')
@@ -128,6 +130,7 @@ class DataFrameHandler:
                 multi_level_index=False,
                 ignore_tz=True,
                 auto_adjust=True,
+                timeout=100,
             )
             clean_ohlc = {}
             for ticker in tickers_yf:
@@ -158,6 +161,8 @@ class DataFrameHandler:
                 df = normalize_index_to_tz(df, self.tz)
                 df = df.reset_index()
                 df.columns = [c.lower() for c in df.columns]
+                if 'date' in df.columns:
+                    df = df.rename(columns={'date': 'datetime'})
                 result[ticker] = df
                 if df is None or df.empty:
                     logger.warning(f"No data found for ticker: {ticker}")

@@ -1,5 +1,6 @@
 import logging
 import os
+from random import randint
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -87,21 +88,25 @@ async def edit(ctx: commands.Context, *args: str):
 
     Usage: 
     1. /edit <text>
+    2. /edit as a reply to a message containing gherkin text.
     """
     valid, bot_config, _, llm_handler, _ = await __validate(ctx, *args)
+    query = __pre_check(ctx, *args)
     if not valid:
         await ctx.send(f"""Cannot convert the query to gherkin. Usage: `/convert` <text>""")
         return
     try:
         to_convert = " ".join(args)
-        logger.info(f"Converting query to gherkin: {to_convert}")
+        to_convert = to_convert + '\n' +  query
         await ctx.send(f"""**{bot_config.llm_convert_msg}**""")
         data = f"{llm_handler.run(to_convert)}"
         await ctx.send(f"""**Query**""")
         await ctx.send(f"""```{data}```""")
         return data
     except Exception as e:
-        await ctx.send(f"Error during conversion: {e}")
+        msg = f"Error during conversion: {e}"
+        logger.error(msg)
+        await ctx.send(msg)
         return None
 
 async def run(ctx: commands.Context, *args: str):
@@ -152,7 +157,7 @@ async def run(ctx: commands.Context, *args: str):
             ticker = part.split(']')[0].strip('[')
             notification = bot_config.notification_handler.get_corporate_actions(tickers=[ticker])[ticker]
             if notification is not None and not notification.empty:
-                part += f" [🔔]({notification['file'].tolist()[0]})"
+                part += f" 🔔 [link]({notification['file'].tolist()[0]})"
                 parts[i] = part
             if len(changed) > 0:
                 if title != "" and ticker in list(changed[title_index].values())[0]:
@@ -254,6 +259,71 @@ async def sub(ctx: commands.Context, *args: str):
         await ctx.send(msg)
         logger.error(msg)
 
+async def bt(ctx: commands.Context, *args: str):
+    """Backtest a query. The query to include 2 list conditions named bull & bear.
+    By default 10 iterations of backtest are run starting from random position with
+    lookback from the reference. e.g. if lookback is 10 and interval is 5m, 10 backtests
+    are run with 5 minute interval ohlc. Starting from random positions with 10 
+    candles back as the starting point to simulate forward testing for next 10 candles. 
+    
+    Usage: 
+    1. /bt <lookback> <interval> - reply to a query with backtest conditions
+    <lookback> is integer number. <interval> is one of 1m, 5m, 15m, 30m, 1h, 1d
+    """
+    valid, bot_config, _, _, _ = await __validate(ctx, *args)
+    check_error_msg = f"Usage: `/{ctx.invoked_with}` <lookback> <interval>. lookback is integer number. interval is one of {', '.join(bot_config.schedules.keys())} "
+    if len(args) != 2 or not valid:
+        await ctx.send(check_error_msg)
+        return
+    try:
+        lookback, interval = args
+        lookback = int(lookback)
+        interval = str(interval)
+        if lookback <= 0:
+            raise ValueError("Lookback must be a positive integer.")
+        if interval not in bot_config.schedules:
+            raise ValueError(f"Invalid interval. Valid intervals are: {', '.join(bot_config.schedules.keys())}")
+    except Exception as e:
+        await ctx.send(check_error_msg)
+        return
+    
+    query = __pre_check(ctx, *args)
+    if query == "":
+        await ctx.send(f"Please reply to a gherkin query message to backtest.")
+        return
+    
+    backtests = []
+    bk_errors = []
+    for i in range(bot_config.backtest_iterations):
+        try:
+            lookback_i = min(lookback + i * randint(0, i*lookback), 1000)
+            success, results, errors, table, datetime = __do_backtest(bot_config, query, 
+                                                                      bt_config={
+                                                                        'clip': lookback_i, 
+                                                                        'forward': lookback, 
+                                                                        'interval': interval,
+                                                                        'default_ticker': bot_config.default_ticker})
+            if not success:
+                bk_errors.append(errors)
+            backtests.append({'iteration': i, 'lookback': lookback_i, 'positive%': results[0], 
+                              'negative%': results[1], 'table': table, 'datetime': datetime})
+        except Exception as e:
+            bk_errors.append(e)
+    if len(bk_errors) > 0:
+        await ctx.send(f"Backtest completed with {len(bk_errors)} errors. e.g {bk_errors[0]}")
+    
+    for bt in backtests:
+        await ctx.send(f"**Backtest Iteration {bt['iteration']} on {bt['datetime']}**\nPositive Signals: {bt['positive%']:.2f}%, Negative Signals: {bt['negative%']:.2f}%\nNote: table shows only non-zero score entries.")
+        bt_table = bt['table']
+        if bt_table is not None and not bt_table.empty:
+            bt_table.set_index('ticker', inplace=True)
+            bt_table = bt_table.filter(items=['ticker', 'bull', 'bear', 'close_start', 'close_reference', 'score'])
+            bt_table = bt_table[bt_table['score'].ne(0)]
+            table_str = bt_table.to_markdown()
+            if len(table_str) > 1990:
+                table_str = table_str[:1990] + "\n..."
+            await ctx.send(f"```{table_str}```")
+
 def __do_run(bot_config: BotConfig, query: str) -> tuple[list[dict], list[str]]:
     try:
         success, results, errors, _ = bot_config.query_handler.get_gherkin_result(gherkin_str=query)
@@ -284,7 +354,6 @@ def __do_run(bot_config: BotConfig, query: str) -> tuple[list[dict], list[str]]:
         logger.error(msg)
         raise Exception(msg)
     
-
 def __pre_check(ctx: commands.Context, *args: str) -> bool:
     """Pre-check to extract gherkin text from reply or arguments.
     """
@@ -349,3 +418,17 @@ def __make_run_job(ctx, bot_config:BotConfig, query: str):
             await ctx.send(msg)
             logger.error(msg)
     return job
+
+def __do_backtest(bot_config: BotConfig, query: str, bt_config:None) -> tuple[list[dict], list[str]]:
+    try:
+        success, results, errors, table = bot_config.query_handler.get_gherkin_result(gherkin_str=query, bt_config=bt_config)
+        datetime = bot_config.query_handler.get_clip_time(bt_config=bt_config)
+        if not success:
+            msg = f"Error during query execution: {errors}"
+            logger.error(msg)
+            raise Exception(msg)
+        return success, results, errors, table, datetime
+    except Exception as e:
+        msg = f"Error during execution: {e}"
+        logger.error(msg)
+        raise Exception(msg)

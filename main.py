@@ -21,7 +21,7 @@ logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
-users_config_path = os.environ.get("CONFIG_USERS")
+users_config_path = os.environ.get("USERS_DIR")
 app_config = read_config(file_path=config)
 tickers = app_config.get('indexes', []).get('nifty50', [])
 indicators = app_config.get('indicators', {})
@@ -30,10 +30,11 @@ cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
 notification_handler = notification.NotificationHandler(tz=tz)
-gherkin_handler = query.QueryHandler(data_handler=data_handler, interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
+gherkin_handler = query.QueryHandler(data_handler=data_handler, 
+                                    interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
 
-def save_users(key:str, data):
-    save_config(key, data, users_config_path)
+def save_users(file_path,data, key:str=None):
+    save_config(key=key, data=data, path=file_path)
 bot_config = BotConfig(
     token=os.getenv('DISCORD_BOT_TOKEN'), 
     command_prefix='/', 
@@ -47,14 +48,16 @@ bot_config = BotConfig(
     zerodha_df=pandas.read_csv(app_config.get("zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
     zerodha_url=app_config.get('zerodha_url', ''),
-    link_type=app_config.get('link_type', 'zerodha')
+    link_type=app_config.get('link_type', 'zerodha'),
+    backtest_iterations=app_config.get('backtest_iterations', 10),
+    default_ticker=app_config.get('default_ticker', 'SBIN')
 )
 discord_bot = DiscordBot(config=bot_config)
 
 @app.get("/")
 async def read_root():
     return {"info": "This is a FastAPI application which fetches data from "
-    "yahoo finance computes indicator values and stores them in influx db."}
+    "yahoo finance computes indicator values and replies to client query in discord."}
 
 @app.get("/df/{ticker}/{interval}")
 async def to_dataframe(ticker: str, interval: str):
@@ -96,7 +99,9 @@ if __name__ == "__main__":
     # Schedule ohlc fetching jobs
     for interval, params in cron_schedules.items():
         data_handler.set_tables(tickers=tickers, interval=interval)
-        scheduler.add_periodic_job(func=lambda tickers=tickers, interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), params=params, job_id=f"yf_job_{interval}")
+        scheduler.add_periodic_job(func=lambda tickers=tickers, 
+                                   interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), 
+                                   params=params, job_id=f"yf_job_{interval}")
     # Schedule corporate actions fetching job in 5 minutes interval
     notification_handler.set_corporate_actions(tickers=tickers)
     scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 

@@ -11,12 +11,82 @@ from pytick.dataframe.dataframe import DataFrameHandler
 from pytick.query.steps import StepData
 from pytick.utility.utility import get_logger, read_config
 
-logger = get_logger(__name__, logging.DEBUG)
+logger = get_logger(__file__, logging.DEBUG)
 
 class QueryHandler:
     def __init__(self, data_handler: DataFrameHandler, interval_translation: dict):
         self.data_handler = data_handler
         self.interval_translation = interval_translation
+
+    @staticmethod
+    def parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
+        """
+        Validates that the Gherkin string contains only Given, When, Then steps in correct order.
+        Returns (True, []) if valid, (False, [error messages]) otherwise.
+        """
+        lines = [line.strip() for line in gherkin_str.strip().splitlines() if line.strip()]
+        errors = []
+        if not QueryHandler.__validate_step_order(lines, errors):
+            return False, {}, errors
+        success, step_data = QueryHandler.__fetch_step_data(lines)
+        if not success:
+            return False, {}, errors
+        return True, step_data, errors
+    
+    def get_gherkin_result(self, gherkin_str:str, bt_config: dict=None) -> tuple[bool, dict, list]:
+        """ Compute Gherkin result depending on the string, also perform backtest
+        queries.
+        """
+        is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
+        if not is_valid:
+            return False, {}, errors, {}
+        
+        given_steps = [step for step in step_data if step.get('step') == 'Given']
+        when_steps = [step for step in step_data if step.get('step') == 'When']
+        then_steps = [step for step in step_data if step.get('step') == 'Then']
+
+        # Process Given steps to get tickers
+        success, tickers, errors = self.__process_given_steps(given_steps)
+        if not success:
+            return False, {}, errors, {}
+        # Process When steps to calculate variables
+        success, when_results, errors = self.__process_when_steps(when_steps, tickers, bt_config)
+        if not success:
+            return False, {}, errors, {}
+        # Process Then steps to get final results
+        success, then_results, errors = self.__process_then_steps(then_steps, when_results)
+        if not success:
+            return False, {}, errors, {}
+        conditional_tickers = []
+        for step in then_steps:
+            values = [v['value'] for v in step.get('values', [])]
+            if 'list' in step.get('statement'):
+                id = values[0]
+                # Get tickers where the condition is True
+                true_tickers = then_results[then_results[id] == True]['ticker'].tolist()
+                conditional_tickers.append({id: true_tickers})
+
+        if bt_config is not None:
+            valid, result, errors = self.__process_backtest(then_results, bt_config)
+            if not valid:
+                return False, {}, errors, {}
+            percent_correct = (result['score'] == 1).sum() / max(1, (result['score'] !=0).sum()) * 100
+            percent_false = (result['score'] == -1).sum() / max(1, (result['score'] !=0).sum()) * 100
+            return True, (percent_correct, percent_false), [], result
+        return True, conditional_tickers, [], then_results
+
+    def get_clip_time(self, bt_config: dict) -> str:
+        """ Get clipped time from defualt ticker
+        """
+        interval = bt_config.get('interval', None)
+        clip = bt_config.get('clip', 0) 
+        ticker = bt_config.get('default_ticker', None)
+        if interval is None or clip <=0 or ticker is None:
+            raise ValueError("Base interval or clip or ticker is missing from clipping.")
+        bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
+                                                  interval=interval).get('data', {}).get(ticker, None)
+            
+        return bt_interval_df.iloc[:-clip]['datetime'].iat[-1]
 
     @staticmethod
     def __validate_step_order(lines, errors):
@@ -94,21 +164,6 @@ class QueryHandler:
                 errors.append(f"Regex match for \"{line}\" not found in {list(step_patterns[current_step].keys())}")
         return len(errors) == 0, match_values
 
-    @staticmethod
-    def parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
-        """
-        Validates that the Gherkin string contains only Given, When, Then steps in correct order.
-        Returns (True, []) if valid, (False, [error messages]) otherwise.
-        """
-        lines = [line.strip() for line in gherkin_str.strip().splitlines() if line.strip()]
-        errors = []
-        if not QueryHandler.__validate_step_order(lines, errors):
-            return False, {}, errors
-        success, step_data = QueryHandler.__fetch_step_data(lines)
-        if not success:
-            return False, {}, errors
-        return True, step_data, errors
-    
     def __process_given_steps(self, given_steps:list)-> tuple[bool, list, list]:
         tickers = []
         for step in given_steps:
@@ -122,7 +177,7 @@ class QueryHandler:
             return False, {}, errors
         return True, tickers, []
 
-    def __process_when_steps(self, when_steps:list, given_result:list) -> tuple[bool, pandas.DataFrame, list]:
+    def __process_when_steps(self, when_steps:list, given_result:list, bt_config:dict = None) -> tuple[bool, pandas.DataFrame, list]:
         result = pandas.DataFrame(columns=['ticker'])
         for step in when_steps:
             values = [v['value'] for v in step.get('values', [])]
@@ -136,17 +191,24 @@ class QueryHandler:
             # Add column if it doesn't exist
             if id not in result.columns:
                 result[id] = numpy.nan
-            
+
             for ticker in given_result:
                 # Add row for ticker if it doesn't exist
                 if ticker not in result['ticker'].values:
                     new_row = {'ticker': ticker}
                     result = pandas.concat([result, pandas.DataFrame([new_row])], ignore_index=True)
                 
-                df = self.data_handler.get_tables(tickers=[ticker], interval=self.interval_translation[interval]).get('data', {}).get(ticker, None)
+                full_df = self.data_handler.get_tables(tickers=[ticker], 
+                                                  interval=self.interval_translation[interval]).get('data', {}).get(ticker, None)
+                
+                df = full_df
+                if bt_config is not None:
+                    # Start backtest from trading of the base interval given by user
+                    df = self.__clip_backtest_data(df, ticker, interval, bt_config)
                 if df is None or df.empty:
                     logger.error(f"No data found for ticker {ticker} with interval {interval}")
                     continue
+                
                 success, val, errors = step.get('logic')(df, **kwargs)
                 result.loc[result['ticker'] == ticker, id] = val
                 if not success:
@@ -167,55 +229,83 @@ class QueryHandler:
 
         return True, result, []
 
-    def get_gherkin_result(self, gherkin_str:str) -> tuple[bool, dict, list]:
-        is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
-        if not is_valid:
-            return False, {}, errors, {}
+    def __process_backtest(self, then_results:pandas.DataFrame, bt_config: dict) -> tuple[bool, dict, list]:
+        interval = bt_config.get('interval', None)
+        if interval is None:
+            return False, {}, ["Backtest interval not specified in bt_config."]
         
-        given_steps = [step for step in step_data if step.get('step') == 'Given']
-        when_steps = [step for step in step_data if step.get('step') == 'When']
-        then_steps = [step for step in step_data if step.get('step') == 'Then']
-
-        # Process Given steps to get tickers
-        success, tickers, errors = self.__process_given_steps(given_steps)
-        if not success:
-            return False, {}, errors, {}
-        # Process When steps to calculate variables
-        success, when_results, errors = self.__process_when_steps(when_steps, tickers)
-        if not success:
-            return False, {}, errors, {}
-        # Process Then steps to get final results
-        success, then_results, errors = self.__process_then_steps(then_steps, when_results)
-        if not success:
-            return False, {}, errors, {}
-        conditional_tickers = []
-        for step in then_steps:
-            values = [v['value'] for v in step.get('values', [])]
-            if 'list' in step.get('statement'):
-                id = values[0]
-                # Get tickers where the condition is True
-                true_tickers = then_results[then_results[id] == True]['ticker'].tolist()
-                conditional_tickers.append({id: true_tickers})
-
-        return True, conditional_tickers, [], then_results
-
+        columns = then_results.columns.tolist()
+        if not any(c in columns for c in ['bull', 'bear']):
+            return False, {}, ["Backtest can only be performed on 'bull' and 'bear' conditions."]
+        
+        errors = []
+        then_results['close_start'] = 0.0
+        then_results['close_reference'] = 0.0
+        then_results['score'] = 0
+        for ticker in list(then_results['ticker']):
+            try:
+                full_df = self.data_handler.get_tables(tickers=[ticker], 
+                                                    interval=interval).get('data', {}).get(ticker, None)
+                clipped_df = full_df.iloc[:-bt_config.get('clip', 0)]
+                reference_index = bt_config.get('clip', 0) - bt_config.get('forward', 0)
+                reference_df = full_df
+                if reference_index > 1:
+                    reference_df = full_df.iloc[:-reference_index]
+                
+                result_is_bull = then_results.loc[then_results['ticker'] == ticker, 'bull'].values[0]
+                result_is_bear = then_results.loc[then_results['ticker'] == ticker, 'bear'].values[0]
+                clipped_close = clipped_df['close'].iat[-1]
+                reference_close  = reference_df['close'].iat[-1]
+                is_bull = reference_close > clipped_close
+                is_bear = not is_bull
+                then_results.loc[then_results['ticker'] == ticker, 'close_start'] = clipped_close
+                then_results.loc[then_results['ticker'] == ticker, 'close_reference'] = reference_close
+                if result_is_bull == result_is_bear:
+                    continue
+                score = 1 if (is_bull and result_is_bull) or (is_bear and result_is_bear) else -1
+                then_results.loc[then_results['ticker'] == ticker, 'score'] = score          
+            except Exception as e:
+                errors.append(f"BT Error {ticker}: {e}")
+                continue
+        if len(errors) > 0:
+            return False, None, errors
+        return True, then_results, errors
+    
+    def __clip_backtest_data(self, df: pandas.DataFrame, ticker, interval:str, bt_config: dict) -> pandas.DataFrame:
+        ret = df
+        bt_interval = bt_config.get('interval', None)
+        clip = bt_config.get('clip', 0) 
+        if bt_interval is None or clip <=0:
+            raise ValueError("Base interval or clip is missing from clipping.")
+           
+        if self.interval_translation[interval] != bt_interval:
+            bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
+                                                  interval=bt_interval).get('data', {}).get(ticker, None)
+            bt_interval_df = bt_interval_df.iloc[:-clip]
+            last_bt_datetime = bt_interval_df['datetime'].iat[-1]
+            ret = df[df['datetime'] <= last_bt_datetime]
+        else:
+            ret = df.iloc[:-clip]
+        return ret
+    
 if __name__ == "__main__":
     gherkin = """
-Feature: pytick llm  
-Scenario: Multiple condition analysis with previous day close, VWAP, and EMA  
-Given stocks from index nifty50  
-When let prev_close = oldest in 2 samples of day close  
-* let close = latest in 1 samples of day close  
-* let vwap10 = latest in 1 samples of day close vwap 10  
-* let ema10 = latest in 1 samples of day close ema 10
-* let atr10 = latest in 1 samples of day close atr 10  
-Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01)  
-* list reversal = tickers with (abs(vwap10 - close) >  2 * atr10)"""
+Feature: pytick llm
+Scenario: Multiple condition analysis with previous day close, VWAP, and EMA
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of minute5 close
+* let vwap10 = latest in 1 samples of minute5 close vwap 10
+* let ema10 = latest in 1 samples of minute5 close ema 10
+* let atr10 = latest in 1 samples of day close atr 10
+Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01)
+* list reversal = tickers with (abs(vwap10 - close) > 0.5 * atr10)"""
     config = os.environ.get("CONFIG_FILE")
     tickers = read_config(config).get('indexes', []).get('nifty50', [])
     indicators = read_config(config).get('indicators', {})
     tz = read_config(config).get('tz', 'Asia/Kolkata')
     data_handler = DataFrameHandler(tz=tz, indicators=indicators)
-    data_handler.set_tables(tickers=tickers, interval='1d')
+    data_handler.set_tables(tickers=tickers, interval='5m')
     query_handler = QueryHandler(data_handler, interval_translation={v: k for k, v in read_config(config).get('interval_translation', {}).items()})
+    # print(query_handler.get_gherkin_result(gherkin, bt_config={'clip': 20, 'forward': 10, 'interval': '5m'}))
     print(query_handler.get_gherkin_result(gherkin))
