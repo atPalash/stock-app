@@ -1,0 +1,11 @@
+"author": "Sweta"
+"subscribed_queries":
+- "period": "1d"
+  "query": "Feature: pytick llm  \nScenario: Identify 5% movers in the last 10 days\
+    \  \nGiven stocks from index nifty50  \nWhen let close_latest = latest in 1 samples\
+    \ of day close  \n* let close_10_days_ago = oldest in 10 samples of day close\
+    \  \nThen list movers = tickers with ((close_latest - close_10_days_ago) / close_10_days_ago\
+    \ > 0.05)"
+  "tickers": []
+"user_id": !!int "1428078747034189826"
+"user_name": "sweta02837"

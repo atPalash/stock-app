@@ -292,7 +292,7 @@ async def bt(ctx: commands.Context, *args: str):
     bk_errors = []
     for i in range(bot_config.backtest_iterations):
         try:
-            lookback_i = min(lookback + i * randint(1, lookback), 1000)
+            lookback_i = min(lookback + i * randint(0, i*lookback), 1000)
             success, results, errors, table, datetime = __do_backtest(bot_config, query, 
                                                                       bt_config={
                                                                         'clip': lookback_i, 

@@ -18,7 +18,10 @@ def save_config(key:str, data:dict, path:str):
     to_write = read_config(path)
     with open(path, "w") as file:
         fcntl.flock(file, fcntl.LOCK_EX)
-        to_write[key] = data
+        if key is None:
+            to_write = data
+        else:
+            to_write[key] = data
         yaml.dump(to_write, file, default_style='"')
         fcntl.flock(file, fcntl.LOCK_UN)
         

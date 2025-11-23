@@ -21,7 +21,7 @@ logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
-users_config_path = os.environ.get("CONFIG_USERS")
+users_config_path = os.environ.get("USERS_DIR")
 app_config = read_config(file_path=config)
 tickers = app_config.get('indexes', []).get('nifty50', [])
 indicators = app_config.get('indicators', {})
@@ -33,8 +33,8 @@ notification_handler = notification.NotificationHandler(tz=tz)
 gherkin_handler = query.QueryHandler(data_handler=data_handler, 
                                     interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
 
-def save_users(key:str, data):
-    save_config(key, data, users_config_path)
+def save_users(file_path,data, key:str=None):
+    save_config(key=key, data=data, path=file_path)
 bot_config = BotConfig(
     token=os.getenv('DISCORD_BOT_TOKEN'), 
     command_prefix='/', 
