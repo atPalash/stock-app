@@ -91,6 +91,27 @@ class DiscordBot:
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user}\nSubscribing to queries')
+        # Send hello message to all users on bot alive
+        try:
+            import yaml
+            user_ids = []
+            # List all user config files
+            users_dir = self.users_config_path
+            for fname in os.listdir(users_dir):
+                if fname.endswith('.yaml'):
+                    with open(os.path.join(users_dir, fname), 'r') as f:
+                        data = yaml.safe_load(f)
+                        uid = data.get('user_id')
+                        if uid:
+                            user_ids.append(uid)
+            for uid in user_ids:
+                user = await self.bot.fetch_user(int(uid))
+                try:
+                    await user.send('Hello! 👋 The bot is now alive.')
+                except Exception as e:
+                    logger.warning(f"Could not send hello to user {uid}: {e}")
+        except Exception as e:
+            logger.warning(f"Error sending hello messages: {e}")
     
     async def on_command_error(self, ctx, error):
         """Global command error handler.

@@ -92,19 +92,24 @@ async def parse_gherkin_query(request: Request):
     return {"success": True, "tickers": step_data, "data": df.to_dict(orient='records')}
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Run FastAPI app with custom port")
+    parser.add_argument('--port', type=int, default=8000, help='Port to run the server on')
+    args = parser.parse_args()
+
     # start scheduler
     scheduler = Scheduler(tz)
     scheduler.start()
-    
+
     # Schedule ohlc fetching jobs
     for interval, params in cron_schedules.items():
         data_handler.set_tables(tickers=tickers, interval=interval)
-        scheduler.add_periodic_job(func=lambda tickers=tickers, 
-                                   interval=interval: data_handler.set_tables(tickers=tickers, interval=interval), 
+        scheduler.add_periodic_job(func=lambda tickers=tickers,
+                                   interval=interval: data_handler.set_tables(tickers=tickers, interval=interval),
                                    params=params, job_id=f"yf_job_{interval}")
     # Schedule corporate actions fetching job in 5 minutes interval
     notification_handler.set_corporate_actions(tickers=tickers)
-    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers), 
+    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),
                                params=cron_notification, job_id="corp_actions_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
@@ -116,14 +121,13 @@ if __name__ == "__main__":
 
     discord_thread = threading.Thread(target=_run_discord, name="discord-bot-thread", daemon=True)
     discord_thread.start()
-    
+
     # Run the FastAPI app using uvicorn. When uvicorn exits, we'll stop the scheduler.
     try:
-        uvicorn.run(app, host="localhost", port=8000)
+        uvicorn.run(app, host="localhost", port=args.port)
     finally:
         # ensure scheduler stops on shutdown
         try:
-            # i=1
             scheduler.stop()
         except Exception:
             logger.exception("Error stopping scheduler")

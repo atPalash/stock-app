@@ -18,5 +18,87 @@
     \ = latest in 1 samples of minute5 close atr 10\nThen list consolidation = tickers\
     \ with ((abs(vwap10 - close) < 0.2 * atr10) & (close > vwap10))"
   "tickers": []
+- "period": "5m"
+  "query": "Feature: pytick llm  \nScenario: Movers greater than 1% with respect to\
+    \ previous day close analysis  \nGiven stocks from index nifty50  \nWhen let prev_close\
+    \ = oldest in 2 samples of day close  \n* let close = latest in 1 samples of minute5\
+    \ close  \nThen list bull = tickers with ((close - prev_close) / prev_close >\
+    \ 0.01)\n* list bear = tickers with ((prev_close - close) / prev_close > 0.01)"
+  "tickers":
+  - "bull":
+    - "TECHM"
+  - "bear":
+    - "ADANIENT"
+    - "ADANIPORTS"
+    - "APOLLOHOSP"
+    - "ASIANPAINT"
+    - "BAJFINANCE"
+    - "BAJAJFINSV"
+    - "BEL"
+    - "BHARTIARTL"
+    - "CIPLA"
+    - "ETERNAL"
+    - "INDIGO"
+    - "JSWSTEEL"
+    - "JIOFIN"
+    - "KOTAKBANK"
+    - "MAXHEALTH"
+    - "NTPC"
+    - "NESTLEIND"
+    - "ONGC"
+    - "POWERGRID"
+    - "SHRIRAMFIN"
+    - "SBIN"
+    - "TATACONSUM"
+    - "TMPV"
+    - "TATASTEEL"
+    - "TITAN"
+    - "TRENT"
+- "period": "5m"
+  "query": "Feature: pytick llm\nScenario: Bearish and Bullish Reversal Analysis with\
+    \ Minute 5 Close, VWAP, and ATR10\nGiven stocks from index nifty50\nWhen let close\
+    \ = latest in 1 samples of minute5 close\n* let vwap = latest in 1 samples of\
+    \ minute5 close vwap 10\n* let atr10 = latest in 1 samples of day close atr 10\n\
+    Then list bear = tickers with ((close - vwap) > (atr10))\n* list bull = tickers\
+    \ with ((vwap - close) > (atr10))"
+  "tickers":
+  - "bear": []
+  - "bull": []
+- "period": "5m"
+  "query": "Feature: pytick llm  \nScenario: Hammer and inverted hammer formation\
+    \ analysis with stricter conditions using today's data  \nGiven stocks from index\
+    \ nifty50  \nWhen let open = latest in 1 samples of day open  \n* let close =\
+    \ latest in 1 samples of day close  \n* let high = latest in 1 samples of day\
+    \ high  \n* let low = latest in 1 samples of day low  \nThen let hammer = (((high\
+    \ - close) < (0.3 * (close - low))) & ((close - low) > (2 * abs(close - open))))\
+    \  \n* let inverted_hammer = (((high - close) > (2 * (close - low))) & ((close\
+    \ - low) < (2 * abs(open - close))))  \n* list bull = tickers with hammer  \n\
+    * list bear = tickers with inverted_hammer  "
+  "tickers":
+  - "bull":
+    - "BHARTIARTL"
+    - "M&M"
+    - "NESTLEIND"
+    - "SUNPHARMA"
+    - "ULTRACEMCO"
+  - "bear":
+    - "HINDALCO"
+    - "INDIGO"
+    - "TATASTEEL"
+- "period": "5m"
+  "query": "Feature: pytick llm\nScenario: Bearish and Bullish Reversal Analysis with\
+    \ Minute 5 Close, VWAP, and ATR10\nGiven stocks from index nifty50\nWhen let close\
+    \ = latest in 1 samples of minute5 close\n* let vwap = latest in 1 samples of\
+    \ minute5 close vwap 10\n* let atr10 = latest in 1 samples of day close atr 10\n\
+    Then list bear = tickers with ((close - vwap) > (atr10*0.5))\n* list bull = tickers\
+    \ with ((vwap - close) > (atr10*0.5))"
+  "tickers":
+  - "bear":
+    - "ADANIENT"
+    - "BAJAJFINSV"
+    - "HDFCLIFE"
+    - "SBIN"
+    - "TATASTEEL"
+  - "bull": []
 "user_id": !!int "686175319383736344"
 "user_name": "palash1425"

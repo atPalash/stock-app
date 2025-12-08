@@ -163,15 +163,15 @@ async def run(ctx: commands.Context, *args: str):
                 if title != "" and ticker in list(changed[title_index].values())[0]:
                     part += " 🟢"
                     parts[i] = part
-        await __sendEmbedResults(ctx=ctx, parts=parts)
+        await __sendEmbedResults(ctx=ctx, parts=parts, separator="\n\n")
     except Exception as e:
         msg = f"Error during execution: {e}"
         await ctx.send(msg)
         logger.error(msg)
 
-async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
+async def __sendEmbedResults(ctx: commands.Context, parts: list[str], separator: str = "\n"):
     try:
-        for i, desc in enumerate(ctx.command.extras.get('discordbot').chunk_lines(parts, max_len=4096)):
+        for i, desc in enumerate(ctx.command.extras.get('discordbot').chunk_lines(parts, max_len=4096, sep=separator)):
             title = "Result" if i == 0 else "Result (cont.)"
             embed = discord.Embed(title=title, description=desc.strip(), color=discord.Color.blurple())
             await ctx.send(embed=embed)
