@@ -141,6 +141,7 @@ class DataFrameHandler:
                 clean_ohlc[ticker] = df
 
             # Create a pool of processes (one for each CPU core)
+            multiprocessing.set_start_method('spawn', force=True)
             num_processes = min(multiprocessing.cpu_count(), len(tickers))
             # Prepare the parameters for each process
             process_args = [
