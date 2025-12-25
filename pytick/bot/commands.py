@@ -156,8 +156,14 @@ async def run(ctx: commands.Context, *args: str):
                 continue
             ticker = part.split(']')[0].strip('[')
             notification = bot_config.notification_handler.get_corporate_actions(tickers=[ticker])[ticker]
+            news_alerts = bot_config.notification_handler.get_news_alerts(tickers=[ticker])[ticker]
             if notification is not None and not notification.empty:
-                part += f" 🔔 [link]({notification['file'].tolist()[0]})"
+                part += f" [Action]({notification['file'].tolist()[0]})"
+                parts[i] = part
+
+            if news_alerts is not None and len(news_alerts) > 0:
+                for j, item in enumerate(news_alerts):
+                    part += f" [News{j+1}]({item['link']})"
                 parts[i] = part
             if len(changed) > 0:
                 if title != "" and ticker in list(changed[title_index].values())[0]:
