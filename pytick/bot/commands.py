@@ -177,9 +177,35 @@ async def run(ctx: commands.Context, *args: str):
 
 async def __sendEmbedResults(ctx: commands.Context, parts: list[str], separator: str = "\n"):
     try:
-        for i, desc in enumerate(ctx.command.extras.get('discordbot').chunk_lines(parts, max_len=4096, sep=separator)):
-            title = "Result" if i == 0 else "Result (cont.)"
-            embed = discord.Embed(title=title, description=desc.strip(), color=discord.Color.blurple())
+        embed = discord.Embed(title="Result", color=discord.Color.blurple())
+        current_section = ""
+        field_count = 0
+        
+        for part in parts:
+            # Handle section headers
+            if part.startswith("**") or part.strip() == "":
+                if part.strip() != "":
+                    current_section = part.replace('*', '')
+                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
+                    field_count += 1
+                continue
+            
+            # Add ticker with all its links
+            if part.strip():
+                # Use zero-width space for empty name to group under section
+                embed.add_field(name="​", value=part, inline=False)
+                field_count += 1
+            
+            # Send when embed gets too large (Discord limit is 25 fields)
+            if field_count >= 20:
+                await ctx.send(embed=embed)
+                embed = discord.Embed(title="Result (cont.)", color=discord.Color.blurple())
+                if current_section:
+                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
+                field_count = 1 if current_section else 0
+        
+        # Send final embed if it has fields
+        if field_count > 0:
             await ctx.send(embed=embed)
     except Exception as e:
         msg = f"Error during execution: {e}"

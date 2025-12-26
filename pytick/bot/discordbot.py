@@ -168,31 +168,6 @@ class DiscordBot:
         to_update = read_config(user_config_file)
         # to_update['subscribed_queries'] = subscribed_queries
         self.config.update_users_callback(user_config_file, subscribed_queries,'subscribed_queries')
-        
-    @staticmethod
-    def chunk_lines(parts: Iterable[str], max_len: int = 4096, sep: str = "\n") -> Iterator[str]:
-        """
-        Yield newline-joined chunks of parts so each chunk's length <= max_len.
-        sep controls the join separator (default newline).
-        """
-        chunk: list[str] = []
-        length = 0
-        sep_len = len(sep)
-
-        for p in parts:
-            # length added if we append p (include separator only if chunk not empty)
-            add_len = len(p) if not chunk else sep_len + len(p)
-            if length + add_len > max_len:
-                if chunk:
-                    yield sep.join(chunk)
-                chunk = [p]
-                length = len(p)
-            else:
-                chunk.append(p)
-                length += add_len
-
-        if chunk:
-            yield sep.join(chunk)
 
 
 if __name__ == '__main__':
