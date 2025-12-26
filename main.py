@@ -109,11 +109,8 @@ if __name__ == "__main__":
                                    params=params, job_id=f"yf_job_{interval}")
     # Schedule corporate actions fetching job in 5 minutes interval
     notification_handler.set_corporate_actions(tickers=tickers)
-    notification_handler.set_news_alerts(tickers=tickers)
     scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),
                                params=cron_notification, job_id="corp_actions_job")
-    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_news_alerts(tickers=tickers),
-                               params=cron_notification, job_id="news_alerts_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
     def _run_discord():

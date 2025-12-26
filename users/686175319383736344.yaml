@@ -26,21 +26,16 @@
     \ 0.01)\n* list bear = tickers with ((prev_close - close) / prev_close > 0.01)"
   "tickers":
   - "bull":
-    - "ADANIENT"
-    - "APOLLOHOSP"
-    - "BAJAJ-AUTO"
-    - "BHARTIARTL"
-    - "HCLTECH"
-    - "HINDALCO"
-    - "HINDUNILVR"
-    - "INFY"
-    - "JSWSTEEL"
+    - "NESTLEIND"
+    - "TITAN"
+  - "bear":
+    - "ASIANPAINT"
+    - "BAJFINANCE"
     - "SHRIRAMFIN"
+    - "SUNPHARMA"
+    - "TCS"
     - "TMPV"
     - "TECHM"
-    - "TRENT"
-    - "WIPRO"
-  - "bear": []
 - "period": "5m"
   "query": "Feature: pytick llm\nScenario: Bearish and Bullish Reversal Analysis with\
     \ Minute 5 Close, VWAP, and ATR10\nGiven stocks from index nifty50\nWhen let close\
