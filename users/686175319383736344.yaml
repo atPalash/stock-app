@@ -1,4 +1,5 @@
 "author": "palash"
+"chart": "zerodha"
 "subscribed_queries":
 - "period": "5m"
   "query": "Feature: pytick llm  \nScenario: Hammer and inverted hammer formation\

@@ -84,10 +84,15 @@ class DiscordBot:
                     'author': author,
                     'subscribed_queries': []
                 }
-            self.config.update_users_callback(user_config_file, user_config, None )
+            self.config.update_users_callback(user_config_file, user_config, None)
         else: 
             user_config = read_config(user_config_file)  
         return user_config
+    
+    def update_user_config(self, ctx: commands.Context, user_config: dict):
+        user_id = ctx.author.id
+        user_config_file = f"{self.users_config_path}/{user_id}.yaml"
+        self.config.update_users_callback(user_config_file, user_config, None)
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user}\nSubscribing to queries')

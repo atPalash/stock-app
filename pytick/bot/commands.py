@@ -137,13 +137,13 @@ async def run(ctx: commands.Context, *args: str):
         await ctx.send(f"""```{query}```""")
 
     args = (query,)
-    valid, bot_config, _, _, _ = await __validate(ctx, *args)
+    valid, bot_config, user_config, _, _ = await __validate(ctx, *args)
     if not valid or not query:
         return
     
     try:
         if len(parts) == 0:
-            _, parts = __do_run(bot_config, query)
+            _, parts = __do_run(bot_config, user_config, query)
         title = ""
         title_index = -1
         # changes = []
@@ -351,7 +351,49 @@ async def bt(ctx: commands.Context, *args: str):
                 table_str = table_str[:1990] + "\n..."
             await ctx.send(f"```{table_str}```")
 
-def __do_run(bot_config: BotConfig, query: str) -> tuple[list[dict], list[str]]:
+async def config(ctx: commands.Context, *args: str):
+    """Do user configuration.
+    
+    Usage: 
+    1. /config show - show current user configuration
+    2. /config update <key> <value> - update user configuration key with value.
+    Supported keys are config headers in config show.
+    """
+    valid, _, user_config, _, _ = await __validate(ctx, *args)
+
+    async def send_user_config(config: dict, prefix: str, ctx: commands.Context):
+        drop_keys = ['subscribed_queries']
+        for key in drop_keys:
+            if key in config:
+                config.pop(key)
+        config_str = pandas.json_normalize(config).to_markdown()
+        if len(config_str) > 2000:
+            config_str = config_str[:2000] + "\n..."
+        await ctx.send(f"{prefix}```{config_str}```")
+    
+    todo = args[0]
+    if not valid:
+        return
+    try:
+        if todo == "show":
+            await send_user_config(user_config, "**User Configuration:**\n", ctx)
+        elif todo == "update":
+            key = args[1]
+            value = args[2]
+            if key in user_config:
+                user_config[key] = value
+                ctx.command.extras.get('discordbot').update_user_config(ctx, user_config)
+                await send_user_config(user_config, "**User Configuration Updated:**\n", ctx)
+        else:
+            msg=f"Invalid config args"
+            await ctx.send(msg)
+            logger.warning(msg)
+    except Exception as e:
+        msg = f"Error during fetching configuration: {e}"
+        await ctx.send(msg)
+        logger.error(msg)
+
+def __do_run(bot_config: BotConfig, user_config: dict, query: str) -> tuple[list[dict], list[str]]:
     try:
         success, results, errors, _ = bot_config.query_handler.get_gherkin_result(gherkin_str=query)
         if not success:
@@ -363,7 +405,8 @@ def __do_run(bot_config: BotConfig, query: str) -> tuple[list[dict], list[str]]:
         for point in results:
             for qid, tickers in point.items():
                 parts.append(f"**{qid}**")
-                if bot_config.link_type == "zerodha":
+                chart_type = user_config.get("chart", "tradingview")
+                if chart_type == "zerodha":
                     for t in tickers:
                         try:
                             token = bot_config.zerodha_df.query(f"tradingsymbol == '{t}' and exchange == 'NSE'")['instrument_token'].iloc[0]
@@ -433,7 +476,7 @@ def __make_run_job(ctx, bot_config:BotConfig, query: str):
     async def job():
         try:
             user_config = ctx.command.extras.get('discordbot').get_user_config(ctx)
-            tickers, parts = __do_run(bot_config, query)
+            tickers, parts = __do_run(bot_config, user_config, query)
             to_update, changed = __update_result(ctx, user_config, query, tickers)
             if to_update:
                 # logger.info(f"Sending subscription result to user {user_config.get('user_name')}")
