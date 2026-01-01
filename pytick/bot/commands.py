@@ -143,34 +143,14 @@ async def run(ctx: commands.Context, *args: str):
     
     try:
         if len(parts) == 0:
-            _, parts = __do_run(bot_config, user_config, query)
-        title = ""
-        title_index = -1
-        # changes = []
-        for i in range(len(parts)):
-            part = parts[i]
-            if part.startswith("**") or part.strip() == "":
-                title = parts[i].replace('*','')
-                if part.strip() != "":
-                    title_index += 1
-                continue
-            ticker = part.split(']')[0].strip('[')
-            notification = bot_config.notification_handler.get_corporate_actions(tickers=[ticker])[ticker]
-            part += f"  [news](https://www.google.com/finance/quote/{ticker}:NSE)"
-            
-            if notification is not None and not notification.empty:
-                part += f"  [action]({notification['file'].tolist()[0]})"
-            if len(changed) > 0:
-                if title != "" and ticker in list(changed[title_index].values())[0]:
-                    part += " 🟢"
-            parts[i] = part
-        await __sendEmbedResults(ctx=ctx, parts=parts, separator="\n\n")
+            _, parts = __do_run(bot_config, user_config, query, changed)
+        await __sendEmbedResults(ctx=ctx, parts=parts)
     except Exception as e:
         msg = f"Error during execution: {e}"
         await ctx.send(msg)
         logger.error(msg)
 
-async def __sendEmbedResults(ctx: commands.Context, parts: list[str], separator: str = "\n"):
+async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
     try:
         embed = discord.Embed(title="Result", color=discord.Color.blurple())
         current_section = ""
@@ -393,7 +373,7 @@ async def config(ctx: commands.Context, *args: str):
         await ctx.send(msg)
         logger.error(msg)
 
-def __do_run(bot_config: BotConfig, user_config: dict, query: str) -> tuple[list[dict], list[str]]:
+def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=[]) -> tuple[list[dict], list[str]]:
     try:
         success, results, errors, _ = bot_config.query_handler.get_gherkin_result(gherkin_str=query)
         if not success:
@@ -406,18 +386,24 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str) -> tuple[list
             for qid, tickers in point.items():
                 parts.append(f"**{qid}**")
                 chart_type = user_config.get("chart", "tradingview")
-                if chart_type == "zerodha":
-                    for t in tickers:
-                        try:
+                corporate_actions = bot_config.notification_handler.get_corporate_actions(tickers=tickers)
+                for t in tickers:
+                    try:
+                        chart_link = f"[{t}]({bot_config.trading_view_url}{t})" # default to tradingview chart
+                        if chart_type == "zerodha":
                             token = bot_config.zerodha_df.query(f"tradingsymbol == '{t}' and exchange == 'NSE'")['instrument_token'].iloc[0]
-                            parts.append(f"[{t}]({bot_config.zerodha_url}{t}/{token})")
-                        except Exception as e:
-                            parts.append(f"[{t}]")
-                            logger.warning(f"Error fetching zerodha link for {t}: {e}")
-                    parts.append("")
-                else: # link type tradingview
-                    parts.append("\n".join(f"[{t}]({bot_config.trading_view_url}{t})" for t in tickers))
-                    parts.append("")
+                            chart_link = f"[{t}]({bot_config.zerodha_url}{t}/{token})"
+                        ticker_action = corporate_actions.get(t, None)
+                        corporate_action_link = ""
+                        if ticker_action is not None and not ticker_action.empty:
+                            corporate_action_link = f"[action]({ticker_action['file'].tolist()[0]})"
+                        news_link = f"[news](https://www.google.com/finance/quote/{t}:NSE)"
+                        changed = "🟢" if t in changed else ""
+                        ticker_clickables = [chart_link, news_link, corporate_action_link, changed]
+                        parts.append(' '.join(ticker_clickables))
+                    except Exception as e:
+                        parts.append(f"[{t}]")
+                        logger.warning(f"Error {t}: {e}")
         return results, parts    
     except Exception as e:
         msg = f"Error during execution: {e}"
