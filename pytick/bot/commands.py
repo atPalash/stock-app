@@ -358,12 +358,17 @@ async def config(ctx: commands.Context, *args: str):
         if todo == "show":
             await send_user_config(user_config, "**User Configuration:**\n", ctx)
         elif todo == "update":
+            allowed_update_keys = ['chart']
             key = args[1]
             value = args[2]
-            if key in user_config:
+            if key in user_config and key in allowed_update_keys:
                 user_config[key] = value
                 ctx.command.extras.get('discordbot').update_user_config(ctx, user_config)
                 await send_user_config(user_config, "**User Configuration Updated:**\n", ctx)
+            else:
+                msg=f"Invalid config key. Allowed keys are {', '.join(allowed_update_keys)}"
+                await ctx.send(msg)
+                logger.warning(msg)
         else:
             msg=f"Invalid config args"
             await ctx.send(msg)
