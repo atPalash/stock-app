@@ -57,7 +57,7 @@ class StepData:
     list = ["<list>"]
     number = ["<number>"]
     ohlc = ["close", "open", "high", "low", "volume"]
-    indicator = ["ma", "ema", "atr", "rsi", "vwap", "rvol"]
+    indicator = ["sma", "ema", "atr", "rsi", "vwap", "rvol"]
     bbands = ["upperbband", "lowerbband", "middlebband"]
     word = ["<word>"]
     condition = ["<condition>"]  # multiline condition
