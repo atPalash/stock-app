@@ -15,6 +15,42 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
+async def send_long_message(destination, content: str, max_length: int = 1990):
+    """Send a message that may exceed Discord's 2000 character limit by splitting it.
+    
+    Args:
+        destination: Can be ctx (Context) for channel, ctx.author (User/Member) for DM, or any messageable
+        content: The message content
+        max_length: Max chars per message (default 1990)
+    """
+    # Handle both ctx.send() and user.send()
+    send_func = destination.send if hasattr(destination, 'send') else destination.send
+    
+    if len(content) <= max_length:
+        await send_func(content)
+        return
+    
+    # Split into chunks
+    chunks = []
+    while content:
+        if len(content) <= max_length:
+            chunks.append(content)
+            break
+        
+        # Find a good split point (newline or space)
+        split_at = content.rfind('\n', 0, max_length)
+        if split_at == -1:
+            split_at = content.rfind(' ', 0, max_length)
+        if split_at == -1:
+            split_at = max_length
+        
+        chunks.append(content[:split_at])
+        content = content[split_at:].lstrip()
+    
+    # Send all chunks
+    for chunk in chunks:
+        await send_func(chunk)
+
 async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]: 
     try:
         llm_handler = ctx.command.extras.get('discordbot').get_llm_handler(ctx.author.id)
@@ -77,11 +113,11 @@ async def helpme(ctx: commands.Context, *args: str):
 
     help_text = "\n".join(lines)
     try:
-        await ctx.author.send(help_text)
+        await send_long_message(ctx.author, help_text)
     except discord.Forbidden:
-        await ctx.send(f"{ctx.author.mention}, I couldn't DM you. Here are the commands:\n{help_text}")
-    except Exception:
-        await ctx.send("Unable to deliver help right now.")
+        await send_long_message(ctx, f"{ctx.author.mention}, I couldn't DM you. Here are the commands:\n{help_text}")
+    except Exception as e:
+        await ctx.send(f"Unable to deliver help right now: {e}")
 
 async def edit(ctx: commands.Context, *args: str):
     """User tries different queries to convert it to valid gherkin. 
@@ -327,9 +363,7 @@ async def bt(ctx: commands.Context, *args: str):
             bt_table = bt_table.filter(items=['ticker', 'bull', 'bear', 'close_start', 'close_reference', 'score'])
             bt_table = bt_table[bt_table['score'].ne(0)]
             table_str = bt_table.to_markdown()
-            if len(table_str) > 1990:
-                table_str = table_str[:1990] + "\n..."
-            await ctx.send(f"```{table_str}```")
+            await send_long_message(ctx, f"```{table_str}```")
 
 async def config(ctx: commands.Context, *args: str):
     """Do user configuration.
@@ -347,9 +381,7 @@ async def config(ctx: commands.Context, *args: str):
             if key in config:
                 config.pop(key)
         config_str = pandas.json_normalize(config).to_markdown()
-        if len(config_str) > 2000:
-            config_str = config_str[:2000] + "\n..."
-        await ctx.send(f"{prefix}```{config_str}```")
+        await send_long_message(ctx, f"{prefix}```{config_str}```")
     
     todo = args[0]
     if not valid:
