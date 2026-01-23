@@ -82,7 +82,8 @@ class DiscordBot:
                     'user_id': user_id,
                     'user_name': user_name,
                     'author': author,
-                    'subscribed_queries': []
+                    'subscribed_queries': [],
+                    'chart': 'tradingview'
                 }
             self.config.update_users_callback(user_config_file, user_config, None)
         else: 
