@@ -10,7 +10,7 @@ def read_config(file_path):
         with open(file_path, "r") as f:
             return yaml.safe_load(f)
     except Exception as e:
-        logger.error(f"Error reading config file {file_path}: {e}")
+        logger.warning(f"Exception reading config file {file_path}: {e}")
         return e
 
 def save_config(key:str, data:dict, path:str):   

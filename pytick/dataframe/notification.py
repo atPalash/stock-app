@@ -55,7 +55,7 @@ class NotificationHandler:
                     for ticker in tickers:
                         self.corporate_actions[ticker] = df[df["symbol"] == ticker]
         except Exception as e:
-            logger.error(f"Error: {e.args}")
+            logger.warning(f"Exception: {e.args}")
 
     def get_corporate_actions(self, tickers: list[str]) -> dict:
         ret = {}

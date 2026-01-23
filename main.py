@@ -130,4 +130,4 @@ if __name__ == "__main__":
         try:
             scheduler.stop()
         except Exception:
-            logger.exception("Error stopping scheduler")
+            logger.exception("Exception stopping scheduler")

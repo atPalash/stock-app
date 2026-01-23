@@ -63,9 +63,9 @@ async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]:
             return False, None, None, None, None, None
         return True, bot_config, user_config, llm_handler, scheduler
     except Exception as e:
-        msg = f"Error during validation: {e}"
+        msg = f"Exception during validation: {e}"
         await ctx.send(msg)
-        logger.error(msg)
+        logger.warning(msg)
         return False, None, None, None, None
 
 async def helpme(ctx: commands.Context, *args: str):
@@ -140,8 +140,8 @@ async def edit(ctx: commands.Context, *args: str):
         await ctx.send(f"""```{data}```""")
         return data
     except Exception as e:
-        msg = f"Error during conversion: {e}"
-        logger.error(msg)
+        msg = f"Exception during conversion: {e}"
+        logger.warning(msg)
         await ctx.send(msg)
         return None
 
@@ -182,9 +182,9 @@ async def run(ctx: commands.Context, *args: str):
             _, parts = __do_run(bot_config, user_config, query, changed)
         await __sendEmbedResults(ctx=ctx, parts=parts)
     except Exception as e:
-        msg = f"Error during execution: {e}"
+        msg = f"Exception during execution: {e}"
         await ctx.send(msg)
-        logger.error(msg)
+        logger.warning(msg)
 
 async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
     try:
@@ -219,9 +219,9 @@ async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
         if field_count > 0:
             await ctx.send(embed=embed)
     except Exception as e:
-        msg = f"Error during execution: {e}"
+        msg = f"Exception during execution: {e}"
         await ctx.send(msg)
-        logger.error(msg)
+        logger.warning(msg)
 
 async def sub(ctx: commands.Context, *args: str):
     """Subscribe to a query. The subscription can be made witha reply to exiting 
@@ -290,17 +290,17 @@ async def sub(ctx: commands.Context, *args: str):
                 scheduler.add_periodic_job(job_func, params=bot_config.schedules.get(period), job_id=f"sub_job_{query}")
                 # scheduler.add_periodic_job(job_func, params={"second": "*/2"}, job_id=f"sub_job_{period}")
             except Exception as e:
-                msg = f"Error during subscription: {e}"
+                msg = f"Exception during subscription: {e}"
                 await ctx.send(msg)
-                logger.error(msg)
+                logger.warning(msg)
         else:
             msg=f"Invalid sub args"
             await ctx.send(msg)
-            logger.warning(msg)
+            logger.warninging(msg)
     except Exception as e:
-        msg = f"Error during subscription: {e}"
+        msg = f"Exception during subscription: {e}"
         await ctx.send(msg)
-        logger.error(msg)
+        logger.warning(msg)
 
 async def bt(ctx: commands.Context, *args: str):
     """Backtest a query. The query to include 2 list conditions named bull & bear.
@@ -400,22 +400,22 @@ async def config(ctx: commands.Context, *args: str):
             else:
                 msg=f"Invalid config key. Allowed keys are {', '.join(allowed_update_keys)}"
                 await ctx.send(msg)
-                logger.warning(msg)
+                logger.warninging(msg)
         else:
             msg=f"Invalid config args"
             await ctx.send(msg)
-            logger.warning(msg)
+            logger.warninging(msg)
     except Exception as e:
-        msg = f"Error during fetching configuration: {e}"
+        msg = f"Exception during fetching configuration: {e}"
         await ctx.send(msg)
-        logger.error(msg)
+        logger.warning(msg)
 
 def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=[]) -> tuple[list[dict], list[str]]:
     try:
         success, results, errors, _ = bot_config.query_handler.get_gherkin_result(gherkin_str=query)
         if not success:
-            msg = f"Error during query execution: {errors}"
-            logger.error(msg)
+            msg = f"Exception during query execution: {errors}"
+            logger.warning(msg)
             raise Exception(msg)
             
         parts = []
@@ -440,11 +440,11 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
                         parts.append(' '.join(ticker_clickables))
                     except Exception as e:
                         parts.append(f"[{t}]")
-                        logger.warning(f"Error {t}: {e}")
+                        logger.warninging(f"Exception {t}: {e}")
         return results, parts    
     except Exception as e:
-        msg = f"Error during execution: {e}"
-        logger.error(msg)
+        msg = f"Exception during execution: {e}"
+        logger.warning(msg)
         raise Exception(msg)
     
 def __pre_check(ctx: commands.Context, *args: str) -> bool:
@@ -507,9 +507,9 @@ def __make_run_job(ctx, bot_config:BotConfig, query: str):
             # else:
                 # logger.info(f"No change in result for user {user_config.get('user_name')}, not sending update.")
         except Exception as e:
-            msg = f"Error during subscription job execution: {e}"
+            msg = f"Exception during subscription job execution: {e}"
             await ctx.send(msg)
-            logger.error(msg)
+            logger.warning(msg)
     return job
 
 def __do_backtest(bot_config: BotConfig, query: str, bt_config:None) -> tuple[list[dict], list[str]]:
@@ -517,11 +517,11 @@ def __do_backtest(bot_config: BotConfig, query: str, bt_config:None) -> tuple[li
         success, results, errors, table = bot_config.query_handler.get_gherkin_result(gherkin_str=query, bt_config=bt_config)
         datetime = bot_config.query_handler.get_clip_time(bt_config=bt_config)
         if not success:
-            msg = f"Error during query execution: {errors}"
-            logger.error(msg)
+            msg = f"Exception during query execution: {errors}"
+            logger.warning(msg)
             raise Exception(msg)
         return success, results, errors, table, datetime
     except Exception as e:
-        msg = f"Error during execution: {e}"
-        logger.error(msg)
+        msg = f"Exception during execution: {e}"
+        logger.warning(msg)
         raise Exception(msg)

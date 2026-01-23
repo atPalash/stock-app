@@ -11,6 +11,6 @@ def draw_graph(graph: StateGraph, path:str) -> str:
 
         print(f"Graph visualization saved as '{path}'")
     except Exception as e:
-        print(f"Error generating graph visualization: {e}")
+        print(f"Exception generating graph visualization: {e}")
         print("Make sure you have the required dependencies installed:")
         print("pip install 'langgraph[mermaid]'")

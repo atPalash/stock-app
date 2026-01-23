@@ -115,9 +115,9 @@ class DiscordBot:
                 try:
                     await user.send('Hello! 👋 The bot is now alive.')
                 except Exception as e:
-                    logger.warning(f"Could not send hello to user {uid}: {e}")
+                    logger.warninging(f"Could not send hello to user {uid}: {e}")
         except Exception as e:
-            logger.warning(f"Error sending hello messages: {e}")
+            logger.warninging(f"Exception sending hello messages: {e}")
     
     async def on_command_error(self, ctx, error):
         """Global command error handler.
@@ -137,7 +137,7 @@ class DiscordBot:
 
         # For invocation errors, log the original exception
         if isinstance(error, commands.CommandInvokeError):
-            logger.exception(f"Error in command {ctx.command} invoked by {ctx.author}")
+            logger.exception(f"Exception in command {ctx.command} invoked by {ctx.author}")
             # Optionally notify the user
             try:
                 await ctx.send("An internal error occurred while executing the command.")
