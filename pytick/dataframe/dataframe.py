@@ -35,6 +35,7 @@ def download_stock_data(ticker:str, interval:str, tz:str)->pd.DataFrame:
         ignore_tz=True,
         auto_adjust=True,
     )
+    data.to_csv(f"{ticker}_{interval}.csv")
     return data
 
 def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
@@ -70,7 +71,7 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
                         df[col_name] = (df["Volume"] / df["avgVolume"]).round(2)
                         df.drop(columns="avgVolume", inplace=True)
                     else:
-                        logger.warninging(f"Unsupported indicator type: {ind_type}")
+                        logger.warning(f"Unsupported indicator type: {ind_type}")
                 except Exception as e:
                     msg = f"Exception calculating {ind_type} for period {period} and source {src}: {e}"
                     errors.append(msg)
@@ -81,11 +82,12 @@ def get_nifty50_tickers() -> list:
     return nifty50['Symbol'].tolist()
     
 class DataFrameHandler:
-    def __init__(self, tz:str, indicators:dict):
+    def __init__(self, tz:str, indicators:dict, test_data_path: str = None):
         self.tables = {}
         self.tz = tz
         self.indicators = indicators
-        
+        self.test_data_path = test_data_path
+
     def get_tables(self, tickers:list, interval: str) -> dict:
         """Get the OHLC tables for the specified tickers and interval.
 
@@ -118,26 +120,37 @@ class DataFrameHandler:
         ret = {'success': False, 'data': None}
         try:
             tickers_yf = [f"{ticker}{'.NS' if self.tz=='Asia/Kolkata' else ''}" for ticker in tickers]
-            ohlc = yf.download(
-                tickers=tickers_yf,
-                period="max",
-                interval=interval,
-                progress=False,
-                group_by="ticker",
-                rounding=True,
-                actions=True,
-                threads=True,
-                multi_level_index=False,
-                ignore_tz=True,
-                auto_adjust=True,
-                timeout=100,
-            )
+            if self.test_data_path is not None:
+                # Load test data from CSV files
+                ohlc = {}
+                for ticker in tickers_yf:
+                    cols = pd.read_csv(f"{self.test_data_path}/{ticker}_{interval}.csv", nrows=0).columns
+                    date_col = 'Date' if 'Date' in cols else 'Datetime' if 'Datetime' in cols else None
+                    df = pd.read_csv(f"{self.test_data_path}/{ticker}_{interval}.csv", parse_dates=[date_col])
+                    df.set_index(date_col, inplace=True)
+                    ohlc[ticker] = df
+            else:   
+                # Download data from Yahoo Finance
+                ohlc = yf.download(
+                    tickers=tickers_yf,
+                    period="max",
+                    interval=interval,
+                    progress=False,
+                    group_by="ticker",
+                    rounding=True,
+                    actions=True,
+                    threads=True,
+                    multi_level_index=False,
+                    ignore_tz=True,
+                    auto_adjust=True,
+                    timeout=100,
+                )
             clean_ohlc = {}
             for ticker in tickers_yf:
                 df = ohlc[ticker] #.xs(ticker, axis=1, level=0)
                 df = df.dropna(subset=['Open', 'High', 'Low', 'Close', 'Volume'], how='all')
                 if df.empty:
-                    logger.warninging(f"No data found for ticker: {ticker}")
+                    logger.warning(f"No data found for ticker: {ticker}")
                 clean_ohlc[ticker] = df
 
             # Create a pool of processes (one for each CPU core)
@@ -166,7 +179,7 @@ class DataFrameHandler:
                     df = df.rename(columns={'date': 'datetime'})
                 result[ticker] = df
                 if df is None or df.empty:
-                    logger.warninging(f"No data found for ticker: {ticker}")
+                    logger.warning(f"No data found for ticker: {ticker}")
 
             self.tables[interval] = result
             ret['success'] = True
@@ -178,5 +191,6 @@ class DataFrameHandler:
 if __name__ == "__main__":
     # config_path = "config_debug.yaml"
     # indicators = read_config(config_path).get('indicators', {})
-    # get_tickers_table(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
+    # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
     print(get_nifty50_tickers())
+    # download_stock_data("TCS", "5m", "Asia/Kolkata")

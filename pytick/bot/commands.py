@@ -219,10 +219,11 @@ async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
         if field_count > 0:
             await ctx.send(embed=embed)
     except Exception as e:
-        msg = f"Exception during execution: {e}"
-        await ctx.send(msg)
-        logger.warning(msg)
-
+        # msg = f"Exception during execution: {e}"
+        # await ctx.send(msg)
+        logger.warning(e)
+        raise e
+        
 async def sub(ctx: commands.Context, *args: str):
     """Subscribe to a query. The subscription can be made witha reply to exiting 
     gherkin query with period. Valid periods are 1m, 5m, 15m, 30m, 1h. 
@@ -296,7 +297,7 @@ async def sub(ctx: commands.Context, *args: str):
         else:
             msg=f"Invalid sub args"
             await ctx.send(msg)
-            logger.warninging(msg)
+            logger.warning(msg)
     except Exception as e:
         msg = f"Exception during subscription: {e}"
         await ctx.send(msg)
@@ -400,11 +401,11 @@ async def config(ctx: commands.Context, *args: str):
             else:
                 msg=f"Invalid config key. Allowed keys are {', '.join(allowed_update_keys)}"
                 await ctx.send(msg)
-                logger.warninging(msg)
+                logger.warning(msg)
         else:
             msg=f"Invalid config args"
             await ctx.send(msg)
-            logger.warninging(msg)
+            logger.warning(msg)
     except Exception as e:
         msg = f"Exception during fetching configuration: {e}"
         await ctx.send(msg)
@@ -416,7 +417,7 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
         if not success:
             msg = f"Exception during query execution: {errors}"
             logger.warning(msg)
-            raise Exception(msg)
+            raise Exception(errors)
             
         parts = []
         for point in results:
@@ -440,12 +441,12 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
                         parts.append(' '.join(ticker_clickables))
                     except Exception as e:
                         parts.append(f"[{t}]")
-                        logger.warninging(f"Exception {t}: {e}")
+                        logger.warning(f"Exception {t}: {e}")
         return results, parts    
     except Exception as e:
-        msg = f"Exception during execution: {e}"
+        # msg = f"Exception during execution: {e}"
         logger.warning(msg)
-        raise Exception(msg)
+        raise e
     
 def __pre_check(ctx: commands.Context, *args: str) -> bool:
     """Pre-check to extract gherkin text from reply or arguments.

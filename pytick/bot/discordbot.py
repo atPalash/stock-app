@@ -115,9 +115,9 @@ class DiscordBot:
                 try:
                     await user.send('Hello! 👋 The bot is now alive.')
                 except Exception as e:
-                    logger.warninging(f"Could not send hello to user {uid}: {e}")
+                    logger.warning(f"Could not send hello to user {uid}: {e}")
         except Exception as e:
-            logger.warninging(f"Exception sending hello messages: {e}")
+            logger.warning(f"Exception sending hello messages: {e}")
     
     async def on_command_error(self, ctx, error):
         """Global command error handler.
