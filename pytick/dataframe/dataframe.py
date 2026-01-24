@@ -71,7 +71,7 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
                         df[col_name] = (df["Volume"] / df["avgVolume"]).round(2)
                         df.drop(columns="avgVolume", inplace=True)
                     else:
-                        logger.warninging(f"Unsupported indicator type: {ind_type}")
+                        logger.warning(f"Unsupported indicator type: {ind_type}")
                 except Exception as e:
                     msg = f"Exception calculating {ind_type} for period {period} and source {src}: {e}"
                     errors.append(msg)
@@ -150,7 +150,7 @@ class DataFrameHandler:
                 df = ohlc[ticker] #.xs(ticker, axis=1, level=0)
                 df = df.dropna(subset=['Open', 'High', 'Low', 'Close', 'Volume'], how='all')
                 if df.empty:
-                    logger.warninging(f"No data found for ticker: {ticker}")
+                    logger.warning(f"No data found for ticker: {ticker}")
                 clean_ohlc[ticker] = df
 
             # Create a pool of processes (one for each CPU core)
@@ -179,7 +179,7 @@ class DataFrameHandler:
                     df = df.rename(columns={'date': 'datetime'})
                 result[ticker] = df
                 if df is None or df.empty:
-                    logger.warninging(f"No data found for ticker: {ticker}")
+                    logger.warning(f"No data found for ticker: {ticker}")
 
             self.tables[interval] = result
             ret['success'] = True

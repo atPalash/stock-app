@@ -57,7 +57,7 @@ def calculate_indicators(
         data = df[indicator_key].dropna().to_numpy()
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
-        errors.append(f"Exception calculating variable {kwargs['id']}: {e}")
+        errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported indicator settings")
         return False, numpy.nan, errors
 
 def calculate_ohlc(
@@ -69,7 +69,7 @@ def calculate_ohlc(
         data = df[indicator_key].dropna().to_numpy()
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
-        errors.append(f"Exception calculating variable {kwargs['id']}: {e}")
+        errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")
         return False, numpy.nan, errors
 
 def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
