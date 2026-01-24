@@ -266,3 +266,33 @@ Then list bull = tickers with (ema100 > 0) & (ema200 > 0) & (abs(close - ema100)
 #             """,
 #             "expected_errors": ['Exception', 'Given stocks from index nifty500', 'Allowed values', 'nifty50'],
 #         })  
+
+@pytest.mark.asyncio
+async def test_data_missing():
+    query_expectation = [
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: TMPV doesn't support 200 EMA since it insufficient data, the query should pass with other tickers
+Given stocks from index nifty50  
+When let close = latest in 1 samples of day close  
+* let ema200 = latest in 1 samples of day close ema 200  
+Then list result = tickers with (close > ema200)
+            """,
+            "expected_fields": ['result'],
+            "expected_values": ['SBIN', 'BEL']
+        },
+    ]
+
+    async def test_func(item):
+        query = item['query']
+        expected_fields = item['expected_fields']
+        expected_values = item['expected_values']
+        sent = await run_command(query)
+        fields = sent[2][1]['embed'].fields
+        for field_name in expected_fields:
+            assert any(field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
+        for value in expected_values:
+            assert any(value in field.value for field in fields), f"Expected value '{value}' in embed values"
+    for item in query_expectation:
+        await test_func(item)

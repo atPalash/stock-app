@@ -46,17 +46,18 @@ class QueryHandler:
         then_steps = [step for step in step_data if step.get('step') == 'Then']
 
         # Process Given steps to get tickers
-        success, tickers, errors = self.__process_given_steps(given_steps)
+        success, tickers, g_errors = self.__process_given_steps(given_steps)
         if not success:
-            return False, {}, errors, {}
+            return False, {}, g_errors, {}
         # Process When steps to calculate variables
-        success, when_results, errors = self.__process_when_steps(when_steps, tickers, bt_config)
+        success, when_results, w_errors = self.__process_when_steps(when_steps, tickers, bt_config)
         if not success:
-            return False, {}, errors, {}
+            return False, {}, w_errors, {}
         # Process Then steps to get final results
-        success, then_results, errors = self.__process_then_steps(then_steps, when_results)
+        success, then_results, t_errors = self.__process_then_steps(then_steps, when_results)
         if not success:
-            return False, {}, errors, {}
+            return False, {}, t_errors, {}
+
         conditional_tickers = []
         for step in then_steps:
             values = [v['value'] for v in step.get('values', [])]
@@ -175,10 +176,11 @@ class QueryHandler:
         if tickers is None or len(tickers) == 0:
             logger.warning("No tickers found from Given steps.")
             return False, {}, errors
-        return True, tickers, []
+        return True, tickers, errors
 
     def __process_when_steps(self, when_steps:list, given_result:list, bt_config:dict = None) -> tuple[bool, pandas.DataFrame, list]:
         result = pandas.DataFrame(columns=['ticker'])
+        ret_errors = []
         for step in when_steps:
             values = [v['value'] for v in step.get('values', [])]
             if step['logic'].__qualname__ == 'calculate_indicators':
@@ -214,7 +216,10 @@ class QueryHandler:
                 if not success:
                     logger.warning(f"Exception calculating variables: {errors}")
                     return False, None, errors
-        return True, result, []
+                if success and len(errors) > 0: # some ticker may have issues
+                    logger.warning(f"Calculating variables {ticker}: {errors}")
+                    ret_errors.append(errors)
+        return True, result, ret_errors
 
     def __process_then_steps(self, then_steps:list, when_results:pandas.DataFrame) -> tuple[bool, pandas.DataFrame, list]:
         result = when_results
@@ -227,7 +232,7 @@ class QueryHandler:
                 logger.warning(f"Exception calculating Then step: {errors}")
                 return False, {}, errors
 
-        return True, result, []
+        return True, result, errors
 
     def __process_backtest(self, then_results:pandas.DataFrame, bt_config: dict) -> tuple[bool, dict, list]:
         interval = bt_config.get('interval', None)
