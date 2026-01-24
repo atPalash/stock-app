@@ -28,7 +28,7 @@ class QueryHandler:
         errors = []
         if not QueryHandler.__validate_step_order(lines, errors):
             return False, {}, errors
-        success, step_data = QueryHandler.__fetch_step_data(lines)
+        success, step_data, errors = QueryHandler.__fetch_step_data(lines)
         if not success:
             return False, {}, errors
         return True, step_data, errors
@@ -143,7 +143,7 @@ class QueryHandler:
             current_step = current_step if step_split[0] in conjunctions else step_split[0]
             if current_step not in step_patterns.keys():
                 errors.append(f"Line does not start with a valid step keyword: {line}")
-                return False, match_values
+                return False, match_values, errors
             line_step = ' '.join(step_split[1:])
             for regex, step_data in step_patterns[current_step].items():
                 match_obj = re.match(regex, line_step)
@@ -156,13 +156,13 @@ class QueryHandler:
                         if allowed_values and '<' not in allowed_values[0] and '>' not in allowed_values[0]:
                             if value not in allowed_values:
                                 errors.append(f"Invalid value '{value}' for variable '{variable_indexes[i-1]}' in line: '{line_unfiltered}'. Allowed values: {allowed_values}")
-                                return False, match_values
+                                return False, match_values, errors
                         matches.append({'index': variable_indexes[i-1], 'value': value})
                     match_values.append({'statement': line_unfiltered, 'regex': regex, 'values': matches, 'step': current_step, 'logic': step_data.logic})
                     matched = True
             if not matched:
                 errors.append(f"Regex match for \"{line}\" not found in {list(step_patterns[current_step].keys())}")
-        return len(errors) == 0, match_values
+        return len(errors) == 0, match_values, errors
 
     def __process_given_steps(self, given_steps:list)-> tuple[bool, list, list]:
         tickers = []

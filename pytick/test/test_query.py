@@ -52,3 +52,21 @@ Given stocks from index invalid_index
 """
     is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin)
     assert not is_valid or errors, "Should fail for invalid variable value if StepData enforces allowed values."
+
+
+def test_invalid_index():
+    # This test assumes StepData and step regexes are set up to validate allowed values
+    # You may need to adjust this test based on your StepData implementation
+    gherkin = """
+Feature: pytick llm  
+Scenario: Test index not found error 
+Given stocks from index nifty500  
+When let ema100 = rate in 100 samples of day close ema 100  
+* let ema200 = rate in 200 samples of day close ema 200  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list bull = tickers with (ema100 > 0) & (ema200 > 0) & (abs(close - ema100) / ema100 < 4 * atr10)  
+* list bear = tickers with (ema100 < 0) & (ema200 < 0) & (abs(close - ema100) / ema100 < 4 * atr10)
+"""
+    is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin)
+    assert not is_valid or errors, "Should fail for invalid variable value if StepData enforces allowed values."

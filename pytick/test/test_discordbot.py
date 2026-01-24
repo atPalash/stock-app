@@ -15,7 +15,7 @@ from pytick.utility.utility import read_config
 config = os.environ.get("CONFIG_FILE")
 app_config = read_config(file_path=config)
 users_config_path = os.environ.get("USERS_DIR")
-    
+
 class DummyNotificationHandler:
     def get_corporate_actions(self, *args, **kwargs):
         return {}
@@ -56,8 +56,9 @@ def make_bot_config(tmp_path):
         default_ticker='SBIN'
     )
 
-config = make_bot_config(tmp_path="/home/palash/app/pytick/test")
-bot = DiscordBot(config)
+bot_config = make_bot_config(tmp_path="/home/palash/app/pytick/test")
+bot = DiscordBot(bot_config)
+
 class DiscordBotWrapper:
     class DummyAuthor:
         def __init__(self):
@@ -77,7 +78,6 @@ class DiscordBotWrapper:
             self.sent.append((args, kwargs))
 
     def __init__(self):
-        self.config = config
         self.bot = bot
         self.run_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'run')
         self.edit_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'edit')
@@ -229,12 +229,40 @@ Then list bull = tickers with (ema10 === 0) & (ema20 > 0) & (abs(close - ema10) 
             """,
             "expected_errors": ['Exception', 'Exception evaluating condition', 'invalid syntax', 'ema10 === 0'],
         },
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Test index not found error 
+Given stocks from index nifty500  
+When let ema100 = rate in 100 samples of day close ema 100  
+* let ema200 = rate in 200 samples of day close ema 200  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list bull = tickers with (ema100 > 0) & (ema200 > 0) & (abs(close - ema100) / ema100 < 4 * atr10)  
+* list bear = tickers with (ema100 < 0) & (ema200 < 0) & (abs(close - ema100) / ema100 < 4 * atr10)
+            """,
+            "expected_errors": ['Exception', 'Given stocks from index nifty500', 'Allowed values', 'nifty50'],
+        },
     ]
 
-    for item in query_expectation:
+    async def test_func(item):
         query = item['query']
         sent = await run_command(query)
         error = sent[2][0][0]
         for expected_error in item['expected_errors']:
             assert expected_error in error, f"Expected error '{expected_error}' in '{error}'"
+
+    for item in query_expectation:
+        await test_func(item)
         
+#     await test_func(        {
+#             "query": """
+# Feature: pytick llm  
+# Scenario: Close price greater than 200 EMA analysis  
+# Given stocks from index nifty50  
+# When let close = latest in 1 samples of day close  
+# * let ema200 = latest in 1 samples of day close ema 200  
+# Then list result = tickers with (close > ema200)
+#             """,
+#             "expected_errors": ['Exception', 'Given stocks from index nifty500', 'Allowed values', 'nifty50'],
+#         })  
