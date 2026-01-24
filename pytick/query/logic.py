@@ -57,7 +57,7 @@ def calculate_indicators(
         data = df[indicator_key].dropna().to_numpy()
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
-        errors.append(f"Error calculating variable {kwargs['id']}: {e}")
+        errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported indicator settings")
         return False, numpy.nan, errors
 
 def calculate_ohlc(
@@ -69,7 +69,7 @@ def calculate_ohlc(
         data = df[indicator_key].dropna().to_numpy()
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
-        errors.append(f"Error calculating variable {kwargs['id']}: {e}")
+        errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")
         return False, numpy.nan, errors
 
 def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
@@ -83,7 +83,7 @@ def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
         result[id] = result.eval(condition)
         return True, result, errors
     except Exception as e:
-        errors.append(f"Error evaluating condition '{condition}': {e}")
+        errors.append(f"Exception evaluating condition '{condition}': {e}")
         return False, False, errors
         
 def __eval_operator(operator, span: str, data: numpy.array):
@@ -109,7 +109,7 @@ def __eval_operator(operator, span: str, data: numpy.array):
             raise Exception(f"Unsupported operator: {operator}")
         return round(float(result), 2)
     except Exception as e:
-        raise Exception(f"Error in operator {operator} {e.args}")
+        raise Exception(f"Exception in operator {operator} {e.args}")
 
 def to_bitwise(expr:str) -> str:
     """Convert logical operators in expression to bitwise operators.

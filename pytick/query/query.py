@@ -171,9 +171,9 @@ class QueryHandler:
             kwargs = {"tickers": values[0]}
             success, tickers, errors = step.get('logic')(**kwargs)
             if not success:
-                logger.error(f"Error getting tickers: {errors}")
+                logger.warning(f"Exception getting tickers: {errors}")
         if tickers is None or len(tickers) == 0:
-            logger.error("No tickers found from Given steps.")
+            logger.warning("No tickers found from Given steps.")
             return False, {}, errors
         return True, tickers, []
 
@@ -206,13 +206,13 @@ class QueryHandler:
                     # Start backtest from trading of the base interval given by user
                     df = self.__clip_backtest_data(df, ticker, interval, bt_config)
                 if df is None or df.empty:
-                    logger.error(f"No data found for ticker {ticker} with interval {interval}")
+                    logger.warning(f"No data found for ticker {ticker} with interval {interval}")
                     continue
                 
                 success, val, errors = step.get('logic')(df, **kwargs)
                 result.loc[result['ticker'] == ticker, id] = val
                 if not success:
-                    logger.error(f"Error calculating variables: {errors}")
+                    logger.warning(f"Exception calculating variables: {errors}")
                     return False, None, errors
         return True, result, []
 
@@ -224,7 +224,7 @@ class QueryHandler:
             kwargs = {'id': id, 'condition': condition}
             success, result, errors = step.get('logic')(result,**kwargs)
             if not success:
-                logger.error(f"Error calculating Then step: {errors}")
+                logger.warning(f"Exception calculating Then step: {errors}")
                 return False, {}, errors
 
         return True, result, []
@@ -265,7 +265,7 @@ class QueryHandler:
                 score = 1 if (is_bull and result_is_bull) or (is_bear and result_is_bear) else -1
                 then_results.loc[then_results['ticker'] == ticker, 'score'] = score          
             except Exception as e:
-                errors.append(f"BT Error {ticker}: {e}")
+                errors.append(f"BT Exception {ticker}: {e}")
                 continue
         if len(errors) > 0:
             return False, None, errors

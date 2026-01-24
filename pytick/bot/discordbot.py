@@ -82,15 +82,42 @@ class DiscordBot:
                     'user_id': user_id,
                     'user_name': user_name,
                     'author': author,
-                    'subscribed_queries': []
+                    'subscribed_queries': [],
+                    'chart': 'tradingview'
                 }
-            self.config.update_users_callback(user_config_file, user_config, None )
+            self.config.update_users_callback(user_config_file, user_config, None)
         else: 
             user_config = read_config(user_config_file)  
         return user_config
     
+    def update_user_config(self, ctx: commands.Context, user_config: dict):
+        user_id = ctx.author.id
+        user_config_file = f"{self.users_config_path}/{user_id}.yaml"
+        self.config.update_users_callback(user_config_file, user_config, None)
+    
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user}\nSubscribing to queries')
+        # Send hello message to all users on bot alive
+        try:
+            import yaml
+            user_ids = []
+            # List all user config files
+            users_dir = self.users_config_path
+            for fname in os.listdir(users_dir):
+                if fname.endswith('.yaml'):
+                    with open(os.path.join(users_dir, fname), 'r') as f:
+                        data = yaml.safe_load(f)
+                        uid = data.get('user_id')
+                        if uid:
+                            user_ids.append(uid)
+            for uid in user_ids:
+                user = await self.bot.fetch_user(int(uid))
+                try:
+                    await user.send('Hello! 👋 The bot is now alive.')
+                except Exception as e:
+                    logger.warning(f"Could not send hello to user {uid}: {e}")
+        except Exception as e:
+            logger.warning(f"Exception sending hello messages: {e}")
     
     async def on_command_error(self, ctx, error):
         """Global command error handler.
@@ -110,7 +137,7 @@ class DiscordBot:
 
         # For invocation errors, log the original exception
         if isinstance(error, commands.CommandInvokeError):
-            logger.exception(f"Error in command {ctx.command} invoked by {ctx.author}")
+            logger.exception(f"Exception in command {ctx.command} invoked by {ctx.author}")
             # Optionally notify the user
             try:
                 await ctx.send("An internal error occurred while executing the command.")
@@ -147,31 +174,6 @@ class DiscordBot:
         to_update = read_config(user_config_file)
         # to_update['subscribed_queries'] = subscribed_queries
         self.config.update_users_callback(user_config_file, subscribed_queries,'subscribed_queries')
-        
-    @staticmethod
-    def chunk_lines(parts: Iterable[str], max_len: int = 4096, sep: str = "\n") -> Iterator[str]:
-        """
-        Yield newline-joined chunks of parts so each chunk's length <= max_len.
-        sep controls the join separator (default newline).
-        """
-        chunk: list[str] = []
-        length = 0
-        sep_len = len(sep)
-
-        for p in parts:
-            # length added if we append p (include separator only if chunk not empty)
-            add_len = len(p) if not chunk else sep_len + len(p)
-            if length + add_len > max_len:
-                if chunk:
-                    yield sep.join(chunk)
-                chunk = [p]
-                length = len(p)
-            else:
-                chunk.append(p)
-                length += add_len
-
-        if chunk:
-            yield sep.join(chunk)
 
 
 if __name__ == '__main__':

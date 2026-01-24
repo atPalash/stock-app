@@ -1,15 +1,22 @@
 import logging
 import requests
 import pandas as pd
-
+import yfinance as yf
 from pytick.utility.utility import get_logger
+from pydantic import BaseModel
 
 logger = get_logger(__file__, logging.DEBUG)
 
+class NewsAlert(BaseModel):
+    title: str = ""
+    link: str = ""
+    date: str = ""
+
 class NotificationHandler:
-    def __init__(self, tz: str, tickers: list[str] = []):
+    def __init__(self, tz: str = 'Asia/Kolkata'):
         self.tz = tz
-        self.corporate_actions = {} 
+        self.corporate_actions = {}
+        self.news_alerts = {}
 
     def set_corporate_actions(self, tickers: list[str]) -> None:
         # Implementation for fetching notification
@@ -48,15 +55,15 @@ class NotificationHandler:
                     for ticker in tickers:
                         self.corporate_actions[ticker] = df[df["symbol"] == ticker]
         except Exception as e:
-            logger.error(f"Error: {e.args}")
+            logger.warning(f"Exception: {e.args}")
 
     def get_corporate_actions(self, tickers: list[str]) -> dict:
         ret = {}
         for ticker in tickers:
             ret[ticker] = self.corporate_actions.get(ticker, None)
         return ret
+    
 
 if __name__ == "__main__":
     nh = NotificationHandler(tz="Asia/Kolkata")
     nh.set_corporate_actions(tickers=["NTPC", "BEML", "INFY"])
-    print(f"Corporate Announcements:\n {nh.get_corporate_actions(tickers=['NTPC', 'BEML', 'INFY'])}")

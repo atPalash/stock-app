@@ -57,7 +57,7 @@ class StepData:
     list = ["<list>"]
     number = ["<number>"]
     ohlc = ["close", "open", "high", "low", "volume"]
-    indicator = ["ma", "ema", "atr", "rsi", "vwap", "rvol"]
+    indicator = ["sma", "ema", "atr", "rsi", "vwap", "rvol"]
     bbands = ["upperbband", "lowerbband", "middlebband"]
     word = ["<word>"]
     condition = ["<condition>"]  # multiline condition
@@ -116,7 +116,7 @@ class StepData:
                 # elif operator == "slope":
                 #     return round(numpy.polyfit(numpy.arange(len(data)), data, 1)[0], 2)
             except Exception as e:
-                raise Exception(f"Error in operator {operator} {e.args}")
+                raise Exception(f"Exception in operator {operator} {e.args}")
         else:
             raise Exception(f"No matching operator found {operator}")
 
