@@ -58,20 +58,25 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
             for period in periods:
                 try:
                     col_name = f"{ind_type}_{period}_{src}"
+                    df[col_name] = pd.Series(np.nan, index=df.index)
+                    series = None
                     if ind_type == 'sma':
-                        df[col_name] = ta.sma(df[src_col], length=period).round(2)
+                        series = ta.sma(df[src_col], length=period)
                     elif ind_type == 'ema':
-                        df[col_name] = ta.ema(df[src_col], length=period).round(2)
+                        series = ta.ema(df[src_col], length=period)
                     elif ind_type == 'atr':
-                        df[col_name] = ta.atr(df['High'], df['Low'], df['Close'], length=period).round(2)
+                        series = ta.atr(df['High'], df['Low'], df['Close'], length=period)
                     elif ind_type == 'vwap':
-                        df[col_name] = ta.vwap(df['High'], df['Low'], df['Close'], df['Volume']).round(2)
+                        series = ta.vwap(df['High'], df['Low'], df['Close'], df['Volume'])
                     elif ind_type == 'rvol':
                         df["avgVolume"] = df["Volume"].rolling(window=period).mean().shift(1)
-                        df[col_name] = (df["Volume"] / df["avgVolume"]).round(2)
+                        series = (df["Volume"] / df["avgVolume"])
                         df.drop(columns="avgVolume", inplace=True)
                     else:
                         logger.warning(f"Unsupported indicator type: {ind_type}")
+                    if series is not None:
+                        # only round & assign if we really got a Series
+                        df[col_name] = series.round(2)
                 except Exception as e:
                     msg = f"Exception calculating {ind_type} for period {period} and source {src}: {e}"
                     errors.append(msg)
@@ -193,4 +198,4 @@ if __name__ == "__main__":
     # indicators = read_config(config_path).get('indicators', {})
     # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
     print(get_nifty50_tickers())
-    # download_stock_data("TCS", "5m", "Asia/Kolkata")
+    # download_stock_data("TMPV", "1d", "Asia/Kolkata")

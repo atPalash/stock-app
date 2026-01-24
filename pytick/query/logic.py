@@ -55,6 +55,9 @@ def calculate_indicators(
     try:
         indicator_key = f"{kwargs['indicator']}_{kwargs['window']}_{kwargs['ohlc_source']}"
         data = df[indicator_key].dropna().to_numpy()
+        if data.size == 0:
+            errors.append(f"No data available for indicator {indicator_key}")
+            return True, numpy.nan, errors
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
         errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported indicator settings")
@@ -67,6 +70,9 @@ def calculate_ohlc(
     try:
         indicator_key = f"{kwargs['ohlc_source']}"
         data = df[indicator_key].dropna().to_numpy()
+        if data.size == 0:
+            errors.append(f"No data available for indicator {indicator_key}")
+            return True, numpy.nan, errors
         return True, __eval_operator(kwargs['operator'], kwargs['query_span'], data), errors
     except Exception as e:
         errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")
