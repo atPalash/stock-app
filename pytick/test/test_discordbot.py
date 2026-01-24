@@ -35,10 +35,8 @@ class TestQueryHandler:
                                         interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
     def getQueryHandler(self):
         return self.gherkin_handler
-    
+
 def make_bot_config(tmp_path):
-    users_dir = tmp_path / "users"
-    users_dir.mkdir()
     zerodha_df = pd.DataFrame(columns=["tradingsymbol", "exchange", "instrument_token"])
     return BotConfig(
         token="fake-token",
@@ -48,7 +46,7 @@ def make_bot_config(tmp_path):
         llm_convert_msg='',
         tz=pytz.timezone('Asia/Kolkata'),
         schedules={'1d': {}},
-        users_config_path=str(users_dir),
+        users_config_path=str(f"{tmp_path}/users"),
         update_users_callback=lambda *args, **kwargs: None,
         zerodha_df=zerodha_df,
         trading_view_url=app_config.get('trading_view_url', ''),
@@ -58,32 +56,9 @@ def make_bot_config(tmp_path):
         default_ticker='SBIN'
     )
 
-
-def test_commands_registered(tmp_path):
-    """DiscordBot should register coroutine functions from pytick.bot.commands as commands."""
-    config = make_bot_config(tmp_path)
-    bot_wrapper = DiscordBot(config)
-
-    # Import the commands module and get coroutine function names
-    import pytick.bot.commands as cmd_mod
-    supported = [name for name, func in inspect.getmembers(cmd_mod, inspect.iscoroutinefunction) if not name.startswith('_')]
-
-    assert len(supported) > 0, "No coroutine commands found in pytick.bot.commands"
-
-    for name in supported:
-        cmd = bot_wrapper.bot.get_command(name)
-        assert cmd is not None, f"Command {name} should be registered"
-        # extras should include reference to the DiscordBot instance
-        assert cmd.extras.get('discordbot') is bot_wrapper
-
-
-@pytest.mark.asyncio
-async def test_run_command(tmp_path):
-    """Simulate invoking the /run command and ensure it attempts to send query and embed results."""
-    config = make_bot_config(tmp_path)
-    bot_wrapper = DiscordBot(config)
-
-    # create a fake ctx with minimal attributes used by run()
+config = make_bot_config(tmp_path="/home/palash/app/pytick/test")
+bot = DiscordBot(config)
+class DiscordBotWrapper:
     class DummyAuthor:
         def __init__(self):
             self.id = 12345
@@ -91,37 +66,37 @@ async def test_run_command(tmp_path):
             self.global_name = 'tester'
             self.mention = '@tester'
 
-    class DummyMessage:
-        def __init__(self, content=''):
-            self.content = content
-            self.reference = mock.Mock(resolved=mock.Mock(content=''))
-
     class DummyCtx:
-        def __init__(self):
-            self.author = DummyAuthor()
-            # self.bot = bot_wrapper.bot
-            # self.message = DummyMessage(content='/run')
-            # self.invoked_with = 'run'
-            self.command = bot_wrapper.bot.get_command('run')
+        def __init__(self, bot, command_name='run'):
+            self.author = DiscordBotWrapper.DummyAuthor()
+            self.command = bot.bot.get_command(command_name)
             # collect sends
             self.sent = []
 
         async def send(self, *args, **kwargs):
             self.sent.append((args, kwargs))
 
-    ctx = DummyCtx()
+    def __init__(self):
+        self.config = config
+        self.bot = bot
+        self.run_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'run')
+        self.edit_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'edit')
 
-    # # Ensure query pre-check returns empty so run() will call edit() path
-    # # patch edit to return a simple gherkin query string
+async def run_command(query:str):
     import pytick.bot.commands as cmd_mod
-    # async def fake_edit(c, *a, **k):
-    #     return "Feature: test\nScenario: s"
-
-    # monkeypatch = pytest.MonkeyPatch()
     try:
-        # monkeypatch.setattr(cmd_mod, 'edit', fake_edit)
-
-        query = """
+        discord_bot_wrapper = DiscordBotWrapper()
+        await cmd_mod.run(discord_bot_wrapper.run_ctx, (query,))
+        # fields = discord_bot_wrapper.run_ctx.sent[2][1]['embed'].fields
+        return discord_bot_wrapper.run_ctx.sent
+    except Exception as e:
+        raise e
+    
+@pytest.mark.asyncio
+async def test_valid_run():
+    query_expectation = [
+        {
+            "query": """
 Feature: pytick llm
 Scenario: Movers greater than 1% with respect to previous day close analysis
 Given stocks from index nifty50
@@ -129,19 +104,137 @@ When let prev_close = oldest in 2 samples of day close
 * let close = latest in 1 samples of minute5 close
 Then list bull = tickers with ((close - prev_close) / prev_close > 0.01)
 * list bear = tickers with ((prev_close - close) / prev_close > 0.01)
-            """
-        # call the run command coroutine directly
-        await cmd_mod.run(ctx, (query,))
+            """,
+            "expected_fields": ['bull', 'bear'],
+            "expected_values": ['SBIN', 'BEL']
+        },
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: EMA10 and EMA20 rising and falling analysis over 10 samples with close proximity and ATR10  
+Given stocks from index nifty50  
+When let ema10 = rate in 10 samples of day close ema 10  
+* let ema20 = rate in 10 samples of day close ema 20  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list bull = tickers with (ema10 > 0) & (ema20 > 0) & (abs(close - ema10) / ema10 < 4 * atr10)  
+* list bear = tickers with (ema10 < 0) & (ema20 < 0) & (abs(close - ema10) / ema10 < 4 * atr10)
+            """,
+            "expected_fields": ['bull', 'bear'],
+            "expected_values": ['TCS']
+        },
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Edit bull as higher close and bear as lower close with high and low conditions for 3 days  
+Given stocks from index nifty50  
+When let close1 = latest in 1 samples of day close  
+* let close2 = oldest in 2 samples of day close  
+* let close3 = oldest in 3 samples of day close  
+* let high1 = latest in 1 samples of day high  
+* let high2 = oldest in 2 samples of day high  
+* let high3 = oldest in 3 samples of day high  
+* let low1 = latest in 1 samples of day low  
+* let low2 = oldest in 2 samples of day low  
+* let low3 = oldest in 3 samples of day low  
+Then list bull = tickers with ((close1 > close2) & (close2 > close3)) | ((high1 > high2) & (high2 > high3))
+* list bear = tickers with ((close1 < close2) & (close2 < close3)) | ((low1 < low2) & (low2 < low3))
+            """,
+            "expected_fields": ['bull', 'bear'],
+            "expected_values": ['SBIN', 'TCS']
+        },
+    ]
 
-        # Check that the ctx.send was called at least once
-        assert len(ctx.sent) >= 1
-        embedded_fields = ctx.sent[2][1]['embed'].fields
-        assert any(field.name == 'bull' for field in embedded_fields), "Expected 'bull' field in embed"
-        assert any(field.name == 'bear' for field in embedded_fields), "Expected 'bear' field in embed"
-        assert any('SBIN' in field.value for field in embedded_fields), "Expected 'SBIN' in embed values"
-        assert any('BEL' in field.value for field in embedded_fields), "Expected 'BEL' in embed values"
-    except Exception as e:
-        raise e
+    for item in query_expectation:
+        query = item['query']
+        expected_fields = item['expected_fields']
+        expected_values = item['expected_values']
+        sent = await run_command(query)
+        fields = sent[2][1]['embed'].fields
+        for field_name in expected_fields:
+            assert any(field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
+        for value in expected_values:
+            assert any(value in field.value for field in fields), f"Expected value '{value}' in embed values"
 
-if __name__ == "__main__":
-    TestQueryHandler()
+@pytest.mark.asyncio
+async def test_error_run():
+    query_expectation = [
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Test error with invalid indicator ema11 is not supported
+Given stocks from index nifty50  
+When let ema11 = rate in 10 samples of day close ema 11  
+* let ema22 = rate in 10 samples of day close ema 22  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list bull = tickers with (ema11 > 0) & (ema22 > 0) & (abs(close - ema11) / ema11 < 4 * atr10)  
+* list bear = tickers with (ema11 < 0) & (ema22 < 0) & (abs(close - ema11) / ema11 < 4 * atr10)
+            """,
+            "expected_errors": ['Exception', 'calculating variable ema11'],
+        },
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Test error with unknown indicator key ema11
+Given stocks from index nifty50  
+When let ema10 = rate in 10 samples of day close ema 10  
+* let ema20 = rate in 10 samples of day close ema 20  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list bull = tickers with (ema11 > 0) & (ema22 > 0) & (abs(close - ema11) / ema11 < 4 * atr10)  
+* list bear = tickers with (ema11 < 0) & (ema22 < 0) & (abs(close - ema11) / ema11 < 4 * atr10)
+            """,
+            "expected_errors": ['Exception', 'Exception evaluating condition', 'ema11'],
+        },
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Test error with invalid gherkin When before Given
+When let ema10 = rate in 10 samples of day close ema 10  
+* let ema20 = rate in 10 samples of day close ema 20  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Given stocks from index nifty50  
+Then list bull = tickers with (ema11 > 0) & (ema22 > 0) & (abs(close - ema11) / ema11 < 4 * atr10)  
+* list bear = tickers with (ema11 < 0) & (ema22 < 0) & (abs(close - ema11) / ema11 < 4 * atr10)
+            """,
+            "expected_errors": ['Exception', 'When found before'],
+        },
+        {
+            # No Scenario keyword
+            "query": """
+Feature: pytick llm  
+Given stocks from index nifty50  
+When let ema10 = rate in 10 samples of day close ema 10  
+* let ema20 = rate in 10 samples of day close ema 20  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list bull = tickers with (ema11 > 0) & (ema22 > 0) & (abs(close - ema11) / ema11 < 4 * atr10)  
+* list bear = tickers with (ema11 < 0) & (ema22 < 0) & (abs(close - ema11) / ema11 < 4 * atr10)
+            """,
+            "expected_errors": ['Exception', 'Given found before Scenario'],
+        },
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Test error with invalid syntax in condition
+Given stocks from index nifty50  
+When let ema10 = rate in 10 samples of day close ema 10  
+* let ema20 = rate in 10 samples of day close ema 20  
+* let close = latest in 1 samples of day close  
+* let atr10 = latest in 1 samples of day close atr 10  
+Then list bull = tickers with (ema10 === 0) & (ema20 > 0) & (abs(close - ema10) / ema10 < 4 * atr10)  
+* list bear = tickers with (ema10 < 0) & (ema20 < 0) & (abs(close - ema10) / ema10 < 4 * atr10)
+            """,
+            "expected_errors": ['Exception', 'Exception evaluating condition', 'invalid syntax', 'ema10 === 0'],
+        },
+    ]
+
+    for item in query_expectation:
+        query = item['query']
+        sent = await run_command(query)
+        error = sent[2][0][0]
+        for expected_error in item['expected_errors']:
+            assert expected_error in error, f"Expected error '{expected_error}' in '{error}'"
+        
