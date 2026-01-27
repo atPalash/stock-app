@@ -431,6 +431,9 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
                         if chart_type == "zerodha":
                             token = bot_config.zerodha_df.query(f"tradingsymbol == '{t}' and exchange == 'NSE'")['instrument_token'].iloc[0]
                             chart_link = f"[{t}]({bot_config.zerodha_url}{t}/{token})"
+                        if chart_type == "tradingview" and any(c in t for c in ['-','&']):
+                            edited_t = t.replace('-', '_').replace('&', '_')
+                            chart_link = f"[{t}]({bot_config.trading_view_url}{edited_t})"
                         ticker_action = corporate_actions.get(t, None)
                         corporate_action_link = ""
                         if ticker_action is not None and not ticker_action.empty:

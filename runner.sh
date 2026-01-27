@@ -62,3 +62,7 @@ function runApp() {
         fi
     done
 }
+
+function killApp() {
+    pkill -f "./main.py"
+}
