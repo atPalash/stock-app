@@ -12,6 +12,16 @@ interval_translation:
   "1d": "day"
   "1wk": "week"
   "1mo": "month"
+interval_seconds:
+  "minute": 60
+  "minute2": 120
+  "minute5": 300
+  "minute15": 900
+  "minute30": 1800
+  "hour": 3600
+  "day": 86400
+  "week": 604800
+  "month": 2592000
 trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
 zerodha_url: "https://kite.zerodha.com/markets/chart/web/tvc/NSE/"
 zerodha_instrument_tokens_path: "instruments.csv"

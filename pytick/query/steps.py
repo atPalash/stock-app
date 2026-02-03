@@ -249,54 +249,17 @@ class StepData:
                     },
                 },
             ),
-            #  plot close = 5     samples of  day  close
-            #   0   1    2 3     4       5    6     7
-            r"^plot (\w+) = (\d+) samples of (\w+) (\w+)$": StepData(
-                # logic=ohlc.plot,
+            #  let notification = latest in 5 day notification
+            #   0   1           2     3  4  5  6    7     
+            r"^let (\w+) = (\w+) in (\d+) (\w+) (\w+)$": StepData(
+                logic=logic.calculate_notification,
                 variables={
                     1: StepData.word,
-                    3: StepData.number,
+                    3: ['latest'],
+                    5: StepData.number,
                     6: StepData.interval,
-                    7: StepData.ohlc,
+                    7: ["notification"],
                 },
-                step_version="v2",
-                query_type=QueryType.CHART,
-                meta={
-                    1: {"type": VariableTypes.NAME.value},
-                    3: {"type": VariableTypes.SAMPLES.value},
-                    6: {
-                        "type": VariableTypes.INTERVAL.value,
-                        "readOnly": True,
-                        "listenerId": "onIntervalChange",
-                    },
-                    7: {"type": VariableTypes.OHLC.value},
-                },
-            ),
-            #   0    1    2   3      4    5    6     7     8     9
-            r"^plot (\w+) = (\d+) samples of (\w+) (\w+) (\w+) (\d+)$": StepData(
-                # logic=indicator.plot,
-                variables={
-                    1: StepData.word,
-                    3: StepData.number,
-                    6: StepData.interval,
-                    7: StepData.ohlc,
-                    8: StepData.indicator,
-                    9: StepData.number,
-                },
-                meta={
-                    1: {"type": VariableTypes.NAME.value},
-                    3: {"type": VariableTypes.SAMPLES.value},
-                    6: {
-                        "type": VariableTypes.INTERVAL.value,
-                        "readOnly": True,
-                        "listenerId": "onIntervalChange",
-                    },
-                    7: {"type": VariableTypes.OHLC.value},
-                    8: {"type": VariableTypes.INDICATOR.value},
-                    9: {"type": VariableTypes.WINDOW.value},
-                },
-                step_version="v2",
-                query_type=QueryType.CHART,
             ),
         }
 

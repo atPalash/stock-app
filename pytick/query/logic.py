@@ -77,6 +77,32 @@ def calculate_ohlc(
     except Exception as e:
         errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")
         return False, numpy.nan, errors
+    
+def calculate_notification(
+    df, **kwargs
+) -> tuple:
+    # check notification column
+    errors= []
+    try:
+        notifications = kwargs['notifications']
+        duration = kwargs['duration']
+        query_span = kwargs['query_span']
+        operator = kwargs['operator']
+        to_float = False
+        if notifications is not None:
+            notifications = notifications.to_dict(orient='records')
+            datetimes = df['datetime'].dropna().to_numpy()
+            if notifications is not None and len(notifications) > 0:
+                notification = __eval_operator(operator=operator, span=query_span, 
+                                            data=notifications, to_float=to_float)
+                datetime = __eval_operator(operator=operator, span=query_span, 
+                                            data=datetimes, to_float=to_float)
+                notification_delta = abs(datetime - notification['datetime']).seconds
+                return True, notification_delta<=duration * int(query_span), errors
+        return True, False, errors
+    except Exception as e:
+        errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")
+        return False, False, errors
 
 def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
     errors = []
@@ -92,7 +118,7 @@ def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
         errors.append(f"Exception evaluating condition '{condition}': {e}")
         return False, False, errors
         
-def __eval_operator(operator, span: str, data: numpy.array):
+def __eval_operator(operator, span: str, data: numpy.array, to_float: bool = True):
     try:
         span_window = int(span)
         data_for_span = data[-span_window:]
@@ -113,7 +139,9 @@ def __eval_operator(operator, span: str, data: numpy.array):
             result = round((data_for_span[-1] - data_for_span[0]) / data[0], 2)
         else:
             raise Exception(f"Unsupported operator: {operator}")
-        return round(float(result), 2)
+        if to_float:
+            return round(float(result), 2)
+        return result
     except Exception as e:
         raise Exception(f"Exception in operator {operator} {e.args}")
 
