@@ -20,6 +20,8 @@ function initDeveloper() {
     eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_ed25519_asus
     source /usr/share/bash-completion/completions/git
+    git config --global user.name "Palash Halder"
+    git config --global user.email "mpalash.halder@gmail.com"
 }
 
 function runApp() {

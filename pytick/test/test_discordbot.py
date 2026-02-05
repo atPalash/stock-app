@@ -19,6 +19,8 @@ users_config_path = os.environ.get("USERS_DIR")
 class DummyNotificationHandler:
     def get_corporate_actions(self, *args, **kwargs):
         return {}
+    def get_corporate_actions_dfs(self, *args, **kwargs):
+        return {}
     
 class TestQueryHandler:    
     tickers = ["TCS", "BEL", "SBIN"]
@@ -32,7 +34,9 @@ class TestQueryHandler:
     notification_handler = DummyNotificationHandler()
     def __init__(self):
         self.gherkin_handler = query.QueryHandler(data_handler=self.data_handler, 
-                                        interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
+                                        notification_handler=self.notification_handler,
+                                        interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()},
+                                        interval_seconds=app_config.get('interval_seconds', {}))
     def getQueryHandler(self):
         return self.gherkin_handler
 
