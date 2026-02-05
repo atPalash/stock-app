@@ -29,7 +29,7 @@ cron_schedules = app_config.get('cron_schedules', {})
 cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
-notification_handler = notification.NotificationHandler(tz=tz)
+notification_handler = notification.NotificationHandler(tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
 gherkin_handler = query.QueryHandler(data_handler=data_handler, 
                                     notification_handler=notification_handler,
                                     interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()},

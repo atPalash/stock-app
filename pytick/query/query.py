@@ -310,7 +310,7 @@ if __name__ == "__main__":
     gherkin = """
 Feature: pytick llm
 Scenario: Multiple condition analysis with previous day close, VWAP, and EMA
-Given stocks from list ACE
+Given stocks from list BERGEPAINT
 When let notification = latest in 5 minute5 notification
 Then list movers = tickers with notification
 """
@@ -319,7 +319,7 @@ Then list movers = tickers with notification
     indicators = config.get('indicators', {})
     tz = config.get('tz', 'Asia/Kolkata')
     data_handler = DataFrameHandler(tz=tz, indicators=indicators)
-    notification_handler = NotificationHandler(tz=tz)
+    notification_handler = NotificationHandler(tz=tz, max_rows=1000, app_data_path=config.get('app_data_path', ''))
     data_handler.set_tables(tickers=tickers, interval='5m')
     notification_handler.set_corporate_actions(tickers=tickers)
     query_handler = QueryHandler(data_handler, notification_handler=notification_handler, 
@@ -327,3 +327,4 @@ Then list movers = tickers with notification
                                  interval_seconds=config.get('interval_seconds', {}))
     # print(query_handler.get_gherkin_result(gherkin, bt_config={'clip': 20, 'forward': 10, 'interval': '5m'}))
     print(query_handler.get_gherkin_result(gherkin))
+    

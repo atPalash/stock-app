@@ -68,6 +68,7 @@ cron_schedules:
 cron_notification: { "minute": "*/4", "second": "5", "day_of_week": "mon-fri" } # runs every 4th minute
 cron_news_alerts: { "minute": "*/17", "second": "5", "day_of_week": "mon-fri" } # runs every 17th minute, just some timer to distribute load
 backtest_iterations: 10
+app_data_path: "/home/palash/dev/stock-app/appdata"
 indicators:
   sma:
     periods: [5, 10, 20, 50, 100, 200]
