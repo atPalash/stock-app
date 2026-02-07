@@ -1,5 +1,6 @@
 #! /bin/bash
-
+# Add export PYTHONPATH=/home/palash/dev/stock-app:$PYTHONPATH
+# cd pytick && pip install -e . 
 function initContainer() {
     # Install influx db in Ubuntu and Debian
     # Add the InfluxData key to verify downloads and add the repository

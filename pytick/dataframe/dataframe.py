@@ -197,5 +197,5 @@ if __name__ == "__main__":
     # config_path = "config_debug.yaml"
     # indicators = read_config(config_path).get('indicators', {})
     # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
-    print(get_nifty50_tickers())
-    # download_stock_data("TMPV", "1d", "Asia/Kolkata")
+    # print(get_nifty50_tickers())
+    download_stock_data("TMPV", "1d", "Asia/Kolkata")
