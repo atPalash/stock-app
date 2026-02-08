@@ -52,13 +52,9 @@ class VariableTypes(Enum):
 
 class StepData:
     condition = [">", "<", "!=", "==", ">=", "<="]
-    color = ["red", "green", "blue"]
-    empty = [""]
-    list = ["<list>"]
     number = ["<number>"]
     ohlc = ["close", "open", "high", "low", "volume"]
     indicator = ["sma", "ema", "atr", "rsi", "vwap", "rvol"]
-    bbands = ["upperbband", "lowerbband", "middlebband"]
     word = ["<word>"]
     condition = ["<condition>"]  # multiline condition
     operator = [
@@ -71,9 +67,8 @@ class StepData:
         "change",
         # "slope",
     ]
-    interval = ['day', 'minute5', 'minute1']
-    series = ["<series>"]
-
+    interval = list(read_config(config).get('interval_seconds', {}).keys())
+    
     def __init__(
         self,
         logic=Callable,

@@ -17,9 +17,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ca-certificates \
     openssl \
     libcurl4 \
-    postgresql \
-    postgresql-contrib \
-    postgresql-client \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create the user with a home directory

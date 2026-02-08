@@ -329,6 +329,18 @@ Then list result = tickers with notification
         {
             "query": """
 Feature: pytick llm  
+Scenario: Test notification variable in query
+Given stocks from index nifty50
+When let notification = latest in 1 samples of day notification
+Then list result = tickers with notification
+            """,
+            "expected_fields": ['result'],
+            "expected_values": ['SBIN', 'BEL', 'TCS'],
+            "not_expected_values": ['TMPV']
+        },
+        {
+            "query": """
+Feature: pytick llm  
 Scenario: Test notification variable in query with indicator and ohlc conditions
 Given stocks from index nifty50
 When let notification = latest in 20 samples of minute5 notification
