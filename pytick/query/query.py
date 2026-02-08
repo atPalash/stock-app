@@ -195,8 +195,8 @@ class QueryHandler:
                 id, operator, query_span, interval, ohlc_source = values
                 kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'ohlc_source': ohlc_source}
             elif logic_name == 'calculate_notification':
-                id, operator, query_span, interval, source = values
-                kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'notifications': None, 'duration': self.interval_seconds.get(interval, 0)}
+                id, operator, query_span, interval, _ = values
+                kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'source': None, 'duration': self.interval_seconds.get(interval, 0)}
             else:
                 logger.warning(f"Unknown logic function {logic_name} in When step.")
                 return False, None, [f"Unknown logic function {logic_name} in When step."]
@@ -222,7 +222,7 @@ class QueryHandler:
                     logger.warning(f"No data found for ticker {ticker} with interval {interval}")
                     continue
                 if logic_name == 'calculate_notification':
-                    kwargs['notifications'] = notifications.get(ticker, None) 
+                    kwargs['source'] = notifications.get(ticker, None) 
                 
                 success, val, errors = step.get('logic')(df, **kwargs)
                 result.loc[result['ticker'] == ticker, id] = val

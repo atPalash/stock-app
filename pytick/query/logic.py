@@ -1,3 +1,4 @@
+from datetime import timedelta
 import logging
 import os
 import re
@@ -84,7 +85,7 @@ def calculate_notification(
     # check notification column
     errors= []
     try:
-        notifications = kwargs['notifications']
+        notifications = kwargs['source']
         duration = kwargs['duration']
         query_span = kwargs['query_span']
         operator = kwargs['operator']
@@ -92,13 +93,13 @@ def calculate_notification(
         if notifications is not None:
             notifications = notifications.to_dict(orient='records')
             datetimes = df['datetime'].dropna().to_numpy()
-            if notifications is not None and len(notifications) > 0:
+            if len(notifications) > 0:
                 notification = __eval_operator(operator=operator, span=query_span, 
                                             data=notifications, to_float=to_float)
                 datetime = __eval_operator(operator=operator, span=query_span, 
                                             data=datetimes, to_float=to_float)
-                notification_delta = abs(datetime - notification['datetime']).seconds
-                return True, notification_delta<=duration * int(query_span), errors
+                is_notification_in_range = abs(datetime - notification['datetime']) <= timedelta(seconds=duration * int(query_span))
+                return True, is_notification_in_range, errors
         return True, False, errors
     except Exception as e:
         errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")

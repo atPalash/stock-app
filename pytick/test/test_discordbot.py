@@ -17,21 +17,31 @@ app_config = read_config(file_path=config)
 users_config_path = os.environ.get("USERS_DIR")
 
 class DummyNotificationHandler:
+    def __init__(self, tz=None):
+        self.tz = tz
     def get_corporate_actions(self, *args, **kwargs):
         return {}
     def get_corporate_actions_dfs(self, *args, **kwargs):
-        return {}
+        df = pd.read_csv(f"{app_config.get('pytick_test_path', '')}/data/corporate_actions.csv", parse_dates=['datetime'])
+        df["datetime"] = pd.to_datetime(df['datetime'], format='%d-%b-%Y %H:%M:%S').\
+                        dt.tz_localize(self.tz)
+        tickers = kwargs.get('tickers', [])
+        ret = {}
+        for ticker in tickers:
+            ticker_df = df[df["symbol"] == ticker]
+            ret[ticker] = ticker_df if not ticker_df.empty else None
+        return ret
     
 class TestQueryHandler:    
-    tickers = ["TCS", "BEL", "SBIN"]
+    tickers = ["TCS", "BEL", "SBIN", "TMPV"]
     indicators = app_config.get('indicators', {})
     cron_schedules = app_config.get('cron_schedules', {})
     cron_notification = app_config.get('cron_notification', {})
     tz = app_config.get('tz', 'Asia/Kolkata')
-    data_handler = DataFrameHandler(tz=tz, indicators=indicators, test_data_path="/home/palash/app/pytick/test/data")
+    data_handler = DataFrameHandler(tz=tz, indicators=indicators, test_data_path=f"{app_config.get('pytick_test_path', '')}/data")
     data_handler.set_tables(tickers, "1d")
     data_handler.set_tables(tickers, "5m")
-    notification_handler = DummyNotificationHandler()
+    notification_handler = DummyNotificationHandler(tz=tz)
     def __init__(self):
         self.gherkin_handler = query.QueryHandler(data_handler=self.data_handler, 
                                         notification_handler=self.notification_handler,
@@ -41,7 +51,6 @@ class TestQueryHandler:
         return self.gherkin_handler
 
 def make_bot_config(tmp_path):
-    zerodha_df = pd.DataFrame(columns=["tradingsymbol", "exchange", "instrument_token"])
     return BotConfig(
         token="fake-token",
         command_prefix='/',
@@ -52,7 +61,7 @@ def make_bot_config(tmp_path):
         schedules={'1d': {}},
         users_config_path=str(f"{tmp_path}/users"),
         update_users_callback=lambda *args, **kwargs: None,
-        zerodha_df=zerodha_df,
+        zerodha_df=pd.read_csv(app_config.get("zerodha_instrument_tokens_path", "")),
         trading_view_url=app_config.get('trading_view_url', ''),
         zerodha_url=app_config.get('zerodha_url', ''),
         link_type='zerodha',
@@ -60,7 +69,7 @@ def make_bot_config(tmp_path):
         default_ticker='SBIN'
     )
 
-bot_config = make_bot_config(tmp_path="/home/palash/app/pytick/test")
+bot_config = make_bot_config(tmp_path=f"{app_config.get('pytick_test_path', '')}")
 bot = DiscordBot(bot_config)
 
 class DiscordBotWrapper:
@@ -298,5 +307,53 @@ Then list result = tickers with (close > ema200)
             assert any(field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
         for value in expected_values:
             assert any(value in field.value for field in fields), f"Expected value '{value}' in embed values"
+    for item in query_expectation:
+        await test_func(item)
+
+
+@pytest.mark.asyncio
+async def test_notification():
+    query_expectation = [
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Test notification variable in query
+Given stocks from index nifty50
+When let notification = latest in 20 samples of minute5 notification
+Then list result = tickers with notification
+            """,
+            "expected_fields": ['result'],
+            "expected_values": ['SBIN', 'BEL'],
+            "not_expected_values": ['TCS', 'TMPV']
+        },
+        {
+            "query": """
+Feature: pytick llm  
+Scenario: Test notification variable in query with indicator and ohlc conditions
+Given stocks from index nifty50
+When let notification = latest in 20 samples of minute5 notification
+* let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of minute5 close
+Then list bull = tickers with ((close - prev_close) / prev_close > 0.01) & notification
+* list bear = tickers with ((prev_close - close) / prev_close > 0.01) & notification            
+""",
+            "expected_fields": ['bull', 'bear'],
+            "expected_values": ['SBIN', 'BEL'],
+            "not_expected_values": ['TCS', 'TMPV']
+        },
+    ]
+
+    async def test_func(item):
+        query = item['query']
+        expected_fields = item['expected_fields']
+        expected_values = item['expected_values']
+        sent = await run_command(query)
+        fields = sent[2][1]['embed'].fields
+        for field_name in expected_fields:
+            assert any(field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
+        for value in expected_values:
+            assert any(value in field.value for field in fields), f"Expected value '{value}' in embed values"
+        for value in item['not_expected_values']:
+            assert not any(value in field.value for field in fields), f"Unexpected value '{value}' in embed values"
     for item in query_expectation:
         await test_func(item)
