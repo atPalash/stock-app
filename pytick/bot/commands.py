@@ -424,7 +424,7 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
             for qid, tickers in point.items():
                 parts.append(f"**{qid}**")
                 chart_type = user_config.get("chart", "tradingview")
-                corporate_actions = bot_config.notification_handler.get_corporate_actions(tickers=tickers)
+                corporate_actions = bot_config.notification_handler.get_corporate_actions_dfs(tickers=tickers)
                 for t in tickers:
                     try:
                         chart_link = f"[{t}]({bot_config.trading_view_url}{t})" # default to tradingview chart
@@ -437,7 +437,8 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
                         ticker_action = corporate_actions.get(t, None)
                         corporate_action_link = ""
                         if ticker_action is not None and not ticker_action.empty:
-                            corporate_action_link = f"[action]({ticker_action['file'].tolist()[0]})"
+                            recent_action = ticker_action.tail(1)['file'].values[0]
+                            corporate_action_link = f"[action]({recent_action})"
                         news_link = f"[news](https://www.google.com/finance/quote/{t}:NSE)"
                         changed = "🟢" if t in changed else ""
                         ticker_clickables = [chart_link, news_link, corporate_action_link, changed]
