@@ -20,6 +20,8 @@ class NotificationHandler:
         try:
             self.corporate_actions_df = pd.read_csv(f"{self.app_data_path}/corporate_actions.csv", 
                 parse_dates=['datetime'])
+            self.corporate_actions_df["datetime"] = pd.to_datetime(self.corporate_actions_df['datetime'], format='%d-%b-%Y %H:%M:%S').\
+                        dt.tz_convert(self.tz)
         except FileNotFoundError:
             self.corporate_actions_df = pd.DataFrame({
                 "symbol": pd.Series(dtype="str"),
@@ -72,7 +74,7 @@ class NotificationHandler:
                     # news_df = df[[col for col in self.corporate_actions_df.columns if col in df.columns]]
                     if not df.empty:
                         key_cols = ['symbol', 'subject', 'file', 'details', 'datetime']
-                        self.corporate_actions_df = pd.concat([df, self.corporate_actions_df], ignore_index=True)\
+                        self.corporate_actions_df = pd.concat([self.corporate_actions_df, df], ignore_index=True)\
                             .drop_duplicates(subset=key_cols, keep='last')\
                             .reset_index(drop=True)
                         if len(self.corporate_actions_df) > self.max_rows:
