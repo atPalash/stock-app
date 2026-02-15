@@ -22,10 +22,6 @@ interval_seconds:
   "day": 86400
   "week": 604800
   "month": 2592000
-trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
-zerodha_url: "https://kite.zerodha.com/markets/chart/web/tvc/NSE/"
-zerodha_instrument_tokens_path: "instruments.csv"
-link_type: zerodha
 cron_schedules:
   # "1m": { "minute": "*/1", "second": "0", "day_of_week": "mon-fri" } # runs at 0 seconds of every minute
   # "2m": { "minute": "*/2", "hour": 9-16, "second": "5", "day_of_week": "mon-fri" } # runs at 5 seconds of every 2nd minute
@@ -68,8 +64,12 @@ cron_schedules:
 cron_notification: { "minute": "*/4", "second": "5", "day_of_week": "mon-fri" } # runs every 4th minute
 cron_news_alerts: { "minute": "*/17", "second": "5", "day_of_week": "mon-fri" } # runs every 17th minute, just some timer to distribute load
 backtest_iterations: 10
-app_data_path: "/home/palash/dev/stock-app/appdata"
-pytick_test_path: "/home/palash/dev/stock-app/pytick/test"
+app_data_path: "/home/palash/app/appdata"
+pytick_test_path: "/home/palash/app/pytick/test"
+zerodha_instrument_tokens_path: "/home/palash/app/appdata/instruments.csv"
+trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
+zerodha_url: "https://kite.zerodha.com/markets/chart/web/tvc/NSE/"
+link_type: zerodha
 indicators:
   sma:
     periods: [5, 10, 20, 50, 100, 200]
