@@ -11,6 +11,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 import pandas
 
+from pytick.bot.utility import get_user_ids
 from pytick.llm.graph import Graph
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.utility import get_logger, read_config
@@ -51,9 +52,9 @@ class DiscordBot:
         self.config = config
         self.users_config_path = config.users_config_path
         self.llm_handlers = {}
-        self.schedulers = {}
+        self.scheduler = Scheduler(config.tz, is_async=True)
         self.__register_commands()
-
+        
         # register on_ready event (bot.event accepts a coroutine function)
         self.bot.event(self.on_ready)
         # register an error handler to control behavior for missing commands
@@ -64,11 +65,6 @@ class DiscordBot:
             self.llm_handlers[user_id] = Graph()
         return self.llm_handlers.get(user_id)
     
-    def get_scheduler(self, user_id: int) -> Graph:
-        if user_id not in self.schedulers:
-            self.schedulers[user_id] = Scheduler(self.config.tz, is_async=True)
-        return self.schedulers.get(user_id)
-
     def get_user_config(self, ctx: commands.Context) -> dict:
         user_id = ctx.author.id
         user_name = ctx.author.name
@@ -97,19 +93,12 @@ class DiscordBot:
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user}\nSubscribing to queries')
+        await self.__set_schedulers()
         # Send hello message to all users on bot alive
         try:
-            import yaml
             user_ids = []
             # List all user config files
-            users_dir = self.users_config_path
-            for fname in os.listdir(users_dir):
-                if fname.endswith('.yaml'):
-                    with open(os.path.join(users_dir, fname), 'r') as f:
-                        data = yaml.safe_load(f)
-                        uid = data.get('user_id')
-                        if uid:
-                            user_ids.append(uid)
+            user_ids = get_user_ids(self.users_config_path)
             for uid in user_ids:
                 user = await self.bot.fetch_user(int(uid))
                 try:
@@ -163,6 +152,20 @@ class DiscordBot:
         for name, func in supported_commands.items():
             cmd = commands.Command(func, name=name, help=func.__doc__, extras={'discordbot': self})
             self.bot.add_command(cmd)
+
+    async def __set_schedulers(self):
+        ''''Set up periodic jobs for each subscription interval defined in the configuration.'''
+        from pytick.bot.commands import _sub_handler
+        
+        self.scheduler.start()  # Start the scheduler before adding jobs
+        for interval, params in self.config.schedules.items():
+            try:
+                # await _sub_handler(bot=self.bot, bot_config=self.config, users_dir=self.users_config_path, interval=interval)
+                self.scheduler.add_periodic_job(func=lambda bot=self.bot, config=self.config, users_dir=self.users_config_path, 
+                                                    interval=interval: _sub_handler(bot=bot, bot_config=config, users_dir=users_dir, interval=interval),
+                                                    params=params, job_id=f"discord_subscription_job_{interval}")
+            except Exception as e:
+                logger.error(f"Error setting up scheduler for interval {interval}: {e}")
 
     def run(self):
         self.bot.run(self.config.token)

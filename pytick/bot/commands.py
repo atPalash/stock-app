@@ -7,9 +7,10 @@ from dotenv import load_dotenv
 import pandas
 
 from pytick.bot.discordbot import BotConfig
+from pytick.bot.utility import get_user_ids
 from pytick.llm.graph import Graph
 from pytick.query.query import QueryHandler
-from pytick.utility.utility import get_logger
+from pytick.utility.utility import clean_gherkin, get_logger, read_config
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 logger = get_logger(__file__, logging.DEBUG)
@@ -54,19 +55,18 @@ async def send_long_message(destination, content: str, max_length: int = 1990):
 async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]: 
     try:
         llm_handler = ctx.command.extras.get('discordbot').get_llm_handler(ctx.author.id)
-        scheduler = ctx.command.extras.get('discordbot').get_scheduler(ctx.author.id)
         user_config = ctx.command.extras.get('discordbot').get_user_config(ctx)
         bot_config = ctx.command.extras.get('discordbot').config
         
         if not args:
             await ctx.send(f"Usage: `/{ctx.invoked_with}` <text>")
-            return False, None, None, None, None, None
-        return True, bot_config, user_config, llm_handler, scheduler
+            return False, None, None, None, None
+        return True, bot_config, user_config, llm_handler
     except Exception as e:
         msg = f"Exception during validation: {e}"
         await ctx.send(msg)
         logger.warning(msg)
-        return False, None, None, None, None
+        return False, None, None, None
 
 async def helpme(ctx: commands.Context, *args: str):
     """Show available bot commands. 
@@ -126,8 +126,8 @@ async def edit(ctx: commands.Context, *args: str):
     1. /edit <text>
     2. /edit as a reply to a message containing gherkin text.
     """
-    valid, bot_config, _, llm_handler, _ = await __validate(ctx, *args)
-    query = __pre_check(ctx, *args)
+    valid, bot_config, _, llm_handler = await __validate(ctx, *args)
+    query = __pre_check(ctx)
     if not valid:
         await ctx.send(f"""Cannot convert the query to gherkin. Usage: `/convert` <text>""")
         return
@@ -154,7 +154,7 @@ async def run(ctx: commands.Context, *args: str):
     2. /run as a reply to a message containing gherkin text.
     3. /run <gherkin text>
     """
-    query = __pre_check(ctx, *args)
+    query = __pre_check(ctx)
     changed = []
     parts = []
     if len(args) == 1:
@@ -173,7 +173,7 @@ async def run(ctx: commands.Context, *args: str):
         await ctx.send(f"""```{query}```""")
 
     args = (query,)
-    valid, bot_config, user_config, _, _ = await __validate(ctx, *args)
+    valid, bot_config, user_config, _ = await __validate(ctx, *args)
     if not valid or not query:
         return
     
@@ -233,7 +233,7 @@ async def sub(ctx: commands.Context, *args: str):
     2. /sub list - to list queries available for subscriptions
     3. /sub remove <query> - to remove a subscription
     """
-    valid, bot_config, user_config, _, scheduler = await __validate(ctx, *args)
+    valid, bot_config, user_config, _ = await __validate(ctx, *args)
     valid_periods = list(bot_config.schedules.keys())
     check_error_msg = f"Usage: `/{ctx.invoked_with}` <period>. Valid period are {', '.join(valid_periods)}"
     if len(args) != 1:
@@ -241,7 +241,7 @@ async def sub(ctx: commands.Context, *args: str):
         return
     period = args[0]
     
-    query = __pre_check(ctx, *args)
+    query = __pre_check(ctx)
 
     subscription_exists = False
     subscribed_queries = user_config.get('subscribed_queries', [])
@@ -259,9 +259,8 @@ async def sub(ctx: commands.Context, *args: str):
             for sub in subscribed_queries:
                 if sub['query'] == query:
                     subscribed_queries.remove(sub)
+                    await ctx.send(f"**Removed subscription for query**")
                     ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
-                    scheduler.remove_job(f"sub_job_{query}")
-                    await ctx.send(f"Removed subscription for query.")
                     return
             await ctx.send(f"No subscription found for the given query.")
             return
@@ -269,8 +268,7 @@ async def sub(ctx: commands.Context, *args: str):
             if query == "":
                 await ctx.send(check_error_msg)
                 return
-            else:
-                await ctx.send(f"""**Subscribed to Query with period {period}**""")
+                
             if not valid or not query:
                 return
             for sub in subscribed_queries:
@@ -280,16 +278,15 @@ async def sub(ctx: commands.Context, *args: str):
                         sub['period'] = period
                         sub['tickers'] = []
                         ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
-                        return
+                        await ctx.send(f"""**Updated subscription to period {period}**""")
+
             if not subscription_exists:
                 subscribed_queries.append({'query': query, 'period': period, 'tickers': []})
                 ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
 
             try:
                 job_func = __make_run_job(ctx, bot_config, query)
-                scheduler.start()
-                scheduler.add_periodic_job(job_func, params=bot_config.schedules.get(period), job_id=f"sub_job_{query}")
-                # scheduler.add_periodic_job(job_func, params={"second": "*/2"}, job_id=f"sub_job_{period}")
+                await ctx.send(f"""**Subscribed to Query with period {period}**""")
             except Exception as e:
                 msg = f"Exception during subscription: {e}"
                 await ctx.send(msg)
@@ -314,7 +311,7 @@ async def bt(ctx: commands.Context, *args: str):
     1. /bt <lookback> <interval> - reply to a query with backtest conditions
     <lookback> is integer number. <interval> is one of 1m, 5m, 15m, 30m, 1h, 1d
     """
-    valid, bot_config, _, _, _ = await __validate(ctx, *args)
+    valid, bot_config, _, _, = await __validate(ctx, *args)
     check_error_msg = f"Usage: `/{ctx.invoked_with}` <lookback> <interval>. lookback is integer number. interval is one of {', '.join(bot_config.schedules.keys())} "
     if len(args) != 2 or not valid:
         await ctx.send(check_error_msg)
@@ -331,7 +328,7 @@ async def bt(ctx: commands.Context, *args: str):
         await ctx.send(check_error_msg)
         return
     
-    query = __pre_check(ctx, *args)
+    query = __pre_check(ctx)
     if query == "":
         await ctx.send(f"Please reply to a gherkin query message to backtest.")
         return
@@ -374,7 +371,7 @@ async def config(ctx: commands.Context, *args: str):
     2. /config update <key> <value> - update user configuration key with value.
     Supported keys are config headers in config show.
     """
-    valid, _, user_config, _, _ = await __validate(ctx, *args)
+    valid, _, user_config, _, = await __validate(ctx, *args)
 
     async def send_user_config(config: dict, prefix: str, ctx: commands.Context):
         drop_keys = ['subscribed_queries']
@@ -410,6 +407,27 @@ async def config(ctx: commands.Context, *args: str):
         msg = f"Exception during fetching configuration: {e}"
         await ctx.send(msg)
         logger.warning(msg)
+
+async def _sub_handler(bot, bot_config, users_dir, interval):
+    """Run scheduler job for subscription. This is used to set tables for subscription
+      queries based on interval. 
+    """
+    user_ids = get_user_ids(users_dir)
+    for uid in user_ids:
+        user = await bot.fetch_user(int(uid))
+        user_config_file = f"{users_dir}/{uid}.yaml"
+        user_config = read_config(user_config_file)
+        subscribed_queries = user_config.get('subscribed_queries', [])
+        for sub in subscribed_queries:
+            if sub['period'] == interval:
+                query = sub['query']
+                try:
+                    results, parts = __do_run(bot_config, user_config, query)
+                    sub['tickers'] = results
+                    ctx = type('obj', (object,), {'author': user, 'invoked_with': 'run', 'send': lambda *args, **kwargs: user.send(*args, **kwargs)})
+                    await __sendEmbedResults(ctx=ctx, parts=parts)
+                except Exception as e:
+                    logger.warning(f"Exception during subscription job for user {uid} and query {query}: {e}")
 
 def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=[]) -> tuple[list[dict], list[str]]:
     try:
@@ -452,7 +470,7 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
         logger.warning(msg)
         raise e
     
-def __pre_check(ctx: commands.Context, *args: str) -> bool:
+def __pre_check(ctx: commands.Context) -> bool:
     """Pre-check to extract gherkin text from reply or arguments.
     """
     gherkin_text = ""
@@ -468,7 +486,7 @@ def __pre_check(ctx: commands.Context, *args: str) -> bool:
                 gherkin_text = ""
         except Exception:
             pass
-    return clean_gherkin(gherkin=gherkin_text
+    return clean_gherkin(gherkin=gherkin_text)
 
 def __update_result(ctx, user_config:dict, query:str, tickers:list[dict]) -> tuple[bool, list[dict]]:
     subscribed_queries = user_config.get('subscribed_queries', [])

@@ -11,6 +11,7 @@ from pytick.dataframe.dataframe import DataFrameHandler
 from pytick.bot.discordbot import BotConfig, DiscordBot
 from pytick.query import query
 from pytick.utility.utility import read_config
+import pytick.bot.commands as cmd_mod
 
 config = os.environ.get("CONFIG_FILE")
 app_config = read_config(file_path=config)
@@ -57,8 +58,8 @@ def make_bot_config(tmp_path):
         query_handler=TestQueryHandler().getQueryHandler(),
         notification_handler=DummyNotificationHandler(),
         llm_convert_msg='',
-        tz=pytz.timezone('Asia/Kolkata'),
-        schedules={'1d': {}},
+        tz='Asia/Kolkata',
+        schedules=app_config.get('cron_schedules', {}),
         users_config_path=str(f"{tmp_path}/users"),
         update_users_callback=lambda *args, **kwargs: None,
         zerodha_df=pd.read_csv(app_config.get("zerodha_instrument_tokens_path", "")),
@@ -80,28 +81,43 @@ class DiscordBotWrapper:
             self.global_name = 'tester'
             self.mention = '@tester'
 
+    class DummyMessage:
+        def __init__(self, content: str):
+            self.content = content
+            self.reference = None  # no replied message during restart
     class DummyCtx:
-        def __init__(self, bot, command_name='run'):
+        def __init__(self, bot, command_name='run', query=""):
             self.author = DiscordBotWrapper.DummyAuthor()
             self.command = bot.bot.get_command(command_name)
             # collect sends
             self.sent = []
+            self.invoked_with = command_name
+            self.message = DiscordBotWrapper.DummyMessage(f"/{command_name} {query}")
 
         async def send(self, *args, **kwargs):
             self.sent.append((args, kwargs))
 
-    def __init__(self):
+    def __init__(self, query=""):
         self.bot = bot
         self.run_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'run')
         self.edit_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'edit')
+        self.sub_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'sub', query=query)
 
 async def run_command(query:str):
-    import pytick.bot.commands as cmd_mod
     try:
         discord_bot_wrapper = DiscordBotWrapper()
         await cmd_mod.run(discord_bot_wrapper.run_ctx, (query,))
         # fields = discord_bot_wrapper.run_ctx.sent[2][1]['embed'].fields
         return discord_bot_wrapper.run_ctx.sent
+    except Exception as e:
+        raise e
+    
+async def sub_command(query:str, period='1d'):
+    try:
+        discord_bot_wrapper = DiscordBotWrapper(query=query)
+        await cmd_mod.sub(discord_bot_wrapper.sub_ctx, period)
+        # fields = discord_bot_wrapper.run_ctx.sent[2][1]['embed'].fields
+        return discord_bot_wrapper.sub_ctx.sent
     except Exception as e:
         raise e
     
@@ -267,18 +283,6 @@ Then list bull = tickers with (ema100 > 0) & (ema200 > 0) & (abs(close - ema100)
 
     for item in query_expectation:
         await test_func(item)
-        
-#     await test_func(        {
-#             "query": """
-# Feature: pytick llm  
-# Scenario: Close price greater than 200 EMA analysis  
-# Given stocks from index nifty50  
-# When let close = latest in 1 samples of day close  
-# * let ema200 = latest in 1 samples of day close ema 200  
-# Then list result = tickers with (close > ema200)
-#             """,
-#             "expected_errors": ['Exception', 'Given stocks from index nifty500', 'Allowed values', 'nifty50'],
-#         })  
 
 @pytest.mark.asyncio
 async def test_data_missing():
@@ -369,3 +373,16 @@ Then list bull = tickers with ((close - prev_close) / prev_close > 0.01) & notif
             assert not any(value in field.value for field in fields), f"Unexpected value '{value}' in embed values"
     for item in query_expectation:
         await test_func(item)
+
+@pytest.mark.asyncio
+async def test_sub_command():
+    await bot.on_ready()
+    query1 = """Feature: pytick llm  
+Scenario: Test notification variable in query
+Given stocks from index nifty50
+When let notification = latest in 20 samples of minute5 notification
+Then list result = tickers with notification"""
+    wrapper1 = DiscordBotWrapper(query=query1)
+    assert(len(wrapper1.bot.scheduler.scheduler.get_jobs()) == len(app_config.get('cron_schedules', {}))), "Expected number of scheduled jobs to match cron schedules in config"
+    
+    
