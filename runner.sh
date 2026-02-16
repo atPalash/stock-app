@@ -1,4 +1,10 @@
 #! /bin/bash
+
+# Cap native BLAS/OpenMP thread pools to avoid oversubscription
+export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
+export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
+export NUMEXPR_NUM_THREADS=${NUMEXPR_NUM_THREADS:-1}
+export MKL_NUM_THREADS=${MKL_NUM_THREADS:-1}
 # Add export PYTHONPATH=/home/palash/dev/stock-app:$PYTHONPATH
 # cd pytick && pip install -e . 
 function initDeveloper() {
