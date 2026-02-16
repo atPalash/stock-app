@@ -468,7 +468,7 @@ def __pre_check(ctx: commands.Context, *args: str) -> bool:
                 gherkin_text = ""
         except Exception:
             pass
-    return gherkin_text
+    return clean_gherkin(gherkin=gherkin_text
 
 def __update_result(ctx, user_config:dict, query:str, tickers:list[dict]) -> tuple[bool, list[dict]]:
     subscribed_queries = user_config.get('subscribed_queries', [])
