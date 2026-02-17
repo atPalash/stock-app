@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from datetime import tzinfo
+import functools
 from importlib import import_module
 import inspect
 import os
@@ -93,7 +94,7 @@ class DiscordBot:
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.bot.user}\nSubscribing to queries')
-        await self.__set_schedulers()
+        self.__set_schedulers()
         # Send hello message to all users on bot alive
         try:
             user_ids = []
@@ -153,17 +154,23 @@ class DiscordBot:
             cmd = commands.Command(func, name=name, help=func.__doc__, extras={'discordbot': self})
             self.bot.add_command(cmd)
 
-    async def __set_schedulers(self):
-        ''''Set up periodic jobs for each subscription interval defined in the configuration.'''
+    def __set_schedulers(self):
+        '''Set up periodic jobs for each subscription interval defined in the configuration.'''
         from pytick.bot.commands import _sub_handler
         
+        async def _subscribe_handler(bot, config, users_dir, interval):
+            """Async wrapper for _sub_handler to ensure proper coroutine handling."""
+            await _sub_handler(bot=bot, bot_config=config, users_dir=users_dir, interval=interval, update_func=self.update_subscription)
+
         self.scheduler.start()  # Start the scheduler before adding jobs
         for interval, params in self.config.schedules.items():
             try:
                 # await _sub_handler(bot=self.bot, bot_config=self.config, users_dir=self.users_config_path, interval=interval)
-                self.scheduler.add_periodic_job(func=lambda bot=self.bot, config=self.config, users_dir=self.users_config_path, 
-                                                    interval=interval: _sub_handler(bot=bot, bot_config=config, users_dir=users_dir, interval=interval),
-                                                    params=params, job_id=f"discord_subscription_job_{interval}")
+                self.scheduler.add_periodic_job(
+                    func = functools.partial(_subscribe_handler, bot=self.bot, config=self.config, 
+                            users_dir=self.users_config_path, interval=interval),
+                    params=params, 
+                    job_id=f"discord_subscription_job_{interval}")
             except Exception as e:
                 logger.error(f"Error setting up scheduler for interval {interval}: {e}")
 

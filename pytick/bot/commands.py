@@ -283,14 +283,7 @@ async def sub(ctx: commands.Context, *args: str):
             if not subscription_exists:
                 subscribed_queries.append({'query': query, 'period': period, 'tickers': []})
                 ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
-
-            try:
-                job_func = __make_run_job(ctx, bot_config, query)
-                await ctx.send(f"""**Subscribed to Query with period {period}**""")
-            except Exception as e:
-                msg = f"Exception during subscription: {e}"
-                await ctx.send(msg)
-                logger.warning(msg)
+            await ctx.send(f"""**Subscribed to Query with period {period}**""")
         else:
             msg=f"Invalid sub args"
             await ctx.send(msg)
@@ -408,26 +401,22 @@ async def config(ctx: commands.Context, *args: str):
         await ctx.send(msg)
         logger.warning(msg)
 
-async def _sub_handler(bot, bot_config, users_dir, interval):
+async def _sub_handler(bot, bot_config, users_dir, interval, update_func):
     """Run scheduler job for subscription. This is used to set tables for subscription
       queries based on interval. 
     """
     user_ids = get_user_ids(users_dir)
     for uid in user_ids:
         user = await bot.fetch_user(int(uid))
+        user_ctx = type('obj', (object,), {'author': user, 'invoked_with': 'run', 'send': lambda *args, **kwargs: user.send(*args, **kwargs)})
         user_config_file = f"{users_dir}/{uid}.yaml"
         user_config = read_config(user_config_file)
         subscribed_queries = user_config.get('subscribed_queries', [])
         for sub in subscribed_queries:
             if sub['period'] == interval:
                 query = sub['query']
-                try:
-                    results, parts = __do_run(bot_config, user_config, query)
-                    sub['tickers'] = results
-                    ctx = type('obj', (object,), {'author': user, 'invoked_with': 'run', 'send': lambda *args, **kwargs: user.send(*args, **kwargs)})
-                    await __sendEmbedResults(ctx=ctx, parts=parts)
-                except Exception as e:
-                    logger.warning(f"Exception during subscription job for user {uid} and query {query}: {e}")
+                await __send_subscription_result(ctx=user_ctx, bot_config=bot_config, 
+                    user_config=user_config, query=query, update_func=update_func)
 
 def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=[]) -> tuple[list[dict], list[str]]:
     try:
@@ -488,7 +477,7 @@ def __pre_check(ctx: commands.Context) -> bool:
             pass
     return clean_gherkin(gherkin=gherkin_text)
 
-def __update_result(ctx, user_config:dict, query:str, tickers:list[dict]) -> tuple[bool, list[dict]]:
+def __update_result(ctx, user_config:dict, query:str, tickers:list[dict], update_func=None) -> tuple[bool, list[dict]]:
     subscribed_queries = user_config.get('subscribed_queries', [])
     to_update = True
     changed = []
@@ -514,26 +503,22 @@ def __update_result(ctx, user_config:dict, query:str, tickers:list[dict]) -> tup
                 to_update = True
                
     if to_update:
-        ctx.command.extras.get('discordbot').update_subscription(ctx, subscribed_queries)
+        update_func(ctx, subscribed_queries)
                 
     return to_update, changed 
 
-def __make_run_job(ctx, bot_config:BotConfig, query: str):
-    async def job():
-        try:
-            user_config = ctx.command.extras.get('discordbot').get_user_config(ctx)
-            tickers, parts = __do_run(bot_config, user_config, query)
-            to_update, changed = __update_result(ctx, user_config, query, tickers)
-            if to_update:
-                # logger.info(f"Sending subscription result to user {user_config.get('user_name')}")
-                await run(ctx, (query, changed, parts, ))
-            # else:
-                # logger.info(f"No change in result for user {user_config.get('user_name')}, not sending update.")
-        except Exception as e:
-            msg = f"Exception during subscription job execution: {e}"
-            await ctx.send(msg)
-            logger.warning(msg)
-    return job
+async def __send_subscription_result(ctx, bot_config:BotConfig, user_config: dict, query: str, update_func=None):
+    try:
+        tickers, parts = __do_run(bot_config, user_config, query)
+        to_update, changed = __update_result(ctx, user_config, query, tickers, update_func)
+        # TODO fix changed
+        if to_update:
+            await ctx.send(f"""```{query}```""")
+            await __sendEmbedResults(ctx=ctx, parts=parts)
+    except Exception as e:
+        msg = f"Exception during subscription job execution: {e}"
+        await ctx.send(msg)
+        logger.warning(msg)
 
 def __do_backtest(bot_config: BotConfig, query: str, bt_config:None) -> tuple[list[dict], list[str]]:
     try:
