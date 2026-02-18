@@ -16,58 +16,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
-async def send_long_message(destination, content: str, max_length: int = 1990):
-    """Send a message that may exceed Discord's 2000 character limit by splitting it.
-    
-    Args:
-        destination: Can be ctx (Context) for channel, ctx.author (User/Member) for DM, or any messageable
-        content: The message content
-        max_length: Max chars per message (default 1990)
-    """
-    # Handle both ctx.send() and user.send()
-    send_func = destination.send if hasattr(destination, 'send') else destination.send
-    
-    if len(content) <= max_length:
-        await send_func(content)
-        return
-    
-    # Split into chunks
-    chunks = []
-    while content:
-        if len(content) <= max_length:
-            chunks.append(content)
-            break
-        
-        # Find a good split point (newline or space)
-        split_at = content.rfind('\n', 0, max_length)
-        if split_at == -1:
-            split_at = content.rfind(' ', 0, max_length)
-        if split_at == -1:
-            split_at = max_length
-        
-        chunks.append(content[:split_at])
-        content = content[split_at:].lstrip()
-    
-    # Send all chunks
-    for chunk in chunks:
-        await send_func(chunk)
-
-async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]: 
-    try:
-        llm_handler = ctx.command.extras.get('discordbot').get_llm_handler(ctx.author.id)
-        user_config = ctx.command.extras.get('discordbot').get_user_config(ctx)
-        bot_config = ctx.command.extras.get('discordbot').config
-        
-        if not args:
-            await ctx.send(f"Usage: `/{ctx.invoked_with}` <text>")
-            return False, None, None, None, None
-        return True, bot_config, user_config, llm_handler
-    except Exception as e:
-        msg = f"Exception during validation: {e}"
-        await ctx.send(msg)
-        logger.warning(msg)
-        return False, None, None, None
-
 async def helpme(ctx: commands.Context, *args: str):
     """Show available bot commands. 
     
@@ -113,9 +61,9 @@ async def helpme(ctx: commands.Context, *args: str):
 
     help_text = "\n".join(lines)
     try:
-        await send_long_message(ctx.author, help_text)
+        await __send_long_message(ctx.author, help_text)
     except discord.Forbidden:
-        await send_long_message(ctx, f"{ctx.author.mention}, I couldn't DM you. Here are the commands:\n{help_text}")
+        await __send_long_message(ctx, f"{ctx.author.mention}, I couldn't DM you. Here are the commands:\n{help_text}")
     except Exception as e:
         await ctx.send(f"Unable to deliver help right now: {e}")
 
@@ -185,44 +133,6 @@ async def run(ctx: commands.Context, *args: str):
         msg = f"Exception during execution: {e}"
         await ctx.send(msg)
         logger.warning(msg)
-
-async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
-    try:
-        embed = discord.Embed(title="Result", color=discord.Color.blurple())
-        current_section = ""
-        field_count = 0
-        
-        for part in parts:
-            # Handle section headers
-            if part.startswith("**") or part.strip() == "":
-                if part.strip() != "":
-                    current_section = part.replace('*', '')
-                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
-                    field_count += 1
-                continue
-            
-            # Add ticker with all its links
-            if part.strip():
-                # Use zero-width space for empty name to group under section
-                embed.add_field(name="​", value=part, inline=False)
-                field_count += 1
-            
-            # Send when embed gets too large (Discord limit is 25 fields)
-            if field_count >= 20:
-                await ctx.send(embed=embed)
-                embed = discord.Embed(title="Result (cont.)", color=discord.Color.blurple())
-                if current_section:
-                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
-                field_count = 1 if current_section else 0
-        
-        # Send final embed if it has fields
-        if field_count > 0:
-            await ctx.send(embed=embed)
-    except Exception as e:
-        # msg = f"Exception during execution: {e}"
-        # await ctx.send(msg)
-        logger.warning(e)
-        raise e
         
 async def sub(ctx: commands.Context, *args: str):
     """Subscribe to a query. The subscription can be made witha reply to exiting 
@@ -354,7 +264,7 @@ async def bt(ctx: commands.Context, *args: str):
             bt_table = bt_table.filter(items=['ticker', 'bull', 'bear', 'close_start', 'close_reference', 'score'])
             bt_table = bt_table[bt_table['score'].ne(0)]
             table_str = bt_table.to_markdown()
-            await send_long_message(ctx, f"```{table_str}```")
+            await __send_long_message(ctx, f"```{table_str}```")
 
 async def config(ctx: commands.Context, *args: str):
     """Do user configuration.
@@ -372,7 +282,7 @@ async def config(ctx: commands.Context, *args: str):
             if key in config:
                 config.pop(key)
         config_str = pandas.json_normalize(config).to_markdown()
-        await send_long_message(ctx, f"{prefix}```{config_str}```")
+        await __send_long_message(ctx, f"{prefix}```{config_str}```")
     
     todo = args[0]
     if not valid:
@@ -533,3 +443,93 @@ def __do_backtest(bot_config: BotConfig, query: str, bt_config:None) -> tuple[li
         msg = f"Exception during execution: {e}"
         logger.warning(msg)
         raise Exception(msg)
+    
+async def __send_long_message(destination, content: str, max_length: int = 1990):
+    """Send a message that may exceed Discord's 2000 character limit by splitting it.
+    
+    Args:
+        destination: Can be ctx (Context) for channel, ctx.author (User/Member) for DM, or any messageable
+        content: The message content
+        max_length: Max chars per message (default 1990)
+    """
+    # Handle both ctx.send() and user.send()
+    send_func = destination.send if hasattr(destination, 'send') else destination.send
+    
+    if len(content) <= max_length:
+        await send_func(content)
+        return
+    
+    # Split into chunks
+    chunks = []
+    while content:
+        if len(content) <= max_length:
+            chunks.append(content)
+            break
+        
+        # Find a good split point (newline or space)
+        split_at = content.rfind('\n', 0, max_length)
+        if split_at == -1:
+            split_at = content.rfind(' ', 0, max_length)
+        if split_at == -1:
+            split_at = max_length
+        
+        chunks.append(content[:split_at])
+        content = content[split_at:].lstrip()
+    
+    # Send all chunks
+    for chunk in chunks:
+        await send_func(chunk)
+
+async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]: 
+    try:
+        llm_handler = ctx.command.extras.get('discordbot').get_llm_handler(ctx.author.id)
+        user_config = ctx.command.extras.get('discordbot').get_user_config(ctx)
+        bot_config = ctx.command.extras.get('discordbot').config
+        
+        if not args:
+            await ctx.send(f"Usage: `/{ctx.invoked_with}` <text>")
+            return False, None, None, None, None
+        return True, bot_config, user_config, llm_handler
+    except Exception as e:
+        msg = f"Exception during validation: {e}"
+        await ctx.send(msg)
+        logger.warning(msg)
+        return False, None, None, None
+
+async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
+    try:
+        embed = discord.Embed(title="Result", color=discord.Color.blurple())
+        current_section = ""
+        field_count = 0
+        
+        for part in parts:
+            # Handle section headers
+            if part.startswith("**") or part.strip() == "":
+                if part.strip() != "":
+                    current_section = part.replace('*', '')
+                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
+                    field_count += 1
+                continue
+            
+            # Add ticker with all its links
+            if part.strip():
+                # Use zero-width space for empty name to group under section
+                embed.add_field(name="​", value=part, inline=False)
+                field_count += 1
+            
+            # Send when embed gets too large (Discord limit is 25 fields)
+            if field_count >= 20:
+                await ctx.send(embed=embed)
+                embed = discord.Embed(title="Result (cont.)", color=discord.Color.blurple())
+                if current_section:
+                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
+                field_count = 1 if current_section else 0
+        
+        # Send final embed if it has fields
+        if field_count > 0:
+            await ctx.send(embed=embed)
+    except Exception as e:
+        # msg = f"Exception during execution: {e}"
+        # await ctx.send(msg)
+        logger.warning(e)
+        raise e
