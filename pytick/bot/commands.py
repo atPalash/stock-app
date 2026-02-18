@@ -328,16 +328,24 @@ async def _sub_handler(bot, bot_config, users_dir, interval, update_func):
                 await __send_subscription_result(ctx=user_ctx, bot_config=bot_config, 
                     user_config=user_config, query=query, update_func=update_func)
 
-def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=[]) -> tuple[list[dict], list[str]]:
+def __do_run(bot_config: BotConfig, user_config: dict, query: str, previous_results:list=[]) -> tuple[list[dict], list[str]]:
     try:
         success, results, errors, _ = bot_config.query_handler.get_gherkin_result(gherkin_str=query)
         if not success:
             msg = f"Exception during query execution: {errors}"
             logger.warning(msg)
             raise Exception(errors)
-            
+        
+        # fetch new tickers for qid
+        new_tickers = {}
+        for i in range(len(results)):
+            for qid, tickers in results[i].items():
+                prev_tickers = previous_results[i].get(qid, []) if i < len(previous_results) else []
+                new_tickers[i] = {qid: list(set(tickers) - set(prev_tickers))}
+
         parts = []
-        for point in results:
+        for i in range(len(results)):
+            point = results[i]
             for qid, tickers in point.items():
                 parts.append(f"**{qid}**")
                 chart_type = user_config.get("chart", "tradingview")
@@ -357,7 +365,7 @@ def __do_run(bot_config: BotConfig, user_config: dict, query: str, changed:list=
                             recent_action = ticker_action.tail(1)['file'].values[0]
                             corporate_action_link = f"[action]({recent_action})"
                         news_link = f"[news](https://www.google.com/finance/quote/{t}:NSE)"
-                        changed = "🟢" if t in changed else ""
+                        changed = "🟢" if t in new_tickers[i][qid] and len(previous_results) > 0 else ""
                         ticker_clickables = [chart_link, news_link, corporate_action_link, changed]
                         parts.append(' '.join(ticker_clickables))
                     except Exception as e:
@@ -419,7 +427,15 @@ def __update_result(ctx, user_config:dict, query:str, tickers:list[dict], update
 
 async def __send_subscription_result(ctx, bot_config:BotConfig, user_config: dict, query: str, update_func=None):
     try:
-        tickers, parts = __do_run(bot_config, user_config, query)
+        subscribed_queries = user_config.get('subscribed_queries', [])
+        id_tickers_map = []
+        # Find the subscription that matches the query and use its stored tickers
+        if subscribed_queries:
+            for sub in subscribed_queries:
+                if sub.get('query') == query:
+                    id_tickers_map = sub.get('tickers', [])
+                    break
+        tickers, parts = __do_run(bot_config, user_config, query, id_tickers_map)
         to_update, changed = __update_result(ctx, user_config, query, tickers, update_func)
         # TODO fix changed
         if to_update:
