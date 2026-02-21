@@ -1,5 +1,11 @@
 "author": "palash"
 "chart": "tradingview"
-"subscribed_queries": []
+"subscribed_queries":
+- "period": "5m"
+  "query": "Feature: pytick llm\nScenario: Tickers with minute5 notification analysis\n\
+    Given stocks from index nifty50\nWhen let result = latest in 2 samples of minute5\
+    \ notification\nThen list result = tickers with result"
+  "tickers":
+  - "result": []
 "user_id": !!int "686175319383736344"
 "user_name": "palash1425"
