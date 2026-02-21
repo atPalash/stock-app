@@ -52,13 +52,9 @@ class VariableTypes(Enum):
 
 class StepData:
     condition = [">", "<", "!=", "==", ">=", "<="]
-    color = ["red", "green", "blue"]
-    empty = [""]
-    list = ["<list>"]
     number = ["<number>"]
     ohlc = ["close", "open", "high", "low", "volume"]
     indicator = ["sma", "ema", "atr", "rsi", "vwap", "rvol"]
-    bbands = ["upperbband", "lowerbband", "middlebband"]
     word = ["<word>"]
     condition = ["<condition>"]  # multiline condition
     operator = [
@@ -71,9 +67,8 @@ class StepData:
         "change",
         # "slope",
     ]
-    interval = ['day', 'minute5', 'minute1']
-    series = ["<series>"]
-
+    interval = list(read_config(config).get('interval_seconds', {}).keys())
+    
     def __init__(
         self,
         logic=Callable,
@@ -156,34 +151,30 @@ class StepData:
             r"^stocks from index (.+)$": StepData(
                 logic=logic.get_index_tickers,
                 variables={3: indexes},
-                placeholders={3: VariablePlaceholder.MULTISELECTION.value},
-                query_type=QueryType.ANY,
-                meta={
-                    3: {
-                        "type": VariableTypes.INDEX.value,
-                        "input_type": VariablePlaceholder.MULTISELECTION.value,
-                    },
-                },
             ),
             r"^stocks from list (.+)$": StepData(
                 logic=logic.get_stocks,
                 variables={3: tickers},
-                placeholders={3: VariablePlaceholder.MULTISELECTION.value},
-                query_type=QueryType.ANY,
-                meta={
-                    3: {
-                        "type": VariableTypes.TICKER.value,
-                        "input_type": VariablePlaceholder.MULTISELECTION.value,
-                    },
-                },
             ),
         }
 
     def when_steps(self):
         return {
+            #  let notification = latest in 5 samples of day notification
+            #   0   1           2     3  4  5   6      7  8     9   
+            r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$": StepData(
+                logic=logic.calculate_notification,
+                variables={
+                    1: StepData.word,
+                    3: ['latest', 'oldest'],
+                    5: StepData.number,
+                    8: StepData.interval,
+                    9: ["notification"],
+                },
+            ),
             #  let ema20 = latest in  5   samples of (day)  close  ema    window
             #  0    1    2  3    4    5     6     7   8     9     10    11
-            r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (\w+) (\w+) (\d+)$": StepData(
+            r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (close|open|high|low|volume) (\w+) (\d+)$": StepData(
                 logic=logic.calculate_indicators,
                 variables={
                     1: StepData.word,
@@ -194,109 +185,18 @@ class StepData:
                     10: StepData.indicator,
                     11: StepData.number,
                 },
-                step_version="v2",
-                meta={
-                    1: {
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                    3: {
-                        "input_type": VariablePlaceholder.SELECTION.value,
-                    },
-                    5: {
-                        "input_type": VariablePlaceholder.NUMBER.value,
-                    },
-                    8: {
-                        "input_type": VariablePlaceholder.SELECTION.value,
-                    },
-                    9: {
-                        "input_type": VariablePlaceholder.SELECTION.value,
-                    },
-                    10: {
-                        "input_type": VariablePlaceholder.SELECTION.value,
-                    },
-                    11: {
-                        "input_type": VariablePlaceholder.NUMBER.value,
-                    },
-                },
             ),
             #  let close = latest in  5   samples of  day  close
             #   0   1    2  3    4    5     6     7    8    9
-            r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (\w+)$": StepData(
+            r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (close|open|high|low|volume)$": StepData(
                 logic=logic.calculate_ohlc,
                 variables={
                     1: StepData.word,
                     3: StepData.operator,
                     5: StepData.number,
                     8: StepData.interval,
-                    9: StepData.ohlc + ["notification"],
+                    9: StepData.ohlc,
                 },
-                step_version="v2",
-                meta={
-                    1: {
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                    3: {
-                        "input_type": VariablePlaceholder.SELECTION.value,
-                    },
-                    5: {
-                        "input_type": VariablePlaceholder.NUMBER.value,
-                    },
-                    8: {
-                        "input_type": VariablePlaceholder.SELECTION.value,
-                    },
-                    9: {
-                        "input_type": VariablePlaceholder.SELECTION.value,
-                    },
-                },
-            ),
-            #  plot close = 5     samples of  day  close
-            #   0   1    2 3     4       5    6     7
-            r"^plot (\w+) = (\d+) samples of (\w+) (\w+)$": StepData(
-                # logic=ohlc.plot,
-                variables={
-                    1: StepData.word,
-                    3: StepData.number,
-                    6: StepData.interval,
-                    7: StepData.ohlc,
-                },
-                step_version="v2",
-                query_type=QueryType.CHART,
-                meta={
-                    1: {"type": VariableTypes.NAME.value},
-                    3: {"type": VariableTypes.SAMPLES.value},
-                    6: {
-                        "type": VariableTypes.INTERVAL.value,
-                        "readOnly": True,
-                        "listenerId": "onIntervalChange",
-                    },
-                    7: {"type": VariableTypes.OHLC.value},
-                },
-            ),
-            #   0    1    2   3      4    5    6     7     8     9
-            r"^plot (\w+) = (\d+) samples of (\w+) (\w+) (\w+) (\d+)$": StepData(
-                # logic=indicator.plot,
-                variables={
-                    1: StepData.word,
-                    3: StepData.number,
-                    6: StepData.interval,
-                    7: StepData.ohlc,
-                    8: StepData.indicator,
-                    9: StepData.number,
-                },
-                meta={
-                    1: {"type": VariableTypes.NAME.value},
-                    3: {"type": VariableTypes.SAMPLES.value},
-                    6: {
-                        "type": VariableTypes.INTERVAL.value,
-                        "readOnly": True,
-                        "listenerId": "onIntervalChange",
-                    },
-                    7: {"type": VariableTypes.OHLC.value},
-                    8: {"type": VariableTypes.INDICATOR.value},
-                    9: {"type": VariableTypes.WINDOW.value},
-                },
-                step_version="v2",
-                query_type=QueryType.CHART,
             ),
         }
 
@@ -309,17 +209,6 @@ class StepData:
                     1: StepData.word,
                     5: StepData.condition,
                 },
-                query_type=QueryType.QUERY,
-                meta={
-                    1: {
-                        "type": VariableTypes.NAME.value,
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                    5: {
-                        "type": VariableTypes.CONDITION.value,
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                },
             ),
             r"^let (\w+) = (.+)$": StepData(
                 logic=logic.calculate_conditions,
@@ -327,36 +216,6 @@ class StepData:
                     1: StepData.word,
                     3: StepData.condition,
                 },
-                query_type=QueryType.QUERY,
-                meta={
-                    1: {
-                        "type": VariableTypes.NAME.value,
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                    3: {
-                        "type": VariableTypes.CONDITION.value,
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                },
-            ),
-            #   0   1    2   3      4     5
-            r"^plot (\w+) = signals with (.+)$": StepData(
-                # logic=signals.calculate,
-                variables={
-                    1: StepData.word,
-                    5: StepData.condition,
-                },
-                meta={
-                    1: {
-                        "type": VariableTypes.NAME.value,
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                    5: {
-                        "type": VariableTypes.CONDITION.value,
-                        "input_type": VariablePlaceholder.KEYWORD.value,
-                    },
-                },
-                query_type=QueryType.CHART,
             ),
         }
 

@@ -1,25 +1,19 @@
 #! /bin/bash
 
-function initContainer() {
-    # Install influx db in Ubuntu and Debian
-    # Add the InfluxData key to verify downloads and add the repository
-    curl --silent --location -O https://repos.influxdata.com/influxdata-archive.key
-    gpg --show-keys --with-fingerprint --with-colons ./influxdata-archive.key 2>&1 \
-    | grep -q '^fpr:\+24C975CBA61A024EE1B631787C3D57159FC2F927:$' \
-    && cat influxdata-archive.key \
-    | gpg --dearmor \
-    | sudo tee /etc/apt/keyrings/influxdata-archive.gpg > /dev/null \
-    && echo 'deb [signed-by=/etc/apt/keyrings/influxdata-archive.gpg] https://repos.influxdata.com/debian stable main' \
-    | sudo tee /etc/apt/sources.list.d/influxdata.list
-    # Install influxdb
-    sudo apt-get update && sudo apt-get install influxdb2
-}
-
+# Cap native BLAS/OpenMP thread pools to avoid oversubscription
+export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
+export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
+export NUMEXPR_NUM_THREADS=${NUMEXPR_NUM_THREADS:-1}
+export MKL_NUM_THREADS=${MKL_NUM_THREADS:-1}
+# Add export PYTHONPATH=/home/palash/dev/stock-app:$PYTHONPATH
+# cd pytick && pip install -e . 
 function initDeveloper() {
     # Add keys for github
     eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_ed25519_asus
     source /usr/share/bash-completion/completions/git
+    git config --global user.name "Palash Halder"
+    git config --global user.email "mpalash.halder@gmail.com"
 }
 
 function runApp() {
@@ -61,4 +55,8 @@ function runApp() {
             start_main_py
         fi
     done
+}
+
+function killApp() {
+    pkill -f "./main.py"
 }

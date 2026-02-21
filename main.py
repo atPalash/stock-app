@@ -29,9 +29,11 @@ cron_schedules = app_config.get('cron_schedules', {})
 cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
-notification_handler = notification.NotificationHandler(tz=tz)
+notification_handler = notification.NotificationHandler(tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
 gherkin_handler = query.QueryHandler(data_handler=data_handler, 
-                                    interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()})
+                                    notification_handler=notification_handler,
+                                    interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()},
+                                    interval_seconds=app_config.get('interval_seconds', {}))
 
 def save_users(file_path,data, key:str=None):
     save_config(key=key, data=data, path=file_path)
@@ -75,6 +77,16 @@ async def notification(ticker: str):
     result = notification_handler.get_corporate_actions(tickers=[ticker])
     if result['success'] and ticker in result['data']:
         df = result['data'][ticker]
+        return {"success": True, "ticker": ticker,
+            "data": df.to_dict(orient='records')}
+    else:
+        return {"success": False, "message": f"No data found for ticker {ticker} notifications"}
+
+@app.get("/notification/{ticker}/{after}")
+async def notification(ticker: str, after: str):
+    result = notification_handler.get_corporate_actions_after(tickers=[ticker], after=pandas.to_datetime(after))
+    if result[ticker] is not None:
+        df = result[ticker]
         return {"success": True, "ticker": ticker,
             "data": df.to_dict(orient='records')}
     else:

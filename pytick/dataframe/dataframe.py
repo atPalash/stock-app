@@ -1,5 +1,7 @@
 import logging
 import multiprocessing
+import os
+from dotenv import load_dotenv
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -8,7 +10,10 @@ import pandas_ta as ta
 # from main import mp_process_ticker
 from pytick.utility.utility import get_logger, normalize_index_to_tz, read_config
 
+load_dotenv()
 logger = get_logger(__file__, logging.DEBUG)
+config = os.environ.get("CONFIG_FILE")
+app_config = read_config(file_path=config)
 
 def download_stock_data(ticker:str, interval:str, tz:str)->pd.DataFrame:
     """Download stock data from Yahoo Finance.
@@ -58,27 +63,33 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
             for period in periods:
                 try:
                     col_name = f"{ind_type}_{period}_{src}"
+                    df[col_name] = pd.Series(np.nan, index=df.index)
+                    series = None
                     if ind_type == 'sma':
-                        df[col_name] = ta.sma(df[src_col], length=period).round(2)
+                        series = ta.sma(df[src_col], length=period)
                     elif ind_type == 'ema':
-                        df[col_name] = ta.ema(df[src_col], length=period).round(2)
+                        series = ta.ema(df[src_col], length=period)
                     elif ind_type == 'atr':
-                        df[col_name] = ta.atr(df['High'], df['Low'], df['Close'], length=period).round(2)
+                        series = ta.atr(df['High'], df['Low'], df['Close'], length=period)
                     elif ind_type == 'vwap':
-                        df[col_name] = ta.vwap(df['High'], df['Low'], df['Close'], df['Volume']).round(2)
+                        series = ta.vwap(df['High'], df['Low'], df['Close'], df['Volume'])
                     elif ind_type == 'rvol':
                         df["avgVolume"] = df["Volume"].rolling(window=period).mean().shift(1)
-                        df[col_name] = (df["Volume"] / df["avgVolume"]).round(2)
+                        series = (df["Volume"] / df["avgVolume"])
                         df.drop(columns="avgVolume", inplace=True)
                     else:
                         logger.warning(f"Unsupported indicator type: {ind_type}")
+                    if series is not None:
+                        # only round & assign if we really got a Series
+                        df[col_name] = series.round(2)
                 except Exception as e:
                     msg = f"Exception calculating {ind_type} for period {period} and source {src}: {e}"
                     errors.append(msg)
     return {'ticker': ticker, 'df' : df, 'errors': errors}
 
 def get_nifty50_tickers() -> list:
-    nifty50 = pd.read_csv('ind_nifty50list.csv')
+    tickers_csv = f"{app_config.get('app_data_path')}/ind_nifty50list.csv"
+    nifty50 = pd.read_csv(tickers_csv)
     return nifty50['Symbol'].tolist()
     
 class DataFrameHandler:
@@ -193,4 +204,4 @@ if __name__ == "__main__":
     # indicators = read_config(config_path).get('indicators', {})
     # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
     print(get_nifty50_tickers())
-    # download_stock_data("TCS", "5m", "Asia/Kolkata")
+    # download_stock_data("TMPV", "1d", "Asia/Kolkata")

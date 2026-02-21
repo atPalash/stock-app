@@ -8,15 +8,18 @@ import pandas
 
 # from utility.utility import get_logger
 from pytick.dataframe.dataframe import DataFrameHandler
+from pytick.dataframe.notification import NotificationHandler
 from pytick.query.steps import StepData
 from pytick.utility.utility import get_logger, read_config
 
 logger = get_logger(__file__, logging.DEBUG)
 
 class QueryHandler:
-    def __init__(self, data_handler: DataFrameHandler, interval_translation: dict):
+    def __init__(self, data_handler: DataFrameHandler, notification_handler:NotificationHandler, interval_translation: dict, interval_seconds: dict):
         self.data_handler = data_handler
+        self.notification_handler = notification_handler
         self.interval_translation = interval_translation
+        self.interval_seconds = interval_seconds
 
     @staticmethod
     def parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
@@ -28,7 +31,7 @@ class QueryHandler:
         errors = []
         if not QueryHandler.__validate_step_order(lines, errors):
             return False, {}, errors
-        success, step_data = QueryHandler.__fetch_step_data(lines)
+        success, step_data, errors = QueryHandler.__fetch_step_data(lines)
         if not success:
             return False, {}, errors
         return True, step_data, errors
@@ -46,17 +49,18 @@ class QueryHandler:
         then_steps = [step for step in step_data if step.get('step') == 'Then']
 
         # Process Given steps to get tickers
-        success, tickers, errors = self.__process_given_steps(given_steps)
+        success, tickers, g_errors = self.__process_given_steps(given_steps)
         if not success:
-            return False, {}, errors, {}
+            return False, {}, g_errors, {}
         # Process When steps to calculate variables
-        success, when_results, errors = self.__process_when_steps(when_steps, tickers, bt_config)
+        success, when_results, w_errors = self.__process_when_steps(when_steps, tickers, bt_config)
         if not success:
-            return False, {}, errors, {}
+            return False, {}, w_errors, {}
         # Process Then steps to get final results
-        success, then_results, errors = self.__process_then_steps(then_steps, when_results)
+        success, then_results, t_errors = self.__process_then_steps(then_steps, when_results)
         if not success:
-            return False, {}, errors, {}
+            return False, {}, t_errors, {}
+
         conditional_tickers = []
         for step in then_steps:
             values = [v['value'] for v in step.get('values', [])]
@@ -143,7 +147,7 @@ class QueryHandler:
             current_step = current_step if step_split[0] in conjunctions else step_split[0]
             if current_step not in step_patterns.keys():
                 errors.append(f"Line does not start with a valid step keyword: {line}")
-                return False, match_values
+                return False, match_values, errors
             line_step = ' '.join(step_split[1:])
             for regex, step_data in step_patterns[current_step].items():
                 match_obj = re.match(regex, line_step)
@@ -156,13 +160,13 @@ class QueryHandler:
                         if allowed_values and '<' not in allowed_values[0] and '>' not in allowed_values[0]:
                             if value not in allowed_values:
                                 errors.append(f"Invalid value '{value}' for variable '{variable_indexes[i-1]}' in line: '{line_unfiltered}'. Allowed values: {allowed_values}")
-                                return False, match_values
+                                return False, match_values, errors
                         matches.append({'index': variable_indexes[i-1], 'value': value})
                     match_values.append({'statement': line_unfiltered, 'regex': regex, 'values': matches, 'step': current_step, 'logic': step_data.logic})
                     matched = True
             if not matched:
                 errors.append(f"Regex match for \"{line}\" not found in {list(step_patterns[current_step].keys())}")
-        return len(errors) == 0, match_values
+        return len(errors) == 0, match_values, errors
 
     def __process_given_steps(self, given_steps:list)-> tuple[bool, list, list]:
         tickers = []
@@ -175,29 +179,38 @@ class QueryHandler:
         if tickers is None or len(tickers) == 0:
             logger.warning("No tickers found from Given steps.")
             return False, {}, errors
-        return True, tickers, []
+        return True, tickers, errors
 
     def __process_when_steps(self, when_steps:list, given_result:list, bt_config:dict = None) -> tuple[bool, pandas.DataFrame, list]:
         result = pandas.DataFrame(columns=['ticker'])
+        ret_errors = []
         for step in when_steps:
             values = [v['value'] for v in step.get('values', [])]
-            if step['logic'].__qualname__ == 'calculate_indicators':
+            logic_name = step['logic'].__qualname__
+            kwargs = {}
+            if logic_name == 'calculate_indicators':
                 id, operator, query_span, interval, ohlc_source, indicator, window = values
                 kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'ohlc_source': ohlc_source, 'indicator': indicator, 'window': window}
-            if step['logic'].__qualname__ == 'calculate_ohlc':
+            elif logic_name == 'calculate_ohlc':
                 id, operator, query_span, interval, ohlc_source = values
                 kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'ohlc_source': ohlc_source}
-
+            elif logic_name == 'calculate_notification':
+                id, operator, query_span, interval, _ = values
+                kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'source': None, 'duration': self.interval_seconds.get(interval, 0)}
+            else:
+                logger.warning(f"Unknown logic function {logic_name} in When step.")
+                return False, None, [f"Unknown logic function {logic_name} in When step."]
+            
             # Add column if it doesn't exist
             if id not in result.columns:
-                result[id] = numpy.nan
+                result[id] = numpy.nan if logic_name != 'calculate_notification' else None
 
+            notifications = self.notification_handler.get_corporate_actions_dfs(tickers=given_result)
             for ticker in given_result:
                 # Add row for ticker if it doesn't exist
                 if ticker not in result['ticker'].values:
                     new_row = {'ticker': ticker}
                     result = pandas.concat([result, pandas.DataFrame([new_row])], ignore_index=True)
-                
                 full_df = self.data_handler.get_tables(tickers=[ticker], 
                                                   interval=self.interval_translation[interval]).get('data', {}).get(ticker, None)
                 
@@ -208,13 +221,18 @@ class QueryHandler:
                 if df is None or df.empty:
                     logger.warning(f"No data found for ticker {ticker} with interval {interval}")
                     continue
+                if logic_name == 'calculate_notification':
+                    kwargs['source'] = notifications.get(ticker, None) 
                 
                 success, val, errors = step.get('logic')(df, **kwargs)
                 result.loc[result['ticker'] == ticker, id] = val
                 if not success:
                     logger.warning(f"Exception calculating variables: {errors}")
                     return False, None, errors
-        return True, result, []
+                if success and len(errors) > 0: # some ticker may have issues
+                    logger.warning(f"Calculating variables {ticker}: {errors}")
+                    ret_errors.append(errors)
+        return True, result, ret_errors
 
     def __process_then_steps(self, then_steps:list, when_results:pandas.DataFrame) -> tuple[bool, pandas.DataFrame, list]:
         result = when_results
@@ -227,7 +245,7 @@ class QueryHandler:
                 logger.warning(f"Exception calculating Then step: {errors}")
                 return False, {}, errors
 
-        return True, result, []
+        return True, result, errors
 
     def __process_backtest(self, then_results:pandas.DataFrame, bt_config: dict) -> tuple[bool, dict, list]:
         interval = bt_config.get('interval', None)
@@ -292,20 +310,21 @@ if __name__ == "__main__":
     gherkin = """
 Feature: pytick llm
 Scenario: Multiple condition analysis with previous day close, VWAP, and EMA
-Given stocks from index nifty50
-When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of minute5 close
-* let vwap10 = latest in 1 samples of minute5 close vwap 10
-* let ema10 = latest in 1 samples of minute5 close ema 10
-* let atr10 = latest in 1 samples of day close atr 10
-Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01)
-* list reversal = tickers with (abs(vwap10 - close) > 0.5 * atr10)"""
-    config = os.environ.get("CONFIG_FILE")
-    tickers = read_config(config).get('indexes', []).get('nifty50', [])
-    indicators = read_config(config).get('indicators', {})
-    tz = read_config(config).get('tz', 'Asia/Kolkata')
+Given stocks from list BERGEPAINT
+When let notification = latest in 5 minute5 notification
+Then list movers = tickers with notification
+"""
+    config = read_config(os.environ.get("CONFIG_FILE"))
+    tickers = config.get('indexes', []).get('nifty50', [])
+    indicators = config.get('indicators', {})
+    tz = config.get('tz', 'Asia/Kolkata')
     data_handler = DataFrameHandler(tz=tz, indicators=indicators)
+    notification_handler = NotificationHandler(tz=tz, max_rows=1000, app_data_path=config.get('app_data_path', ''))
     data_handler.set_tables(tickers=tickers, interval='5m')
-    query_handler = QueryHandler(data_handler, interval_translation={v: k for k, v in read_config(config).get('interval_translation', {}).items()})
+    notification_handler.set_corporate_actions(tickers=tickers)
+    query_handler = QueryHandler(data_handler, notification_handler=notification_handler, 
+                                 interval_translation={v: k for k, v in config.get('interval_translation', {}).items()},
+                                 interval_seconds=config.get('interval_seconds', {}))
     # print(query_handler.get_gherkin_result(gherkin, bt_config={'clip': 20, 'forward': 10, 'interval': '5m'}))
     print(query_handler.get_gherkin_result(gherkin))
+    

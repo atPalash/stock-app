@@ -11,6 +11,7 @@ from pytick.llm.agents.router import router
 from pytick.llm.agents.validator import validator_agent
 from pytick.llm.types import State
 from pytick.llm.utils.draw import draw_graph
+from pytick.utility.utility import clean_gherkin
 
 load_dotenv()
 
@@ -72,7 +73,7 @@ class Graph:
             last_message = self.conversation_state["messages"][-1]
             # Retain only system messages to avoid state bloat
             self.conversation_state["messages"] = [m for m in self.conversation_state["messages"] if isinstance(m, SystemMessage)]
-            return last_message.content
+            return clean_gherkin(last_message.content)
         return "Can't process request to gherkin"
 
 
