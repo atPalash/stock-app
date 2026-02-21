@@ -58,3 +58,19 @@ def normalize_index_to_tz(df, tz_str):
     else:
         df.index = df.index.tz_convert(tz_str)
     return df
+
+def clean_gherkin(gherkin:str)->str:
+    """
+    Clean Gherkin string by removing extra whitespace and newlines.
+    """
+    # Remove leading/trailing whitespace and newlines
+    ret = gherkin.strip(' \r\n') 
+
+    lines = []
+    for line in ret.splitlines('\n'):
+        # Strip leading/trailing whitespace from each line
+        line = line.strip()
+        if line:
+            lines.append(line)
+    # Join non-empty lines with a single newline
+    return '\n'.join(lines)
