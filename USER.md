@@ -10,7 +10,7 @@ _Learn about the person you're helping. Update this as you go._
 
 ## Context
 
-- Prefers pytick screening results as a Discord embed-style message.
+- Prefers pytick screening results as a true Discord embed card.
 - Wants ticker entries formatted as clickable ticker chart link followed by clickable News link.
 - Run pytick gherkin queries via API at `http://localhost:5000/gherkin`.
 
