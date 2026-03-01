@@ -16,6 +16,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
+### TO REMOVE
+
 async def helpme(ctx: commands.Context, *args: str):
     """Show available bot commands. 
     
@@ -328,54 +330,6 @@ async def _sub_handler(bot, bot_config, users_dir, interval, update_func):
                 await __send_subscription_result(ctx=user_ctx, bot_config=bot_config, 
                     user_config=user_config, query=query, update_func=update_func)
 
-def __do_run(bot_config: BotConfig, user_config: dict, query: str, previous_results:list=[]) -> tuple[list[dict], list[str]]:
-    try:
-        success, results, errors, _ = bot_config.query_handler.get_gherkin_result(gherkin_str=query)
-        if not success:
-            msg = f"Exception during query execution: {errors}"
-            logger.warning(msg)
-            raise Exception(errors)
-        
-        # fetch new tickers for qid
-        new_tickers = {}
-        for i in range(len(results)):
-            for qid, tickers in results[i].items():
-                prev_tickers = previous_results[i].get(qid, []) if i < len(previous_results) else []
-                new_tickers[i] = {qid: list(set(tickers) - set(prev_tickers))}
-
-        parts = []
-        for i in range(len(results)):
-            point = results[i]
-            for qid, tickers in point.items():
-                parts.append(f"**{qid}**")
-                chart_type = user_config.get("chart", "tradingview")
-                corporate_actions = bot_config.notification_handler.get_corporate_actions_dfs(tickers=tickers)
-                for t in tickers:
-                    try:
-                        chart_link = f"[{t}]({bot_config.trading_view_url}{t})" # default to tradingview chart
-                        if chart_type == "zerodha":
-                            token = bot_config.zerodha_df.query(f"tradingsymbol == '{t}' and exchange == 'NSE'")['instrument_token'].iloc[0]
-                            chart_link = f"[{t}]({bot_config.zerodha_url}{t}/{token})"
-                        if chart_type == "tradingview" and any(c in t for c in ['-','&']):
-                            edited_t = t.replace('-', '_').replace('&', '_')
-                            chart_link = f"[{t}]({bot_config.trading_view_url}{edited_t})"
-                        ticker_action = corporate_actions.get(t, None)
-                        corporate_action_link = ""
-                        if ticker_action is not None and not ticker_action.empty:
-                            recent_action = ticker_action.tail(1)['file'].values[0]
-                            corporate_action_link = f"[action]({recent_action})"
-                        news_link = f"[news](https://www.google.com/finance/quote/{t}:NSE)"
-                        changed = "🟢" if t in new_tickers[i][qid] and len(previous_results) > 0 else ""
-                        ticker_clickables = [chart_link, news_link, corporate_action_link, changed]
-                        parts.append(' '.join(ticker_clickables))
-                    except Exception as e:
-                        parts.append(f"[{t}]")
-                        logger.warning(f"Exception {t}: {e}")
-        return results, parts    
-    except Exception as e:
-        # msg = f"Exception during execution: {e}"
-        logger.warning(msg)
-        raise e
     
 def __pre_check(ctx: commands.Context) -> bool:
     """Pre-check to extract gherkin text from reply or arguments.
@@ -512,40 +466,3 @@ async def __validate(ctx: commands.Context, *args:str) -> tuple[bool, Graph]:
         logger.warning(msg)
         return False, None, None, None
 
-async def __sendEmbedResults(ctx: commands.Context, parts: list[str]):
-    try:
-        embed = discord.Embed(title="Result", color=discord.Color.blurple())
-        current_section = ""
-        field_count = 0
-        
-        for part in parts:
-            # Handle section headers
-            if part.startswith("**") or part.strip() == "":
-                if part.strip() != "":
-                    current_section = part.replace('*', '')
-                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
-                    field_count += 1
-                continue
-            
-            # Add ticker with all its links
-            if part.strip():
-                # Use zero-width space for empty name to group under section
-                embed.add_field(name="​", value=part, inline=False)
-                field_count += 1
-            
-            # Send when embed gets too large (Discord limit is 25 fields)
-            if field_count >= 20:
-                await ctx.send(embed=embed)
-                embed = discord.Embed(title="Result (cont.)", color=discord.Color.blurple())
-                if current_section:
-                    embed.add_field(name=current_section, value="⎯" * 20, inline=False)
-                field_count = 1 if current_section else 0
-        
-        # Send final embed if it has fields
-        if field_count > 0:
-            await ctx.send(embed=embed)
-    except Exception as e:
-        # msg = f"Exception during execution: {e}"
-        # await ctx.send(msg)
-        logger.warning(e)
-        raise e

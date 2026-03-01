@@ -5,13 +5,11 @@ export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
 export OMP_NUM_THREADS=${OMP_NUM_THREADS:-1}
 export NUMEXPR_NUM_THREADS=${NUMEXPR_NUM_THREADS:-1}
 export MKL_NUM_THREADS=${MKL_NUM_THREADS:-1}
+export APP_DIR=~/app
 # Add export PYTHONPATH=/home/palash/dev/stock-app:$PYTHONPATH
 # cd pytick && pip install -e . 
-function initDeveloper() {
-    # Add keys for github
-    eval "$(ssh-agent -s)"
-    ssh-add ~/.ssh/id_ed25519_asus
-    source /usr/share/bash-completion/completions/git
+
+function initWorkspace() {
     git config --global user.name "Palash Halder"
     git config --global user.email "mpalash.halder@gmail.com"
 }
@@ -59,4 +57,45 @@ function runApp() {
 
 function killApp() {
     pkill -f "./main.py"
+    # openclaw gateway stop
+    # pkill -f openclaw-ga
 }
+
+# Run as a new tmux session: tmux new -s redis
+function runRedis() {
+    tmux kill-session -t redis || true
+    tmux new-session -d -s redis redis-server --port 6379
+}
+
+function backupRedis() {
+    cd $APP_DIR
+    redis-cli --rdb dump.rdb
+    rdb -c json dump.rdb > dump.json
+}
+
+: <<'EOF'
+Step-by-Step Discord Bot Setup Guide
+Step 1: Create a Discord Application on Discord Developer Portal
+Go to Discord Developer Portal
+Click "New Application" button
+Enter a name for your bot (e.g., "Stock-Query-Bot")
+Accept the terms and click "Create"
+Go to the "Bot" tab on the left sidebar
+Click "Add Bot"
+Under the TOKEN section, click "Copy" to copy your bot token
+Save this token securely - you'll need it in a .env file
+Step 2: Configure Bot Permissions
+In Developer Portal, go to "OAuth2" → "URL Generator"
+Under "SCOPES", select:
+bot
+applications.commands
+Under "PERMISSIONS", select:
+Send Messages
+Read Messages/View Channels
+Embed Links
+Read Message History
+Use Slash Commands
+Copy the generated URL and paste it in your browser to invite the bot to your server
+Step 3: Set Up Your Environment (.env file)
+Create a .env file in your project root:
+EOF

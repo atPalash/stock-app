@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 import fcntl
 
+
 def read_config(file_path):
     logger = get_logger('utility', logging.DEBUG)
     try:
@@ -13,7 +14,8 @@ def read_config(file_path):
         logger.warning(f"Exception reading config file {file_path}: {e}")
         return e
 
-def save_config(key:str, data:dict, path:str):   
+
+def save_config(key: str, data: dict, path: str):
     # Save the dictionary to a YAML file
     to_write = read_config(path)
     with open(path, "w") as file:
@@ -24,7 +26,8 @@ def save_config(key:str, data:dict, path:str):
             to_write[key] = data
         yaml.dump(to_write, file, default_style='"')
         fcntl.flock(file, fcntl.LOCK_UN)
-        
+
+
 def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
     Get a logger configured to log to the console.
@@ -40,12 +43,14 @@ def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
         console_handler = logging.StreamHandler()
         console_handler.setLevel(level)
         console_handler.setStream(sys.stdout)
-        formatter = logging.Formatter('%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s')
         console_handler.setFormatter(formatter)
 
         logger.addHandler(console_handler)
 
     return logger
+
 
 def normalize_index_to_tz(df, tz_str):
     """
@@ -59,12 +64,13 @@ def normalize_index_to_tz(df, tz_str):
         df.index = df.index.tz_convert(tz_str)
     return df
 
-def clean_gherkin(gherkin:str)->str:
+
+def clean_gherkin(gherkin: str) -> str:
     """
     Clean Gherkin string by removing extra whitespace and newlines.
     """
     # Remove leading/trailing whitespace and newlines
-    ret = gherkin.strip(' \r\n') 
+    ret = gherkin.strip(' \r\n').strip("```")
 
     lines = []
     for line in ret.splitlines('\n'):
