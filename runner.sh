@@ -19,10 +19,7 @@ function runApp() {
     PATTERN="maximum number of running instances reached (1)"
     ERROR_PATTERN="error"
     RESTART_COUNT=0
-
-    kill_main_py() {
-        pkill -f "./main.py"
-    }
+    killApp
 
     find_free_port() {
         # Find a free port in range 1024-65535
@@ -48,7 +45,7 @@ function runApp() {
             RESTART_COUNT=$((RESTART_COUNT + 1))
             NOW=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S')
             echo "$RESTART_COUNT $NOW - Restarting main.py due to failure" >> "$LOG_FILE"
-            kill_main_py
+            killApp
             sleep 2
             start_main_py
         fi
@@ -56,7 +53,8 @@ function runApp() {
 }
 
 function killApp() {
-    pkill -f "./main.py"
+    pkill -9 -f "main.py" || true
+    pkill -9 -f "python.*main.py" || true
     # openclaw gateway stop
     # pkill -f openclaw-ga
 }
