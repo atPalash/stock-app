@@ -2,6 +2,7 @@ from collections.abc import Callable
 from datetime import datetime, tzinfo
 import functools
 import inspect
+import json
 import logging
 from unittest.mock import Mock
 from attr import dataclass
@@ -48,9 +49,12 @@ class BotConfig:
 
 class RetVal(BaseModel):
     status: bool = False
-    message: str = ""
+    message: str
     errors: list[str] = []
     data: dict = {}
+
+
+INVISIBLE = "\u200b"
 
 
 class TextModal(discord.ui.Modal):
@@ -63,7 +67,7 @@ class TextModal(discord.ui.Modal):
         llm_router_callback: Callable[[int, str], RetVal],
         execute_callback: Callable[[str, discord.Interaction], RetVal],
         send_msg_callback: Callable[[discord.Interaction, str, discord.Embed, bool], None],
-        timeout: int = 120,
+        timeout: int = 20,
         ephemeral: bool = False,
     ):
         super().__init__(title=title, timeout=timeout)
@@ -93,7 +97,7 @@ class TextModal(discord.ui.Modal):
                     return
 
                 result = self._llm_router_callback(
-                    interaction.user.id, self.input.value, self.timeout / 10)
+                    interaction.user.id, self.input.value, self.timeout)
                 gherkin = result.data.get('gherkin', '')
                 if not result.status or gherkin == '':
                     await self._send_msg_callback(interaction, content=result.message)
@@ -150,6 +154,8 @@ class DiscordBot(commands.Bot):
             name="run", description="Run a query, AI will help you!")(self.query_run)
         self.query_group.command(
             name="subscribe", description="Subscribe to a query")(self.query_subscribe)
+        self.query_group.command(
+            name="subscribe_ls", description="List subscribed querie")(self.query_subscribe_ls)
         self.query_group.command(
             name="unsubscribe", description="Unsubscribe to a query")(self.query_unsubscribe)
         self.query_group.command(
@@ -219,23 +225,28 @@ class DiscordBot(commands.Bot):
     async def help_doc(self, interaction: discord.Interaction):
         """Return help content for a specific command."""
         await interaction.response.defer()
-        doc = "No documentation available"
         try:
             group_name = interaction.data.get('name', '')
-            doc = f"{group_name} commands:\n"
             for cmd in interaction.command.parent.commands:
                 cmd_name = cmd.name
                 if cmd_name == 'help':
                     continue
                 cmd = getattr(self, f"{group_name}_{cmd_name}", None)
-                doc += f"- {cmd_name}: {inspect.getdoc(cmd)}\n\n"
-            await self.__send_followup_msg(interaction=interaction, content=doc, ephemeral=False)
+                doc = f"==={group_name}_{cmd_name} command===\n{inspect.getdoc(cmd)}"
+                await self.__send_followup_msg(interaction=interaction, content=doc, ephemeral=False)
         except Exception:
             logger.warning(
                 f"Failed to retrieve help documentation for command {interaction.name}")
 
     async def admin_join(self, interaction: discord.Interaction):
-        """Sends a joining message to the user, guiding them on how to use the bot."""
+        """
+        Handles joining request from user to join server and get bot services. The
+        Bot will send helper to the user via direct message 
+
+        Usage:
+            Typically invoked in response to a Discord slash command
+            when a user wants to join server
+        """
         await interaction.response.send_message("Sending you a direct message, bot conversation will take place in private messages.", ephemeral=True)
         # attempt DM
         try:
@@ -258,7 +269,14 @@ class DiscordBot(commands.Bot):
                                   origin_channel_id=interaction.channel_id)
 
     async def admin_leave(self, interaction: discord.Interaction):
-        """Leave a conversation."""
+        """
+        Handles leaving request from user to leave server and bot services. The
+        Bot will remove any user data from database
+
+        Usage:
+            Typically invoked in response to a Discord slash command
+            when a user wants to leave server
+        """
         await interaction.response.send_message("Leaving conversation.", ephemeral=True)
         await self.convo_store.delete_user(interaction.user.id)
 
@@ -317,9 +335,9 @@ Or use: Feature → Scenario → Given/When/Then",
             try:
                 self.convo_store.subscribe_query(
                     query=code, user_id=interaction.user.id, interval=interval.value)
-                return RetVal(status=True)
+                return RetVal(status=True, message='Subscribed')
             except Exception as e:
-                return RetVal(status=False, errors=[str(e)])
+                return RetVal(status=False, errors=[str(e)], message='Unsuccessful subscription')
         modal = TextModal(title="🤖 Subscribe to query", label="Query",
                           placeholder="🤖 AI auto-fixes queries (10/day) ✨\n \
 Or use: Feature → Scenario → Given/When/Then",
@@ -329,6 +347,32 @@ Or use: Feature → Scenario → Given/When/Then",
                           send_msg_callback=self.__send_followup_msg,
                           ephemeral=False)
         await interaction.response.send_modal(modal)
+
+    async def query_subscribe_ls(self, interaction: discord.Interaction):
+        """
+        Handles listing queries subscribed by user with it's interval via a Discord interaction.
+
+        Usage:
+            Typically invoked in response to a Discord slash command
+            when a user wants to list subscribed queries
+        """
+        try:
+            await interaction.response.defer()
+            subscriptions = self.convo_store.get_user_subs(
+                user_id=interaction.user.id)
+            if len(subscriptions.keys()) == 0:
+                await self.__send_followup_msg(interaction=interaction, content='No query subscribed', ephemeral=False)
+                return
+            fixed = []
+            separator = '----------'
+            for query, interval in subscriptions.items():
+                fixed.append(f'Query interval: {interval}\n')
+                fixed.append(f'{query}\n')
+                fixed.append(separator)
+            await self.__send_followup_msg(interaction=interaction, content='\n'.join(fixed), ephemeral=False)
+        except Exception as e:
+            await self.__send_followup_msg(interaction=interaction, content='Failure: {e}', ephemeral=False)
+            logger.warning(f'Failure: {e}')
 
     async def query_unsubscribe(self, interaction: discord.Interaction):
         """
@@ -348,11 +392,9 @@ Or use: Feature → Scenario → Given/When/Then",
                 if status:
                     return RetVal(status=True, message=f'Un-subscribed:\n{code} ')
                 else:
-                    subscriptions = self.convo_store.get_user_subs(
-                        user_id=interaction.user.id)
-                    return RetVal(status=True, message=f'Failed unsubscribe:\n{code}\n\nYour subscriptions:\n{subscriptions}')
+                    return RetVal(status=True, message=f'Failed unsubscribe:\n{code}')
             except Exception as e:
-                return RetVal(status=False, errors=[str(e)])
+                return RetVal(status=False, errors=[str(e)], message='error in unsubscribe')
         modal = TextModal(title="🤖 Un-subscribe from a query", label="Query",
                           placeholder="Enter the exact query to un-subscribe",
                           validate_user_callback=self.__validate_user,
@@ -405,7 +447,7 @@ Or use: Feature → Scenario → Given/When/Then",
                     self.llm_handler.run,
                     args=(query,)
                 )
-                return RetVal(status=True, data={"gherkin": llm_converted_input})
+                return RetVal(status=True, data={"gherkin": llm_converted_input}, message='llm converted gherkin')
             except FunctionTimedOut:
                 logger.warning(f"LLM conversion timed out: {query}")
                 return RetVal(status=False, message=f"⏰ AI conversion timed out for {query}", errors=["Timeout"])
@@ -413,20 +455,10 @@ Or use: Feature → Scenario → Given/When/Then",
             logger.warning(f"{e}")
             return RetVal(status=False, message=f"{e}", errors=[str(e)])
 
-    def __gherkin_check_router(self, user_id: int, input: str, timeout: int) -> RetVal:
+    def __gherkin_check_router(self, _user_id: int, input: str, _timeout: int) -> RetVal:
         """Check valid gherkin.
         """
-        # rate limiting checks
-        try:
-            result = self.__is_gherkin_format(input=input)
-            query = result.data['gherkin']
-            # Already in gherkin format, no need to convert
-            if result.status:
-                return RetVal(status=True, message=f'Query valid', data={'gherkin': query})
-            return RetVal(status=False, message='Query in-valid must match any subscribed query', data={'gherkin': query})
-        except Exception as e:
-            logger.warning(f"{e}")
-            return RetVal(status=False, message=f"{e}", errors=[str(e)])
+        return self.__is_gherkin_format(input=input)
 
     def __set_schedulers(self):
         '''Set up periodic jobs for each subscription interval defined in the configuration.'''
@@ -513,7 +545,7 @@ Or use: Feature → Scenario → Given/When/Then",
                         except Exception as e:
                             parts.append(f"[{t}]")
                             logger.warning(f"Exception {t}: {e}")
-            return RetVal(status=True, data={"results": results, "embeds": self.__getEmbeds(title, parts)}, errors=errors)
+            return RetVal(status=True, message='check tickers', data={"results": results, "embeds": self.__getEmbeds(title, parts)}, errors=errors)
         except Exception as e:
             # msg = f"Exception during execution: {e}"
             logger.warning(f"{e}")
@@ -598,11 +630,11 @@ Or use: Feature → Scenario → Given/When/Then",
             clean_input = clean_gherkin(input)
             is_valid, _, errors = QueryHandler.parse_gherkin(clean_input)
             if not is_valid:
-                return RetVal(status=False, data={"gherkin": ""}, errors=errors)
+                return RetVal(status=False, data={"gherkin": ""}, message=f'Invalid query {input}', errors=errors)
         except Exception as e:
             logger.warning(f"{e}")
-            return RetVal(status=False, errors=[e])
-        return RetVal(status=True, data={"gherkin": clean_input}, errors=[])
+            return RetVal(status=False, errors=[e], message=f'Invalid query {e}')
+        return RetVal(status=True, data={"gherkin": clean_input}, errors=[], message='invalid gherkin')
 
     async def __send_discord_msg(self, interaction: discord.Interaction = None, user: discord.user = None, content: str = "", embed: discord.Embed = None, ephemeral=False):
         try:
@@ -611,12 +643,14 @@ Or use: Feature → Scenario → Given/When/Then",
                 for chunk in safe_chunks:
                     if chunk != "":
                         await interaction.followup.send(content=f"```{chunk}```", ephemeral=ephemeral)
-                await interaction.followup.send(embed=embed, ephemeral=ephemeral)
+                if embed:
+                    await interaction.followup.send(embed=embed, ephemeral=ephemeral)
             if user:
                 for chunk in safe_chunks:
                     if chunk != "":
                         await user.send(content=f"```{chunk}```")
-                await user.send(embed=embed)
+                if embed:
+                    await user.send(embed=embed)
         except Exception as e:
             logger.warning(f"Failure: {e}")
 
