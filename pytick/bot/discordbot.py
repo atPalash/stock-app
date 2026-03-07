@@ -35,7 +35,6 @@ class BotConfig:
     tz: tzinfo
     schedules: dict
     users_config_path: str
-    update_users_callback: Callable[[str, dict], None]
     zerodha_df: pandas.DataFrame
     trading_view_url: str
     zerodha_url: str
@@ -45,6 +44,7 @@ class BotConfig:
     redis_url: str
     convo_ttl_seconds: int
     guild_id: int
+    llm_prompt: str
 
 
 class RetVal(BaseModel):
@@ -134,7 +134,7 @@ class DiscordBot(commands.Bot):
         super().__init__(command_prefix=config.command_prefix, intents=intents)
         self.config = config
         self.users_config_path = config.users_config_path
-        self.llm_handler = Graph()
+        self.llm_handler = Graph(system_prompt=config.llm_prompt)
         self.scheduler = Scheduler(config.tz, is_async=True)
 
         # set up command groups

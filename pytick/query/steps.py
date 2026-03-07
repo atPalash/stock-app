@@ -17,6 +17,7 @@ indicators = read_config(config).get('indicators', {})
 tz = read_config(config).get('tz', 'Asia/Kolkata')
 logger = get_logger(__name__, logging.DEBUG)
 
+
 class PipeType(Enum):
     OR = 1
     AND = 2
@@ -38,6 +39,7 @@ class QueryType(Enum):
     CHART = "chart"  # query to make to a selected ticker chart
     ANY = "any"
 
+
 class VariableTypes(Enum):
     NAME = "name"
     OPERATOR = "operator"
@@ -50,11 +52,12 @@ class VariableTypes(Enum):
     TICKER = "ticker"
     INDEX = "index"
 
+
 class StepData:
     condition = [">", "<", "!=", "==", ">=", "<="]
     number = ["<number>"]
     ohlc = ["close", "open", "high", "low", "volume"]
-    indicator = ["sma", "ema", "atr", "rsi", "vwap", "rvol"]
+    indicator = ["sma", "ema", "atr", "vwap", "rvol"]
     word = ["<word>"]
     condition = ["<condition>"]  # multiline condition
     operator = [
@@ -68,7 +71,7 @@ class StepData:
         # "slope",
     ]
     interval = list(read_config(config).get('interval_seconds', {}).keys())
-    
+
     def __init__(
         self,
         logic=Callable,
@@ -78,8 +81,8 @@ class StepData:
         query_type=QueryType.QUERY,
         meta={},
         indexes=[],
-        stocks = [],
-        intervals = [],
+        stocks=[],
+        intervals=[],
     ) -> None:
         self.logic = logic
         self.variables = variables
@@ -115,7 +118,6 @@ class StepData:
         else:
             raise Exception(f"No matching operator found {operator}")
 
-
     def get_matched_step(rule: str, steps: dict) -> dict:
         """Find the step which matches rule from steps.
 
@@ -126,7 +128,8 @@ class StepData:
         Returns:
             dict: return result as dict which consists of matched func and pipe type.
         """
-        result = {"matched": False, "match": None, "func": None, "pipe": PipeType.AND}
+        result = {"matched": False, "match": None,
+                  "func": None, "pipe": PipeType.AND}
         if "remove" in rule:
             result["pipe"] = PipeType.NOT
             rule = rule.replace("remove", "").strip()
@@ -145,7 +148,6 @@ class StepData:
                 break
         return result
 
-
     def given_steps(self):
         return {
             r"^stocks from index (.+)$": StepData(
@@ -160,18 +162,6 @@ class StepData:
 
     def when_steps(self):
         return {
-            #  let notification = latest in 5 samples of day notification
-            #   0   1           2     3  4  5   6      7  8     9   
-            r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$": StepData(
-                logic=logic.calculate_notification,
-                variables={
-                    1: StepData.word,
-                    3: ['latest', 'oldest'],
-                    5: StepData.number,
-                    8: StepData.interval,
-                    9: ["notification"],
-                },
-            ),
             #  let ema20 = latest in  5   samples of (day)  close  ema    window
             #  0    1    2  3    4    5     6     7   8     9     10    11
             r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (close|open|high|low|volume) (\w+) (\d+)$": StepData(
@@ -184,6 +174,18 @@ class StepData:
                     9: StepData.ohlc,
                     10: StepData.indicator,
                     11: StepData.number,
+                },
+            ),
+            #  let notification = latest in 5 samples of day notification
+            #   0   1           2     3  4  5   6      7  8     9
+            r"^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$": StepData(
+                logic=logic.calculate_notification,
+                variables={
+                    1: StepData.word,
+                    3: ['latest', 'oldest'],
+                    5: StepData.number,
+                    8: StepData.interval,
+                    9: ["notification"],
                 },
             ),
             #  let close = latest in  5   samples of  day  close
@@ -218,6 +220,3 @@ class StepData:
                 },
             ),
         }
-
-
-

@@ -47,6 +47,10 @@ RUN apt update && apt install --no-install-recommends -y \
     openssh-client \
     redis-server \
     lsof \
+    zstd \
+    pciutils \
+    lshw \
+    tmux \
  && apt clean && rm -rf /var/lib/apt/lists/*
 
 RUN apt update && apt upgrade --no-install-recommends -y \

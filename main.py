@@ -11,9 +11,10 @@ from fastapi import Request
 import threading
 
 from pytick.bot.discordbot import BotConfig, DiscordBot
+from pytick.llm.prompt import generate_prompt
 from pytick.query import query
 from pytick.scheduler.scheduler import Scheduler
-from pytick.utility.utility import get_logger, read_config, save_config
+from pytick.utility.utility import get_logger, read_config, read_file
 import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
 
@@ -22,9 +23,9 @@ logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
-users_config_path = os.environ.get("USERS_DIR")
+users_config_path = os.environ.get("USERS_DIR", '')
 app_config = read_config(file_path=config)
-tickers = app_config.get('indexes', []).get('nifty50', [])
+tickers = app_config.get('indexes', {}).get('nifty50', [])
 indicators = app_config.get('indicators', {})
 cron_schedules = app_config.get('cron_schedules', {})
 cron_notification = app_config.get('cron_notification', {})
@@ -37,14 +38,12 @@ gherkin_handler = query.QueryHandler(data_handler=data_handler,
                                      interval_translation={v: k for k, v in app_config.get(
                                          'interval_translation', {}).items()},
                                      interval_seconds=app_config.get('interval_seconds', {}))
-
-
-def save_users(file_path, data, key: str = None):
-    save_config(key=key, data=data, path=file_path)
-
+generate_prompt(config=app_config,
+                output_path=os.path.join(app_config.get(
+                    'app_data_path', ''), "llm_prompt.prompt.md"))
 
 bot_config = BotConfig(
-    token=os.getenv('DISCORD_BOT_TOKEN'),
+    token=os.getenv('DISCORD_BOT_TOKEN', ''),
     command_prefix='/',
     query_handler=gherkin_handler,
     notification_handler=notification_handler,
@@ -52,7 +51,6 @@ bot_config = BotConfig(
     tz=tz,
     schedules=cron_schedules,
     users_config_path=users_config_path,
-    update_users_callback=save_users,
     zerodha_df=pandas.read_csv(app_config.get(
         "zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
@@ -62,7 +60,9 @@ bot_config = BotConfig(
     default_ticker=app_config.get('default_ticker', 'SBIN'),
     redis_url=os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
     convo_ttl_seconds=int(os.getenv('CONVO_TTL_SECONDS', '900')),
-    guild_id=int(os.getenv('DISCORD_GUILD_ID'))
+    guild_id=int(os.getenv('DISCORD_GUILD_ID', '0')),
+    llm_prompt=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "llm_prompt.prompt.md"))
 
 )
 discord_bot = DiscordBot(config=bot_config)
@@ -87,22 +87,10 @@ async def to_dataframe(ticker: str, interval: str):
 
 
 @app.get("/notification/{ticker}")
-async def notification(ticker: str):
+async def get_notification(ticker: str):
     result = notification_handler.get_corporate_actions(tickers=[ticker])
     if result['success'] and ticker in result['data']:
         df = result['data'][ticker]
-        return {"success": True, "ticker": ticker,
-                "data": df.to_dict(orient='records')}
-    else:
-        return {"success": False, "message": f"No data found for ticker {ticker} notifications"}
-
-
-@app.get("/notification/{ticker}/{after}")
-async def notification(ticker: str, after: str):
-    result = notification_handler.get_corporate_actions_after(
-        tickers=[ticker], after=pandas.to_datetime(after))
-    if result[ticker] is not None:
-        df = result[ticker]
         return {"success": True, "ticker": ticker,
                 "data": df.to_dict(orient='records')}
     else:
@@ -129,20 +117,20 @@ if __name__ == "__main__":
                         help='Port to run the server on')
     args = parser.parse_args()
 
-    # start scheduler
-    scheduler = Scheduler(tz)
-    scheduler.start()
+    # # start scheduler
+    # scheduler = Scheduler(tz)
+    # scheduler.start()
 
-    # Schedule ohlc fetching jobs
-    for interval, params in cron_schedules.items():
-        data_handler.set_tables(tickers=tickers, interval=interval)
-        scheduler.add_periodic_job(func=lambda tickers=tickers,
-                                   interval=interval: data_handler.set_tables(tickers=tickers, interval=interval),
-                                   params=params, job_id=f"yf_job_{interval}")
-    # Schedule corporate actions fetching job in 5 minutes interval
-    notification_handler.set_corporate_actions(tickers=tickers)
-    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),
-                               params=cron_notification, job_id="corp_actions_job")
+    # # Schedule ohlc fetching jobs
+    # for interval, params in cron_schedules.items():
+    #     data_handler.set_tables(tickers=tickers, interval=interval)
+    #     scheduler.add_periodic_job(func=lambda tickers=tickers,
+    #                                interval=interval: data_handler.set_tables(tickers=tickers, interval=interval),
+    #                                params=params, job_id=f"yf_job_{interval}")
+    # # Schedule corporate actions fetching job in 5 minutes interval
+    # notification_handler.set_corporate_actions(tickers=tickers)
+    # scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),
+    #                            params=cron_notification, job_id="corp_actions_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
     def _start_discord():
@@ -161,6 +149,7 @@ if __name__ == "__main__":
     finally:
         # ensure scheduler stops on shutdown
         try:
-            scheduler.stop()
+            # scheduler.stop()
+            pass
         except Exception:
             logger.exception("Exception stopping scheduler")

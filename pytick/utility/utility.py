@@ -12,7 +12,17 @@ def read_config(file_path):
             return yaml.safe_load(f)
     except Exception as e:
         logger.warning(f"Exception reading config file {file_path}: {e}")
-        return e
+        return {}
+
+
+def read_file(file_path):
+    logger = get_logger('utility', logging.DEBUG)
+    try:
+        with open(file_path, "r") as f:
+            return f.read()
+    except Exception as e:
+        logger.warning(f"Exception reading file {file_path}: {e}")
+        return ""
 
 
 def save_config(key: str, data: dict, path: str):
@@ -73,7 +83,7 @@ def clean_gherkin(gherkin: str) -> str:
     ret = gherkin.strip(' \r\n').strip("```")
 
     lines = []
-    for line in ret.splitlines('\n'):
+    for line in ret.splitlines():
         # Strip leading/trailing whitespace from each line
         line = line.strip()
         if line:
