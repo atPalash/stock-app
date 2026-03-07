@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 
-def generate_prompt(config: dict, output_path: str) -> str:
+def generate_prompt(config: dict, output_init_prompt: str, output_retry_prompt: str):
     """Generate prompt file from config.yaml and steps.py"""
 
     # Extract data from config
@@ -109,50 +109,19 @@ the first option as default.\n"
     nifty50_stocks = ', '.join(indexes.get('nifty50', [])[
                                :10])  # Show first 10 as example
 
-    prompt_content = f"""# Pytick Prompt
+    starting_prompt = f"""# Pytick Prompt
 
 You are an expert in converting user input to gherkin. Your task is to understand the user's intent and convert it into a valid gherkin scenario using the available step patterns. Always start with a Feature and ensure that the output is in valid Gherkin syntax. Use the provided step formats for Given, When, and Then steps.
-
-### VARIABLE NAMING CONVENTIONS:
-- Variables created in When steps (e.g., `let ema10 = ...`) become available for use in Then steps
-- Use descriptive variable names that include the indicator/data type when applicable (e.g., `ema10`, `sma20`, `prev_close`)
-- When using `oldest in N samples`, extract the Nth previous value (e.g., `oldest in 2 samples` = 1 step back)
-
-## STRICTLY FOLLOW
-### AVAILABLE GIVEN STEPS:
-
-Each pattern must match exactly:
-
-{given_steps_doc}
-
-### AVAILABLE WHEN STEPS:
-
-Each pattern must match exactly:
-
-{when_steps_doc}
-
-### AVAILABLE THEN STEPS:
-
-Each pattern must match exactly:
-
-{then_steps_doc}
-
-**Supported Operators in Conditions:**
-- Comparison: `<`, `>`, `<=`, `>=`, `==`, `!=`
-- Logical: `&` (AND), `|` (OR), `~` (NOT)
-- Functions: `abs(x)`, `min(x, y)`, `max(x, y)`
-
-
-## INSTRUCTION TO CONVERT USER INPUT TO GHERKIN:
+"""
+    starting_instruction = f"""## INSTRUCTION TO CONVERT USER INPUT TO GHERKIN:
 1. Analyze the user input to understand what they want to test
 2. Match their intent to the most appropriate step patterns above
 3. Convert their input into a complete Gherkin scenario with Given, When, and Then steps
 4. Use the exact step formats shown above
 5. Create variables in When steps and use them in Then steps
 6. Always start with a Feature as pytick llm 
-7. Follow the format in example conversions below to ensure the output is in valid Gherkin syntax
-
-## EXAMPLE CONVERSIONS:
+7. Follow the format in example conversions below to ensure the output is in valid Gherkin syntax"""
+    starting_examples = f"""## EXAMPLE CONVERSIONS:
 
 Input: "ema10 > close"
 Output:
@@ -201,11 +170,102 @@ When let prev_close = oldest in 2 samples of day close
 * let close = latest in 1 samples of day close
 * let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
-
 """
 
-    with open(output_path, 'w') as f:
-        f.write(prompt_content)
+    retry_prompt = f"""# Pytick Prompt - Fix gherkin errors
 
-    print(f"✅ Prompt generated: {output_path}")
-    return prompt_content
+The gherkin scenario has errors. Please fix the errors and ensure the output is in valid Gherkin syntax. Follow the step patterns exactly as shown below and use the provided examples as a guide."""
+    retry_instruction = f"""## INSTRUCTION TO FIX GHERKIN ERRORS:
+1. Analyze the gherkin scenario and identify syntax errors or mismatches with step patterns
+2. Refer to the step patterns and ensure each step in the scenario matches one of the patterns exactly
+3. Correct any syntax errors (e.g., missing keywords, incorrect variable usage)
+4. Ensure the scenario starts with a Feature and follows the Given-When-Then structure
+5. Use the example conversions as a guide to ensure the output is in valid Gherkin syntax"""
+    retry_examples = f"""## EXAMPLE FIXES:
+
+Input: Feature: pytick llm
+Scenario: Multiple condition analysis with price change and VWAP deviation
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of day close
+* let vwap = latest in 1 samples of day close vwap
+Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
+Output:
+Feature: pytick llm
+Scenario: Multiple condition analysis with price change and VWAP deviation
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of day close
+* let vwap10 = latest in 1 samples of day close vwap 10
+Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
+Fix: 
+vwap is an indicator that requires a period (e.g., vwap10). The step must specify the indicator and period to match the when step pattern for indicators.
+The variable name in the condition must also be updated to match the variable created in the When step (vwap10 instead of vwap).
+
+Input: Here is the updated
+Feature: pytick llm
+Scenario: Multiple condition analysis with price change and VWAP deviation
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of day close
+Then list movers = tickers with close > prev_close
+Output:
+Feature: pytick llm
+Scenario: Multiple condition analysis with price change and VWAP deviation
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of day close
+Then list movers = tickers with close > prev_close
+Fix: 
+Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.
+"""
+
+    def get_prompt_content(prompt, instruction, examples, output_path):
+
+        prompt_content = f"""{prompt}
+
+### VARIABLE NAMING CONVENTIONS:
+- Variables created in When steps (e.g., `let ema10 = ...`) become available for use in Then steps
+- Use descriptive variable names that include the indicator/data type when applicable (e.g., `ema10`, `sma20`, `prev_close`)
+- When using `oldest in N samples`, extract the Nth previous value (e.g., `oldest in 2 samples` = 1 step back)
+
+### STRICTLY FOLLOW
+### AVAILABLE GIVEN STEPS:
+
+Each pattern must match exactly:
+
+{given_steps_doc}
+
+### AVAILABLE WHEN STEPS:
+
+Each pattern must match exactly:
+
+{when_steps_doc}
+
+### AVAILABLE THEN STEPS:
+
+Each pattern must match exactly:
+
+{then_steps_doc}
+
+**Supported Operators in Conditions:**
+- Comparison: `<`, `>`, `<=`, `>=`, `==`, `!=`
+- Logical: `&` (AND), `|` (OR), `~` (NOT)
+- Functions: `abs(x)`, `min(x, y)`, `max(x, y)`
+
+{instruction}
+
+{examples}
+"""
+
+        with open(output_path, 'w') as f:
+            f.write(prompt_content)
+
+        print(f"✅ Prompt generated: {output_path}")
+
+    # Generate initial prompt
+    get_prompt_content(
+        starting_prompt, starting_instruction, starting_examples, output_init_prompt)
+    # Generate retry prompt
+    get_prompt_content(retry_prompt, retry_instruction,
+                       retry_examples, output_retry_prompt)

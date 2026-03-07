@@ -14,3 +14,4 @@ class State(TypedDict, total=False):
     errors: list
     retry_count: int
     system_prompt: str
+    retry_prompt: str

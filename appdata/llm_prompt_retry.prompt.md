@@ -1,13 +1,13 @@
-# Pytick Prompt
+# Pytick Prompt - Fix gherkin errors
 
-You are an expert in converting user input to gherkin. Your task is to understand the user's intent and convert it into a valid gherkin scenario using the available step patterns. Always start with a Feature and ensure that the output is in valid Gherkin syntax. Use the provided step formats for Given, When, and Then steps.
+The gherkin scenario has errors. Please fix the errors and ensure the output is in valid Gherkin syntax. Follow the step patterns exactly as shown below and use the provided examples as a guide.
 
 ### VARIABLE NAMING CONVENTIONS:
 - Variables created in When steps (e.g., `let ema10 = ...`) become available for use in Then steps
 - Use descriptive variable names that include the indicator/data type when applicable (e.g., `ema10`, `sma20`, `prev_close`)
 - When using `oldest in N samples`, extract the Nth previous value (e.g., `oldest in 2 samples` = 1 step back)
 
-## STRICTLY FOLLOW
+### STRICTLY FOLLOW
 ### AVAILABLE GIVEN STEPS:
 
 Each pattern must match exactly:
@@ -80,57 +80,22 @@ Each pattern must match exactly:
 - Logical: `&` (AND), `|` (OR), `~` (NOT)
 - Functions: `abs(x)`, `min(x, y)`, `max(x, y)`
 
+## INSTRUCTION TO FIX GHERKIN ERRORS:
+1. Analyze the gherkin scenario and the errors
+2. Refer to the step patterns and ensure each step in the scenario matches one of the patterns exactly
+3. Correct the errors by modifying the steps to fit the patterns, ensuring variable names are consistent and descriptive
+4. Ensure the scenario starts with a Feature and follows the Given-When-Then structure
+5. Use the example conversions as a guide to ensure the output is in valid Gherkin syntax
 
-## INSTRUCTION TO CONVERT USER INPUT TO GHERKIN:
-1. Analyze the user input to understand what they want to test
-2. Match their intent to the most appropriate step patterns above
-3. Convert their input into a complete Gherkin scenario with Given, When, and Then steps
-4. Use the exact step formats shown above
-5. Create variables in When steps and use them in Then steps
-6. Always start with a Feature as pytick llm 
-7. Follow the format in example conversions below to ensure the output is in valid Gherkin syntax
+## EXAMPLE FIXES:
 
-## EXAMPLE CONVERSIONS:
-
-Input: "ema10 > close"
-Output:
-Feature: pytick llm
-Scenario: EMA10 greater than close price analysis
+Input: Feature: pytick llm
+Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
-When let ema10 = latest in 1 samples of day close ema 10
+When let prev_close = oldest in 2 samples of day close
 * let close = latest in 1 samples of day close
-Then list result = tickers with (ema10 > close)
-
-Input: "sma20 < open"
-Output:
-Feature: pytick llm
-Scenario: SMA20 less than open price analysis
-Given stocks from index nifty50
-When let sma20 = latest in 1 samples of day close sma 20
-* let open = latest in 1 samples of day open
-Then list result = tickers with (sma20 < open)
-
-Input: "close > ema10 and close > ema100"
-Output:
-Feature: pytick llm
-Scenario: Close price greater than EMA10 and EMA100 analysis
-Given stocks from index nifty50
-When let close = latest in 1 samples of minute5 close
-* let ema10 = latest in 1 samples of minute5 close ema 10
-* let ema100 = latest in 1 samples of minute5 close ema 100
-Then list result = tickers with (close > ema10) & (close > ema100)
-
-Input: "close > previous close"
-Output:
-Feature: pytick llm
-Scenario: Today close greater than previous close analysis
-Given stocks from index nifty50
-When let close = latest in 1 samples of day close
-* let prev_close = oldest in 2 samples of day close
-Then list result = tickers with (close > prev_close)
-Note: "oldest in 2 samples" retrieves the second-most recent value (previous candle)
-
-Input: "abs(prev_close - close) / prev_close > 0.01 and abs(vwap10 - close) / vwap10 > 0.01"
+* let vwap = latest in 1 samples of day close vwap
+Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
 Output:
 Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
@@ -139,4 +104,24 @@ When let prev_close = oldest in 2 samples of day close
 * let close = latest in 1 samples of day close
 * let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
+Fix: 
+vwap is an indicator that requires a period (e.g., vwap10). The step must specify the indicator and period to match the when step pattern for indicators.
+The variable name in the condition must also be updated to match the variable created in the When step (vwap10 instead of vwap).
+
+Input: Here is the updated
+Feature: pytick llm
+Scenario: Multiple condition analysis with price change and VWAP deviation
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of day close
+Then list movers = tickers with close > prev_close
+Output:
+Feature: pytick llm
+Scenario: Multiple condition analysis with price change and VWAP deviation
+Given stocks from index nifty50
+When let prev_close = oldest in 2 samples of day close
+* let close = latest in 1 samples of day close
+Then list movers = tickers with close > prev_close
+Fix: 
+Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.
 

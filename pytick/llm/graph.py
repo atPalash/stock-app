@@ -24,11 +24,12 @@ logger = get_logger(__file__, logging.DEBUG)
 class Graph:
     """Handler for LLM-based Gherkin conversion and validation."""
 
-    def __init__(self, system_prompt: str, ollama_model: str = "", openai_model: str = ""):
+    def __init__(self, system_prompt: str, retry_prompt: str, ollama_model: str = "", openai_model: str = ""):
         # Global state to maintain conversation across calls
         self.conversation_state = State(
             messages=[], message_type=None, errors=[])
         self.system_prompt = system_prompt
+        self.retry_prompt = retry_prompt
         if ollama_model == "" and openai_model == "":
             raise Exception(
                 "Please define a model for either Ollama or OpenAI")
@@ -66,7 +67,8 @@ class Graph:
             message_type=None,
             errors=[],
             retry_count=0,
-            system_prompt=self.system_prompt
+            system_prompt=self.system_prompt,
+            retry_prompt=self.retry_prompt
         )
 
         # Invoke the graph with the current conversation state
@@ -90,14 +92,17 @@ if __name__ == "__main__":
     config = os.environ.get("CONFIG_FILE")
     app_config = read_config(file_path=config)
     prompt = read_file(file_path=os.path.join(app_config.get(
-        'app_data_path', ''), "llm_prompt.prompt.md"))
+        'app_data_path', ''), "llm_prompt_init.prompt.md"))
+    retry_prompt = read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "llm_prompt_retry.prompt.md"))
 
     test_messages = [
         # "sma20 < close",
         "ema10 > close and close > atr and close > 1000",
         # "close > vwap",
     ]
-    handler = Graph(system_prompt=prompt, ollama_model="llama3")
+    handler = Graph(system_prompt=prompt,
+                    retry_prompt=retry_prompt, ollama_model="llama3")
     for msg in test_messages:
         start = time.perf_counter()
         print(f"----Input: {msg}----")

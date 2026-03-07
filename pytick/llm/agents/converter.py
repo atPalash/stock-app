@@ -13,24 +13,20 @@ logger = get_logger(__file__, logging.DEBUG)
 def converter_agent(state: State, llm: BaseChatModel) -> State:
     """Convert input messages to Gherkin format using available step definitions."""
     messages = state.get('messages', [])
-
-    # Inject into system prompt
-    system_prompt = state.get('system_prompt', '')
-    system_msg = SystemMessage(content=system_prompt)
-
-    # Find the last user message
-    user_input = None
-    for msg in messages:
-        if hasattr(msg, 'type') and msg.type == 'human':
-            user_input = msg
-            break
-
-    if not user_input:
-        return state
-
     retry_count = state.get("retry_count", 0)
-    messages = [system_msg] + [user_input]
-    if retry_count > 0:
+    if retry_count == 0:
+        system_msg = SystemMessage(content=state.get('system_prompt', ''))
+        user_input = None
+        for msg in messages:
+            if hasattr(msg, 'type') and msg.type == 'human':
+                user_input = msg
+                break
+
+        if not user_input:
+            return state
+        messages = [system_msg] + [user_input]
+    elif retry_count > 0:
+        retry_msg = SystemMessage(content=state.get('retry_prompt', ''))
         # Extract errors from state
         errors = state.get('errors', [])
         error_context = ""
@@ -46,8 +42,8 @@ def converter_agent(state: State, llm: BaseChatModel) -> State:
         ai_context = ""
         if ai_message:
             ai_context = f"\n\n💡 PREVIOUS AI SUGGESTION FIX THIS:\n{ai_message}"
-        messages = [HumanMessage(
-            content=ai_context + error_context)] + messages
+        messages = [retry_msg] + \
+            [HumanMessage(content=ai_context + error_context)]
 
     # Use the full conversation history for context
     reply = llm.invoke(messages)

@@ -39,8 +39,10 @@ gherkin_handler = query.QueryHandler(data_handler=data_handler,
                                          'interval_translation', {}).items()},
                                      interval_seconds=app_config.get('interval_seconds', {}))
 generate_prompt(config=app_config,
-                output_path=os.path.join(app_config.get(
-                    'app_data_path', ''), "llm_prompt.prompt.md"))
+                output_init_prompt=os.path.join(app_config.get(
+                    'app_data_path', ''), "llm_prompt_init.prompt.md"),
+                output_retry_prompt=os.path.join(app_config.get(
+                    'app_data_path', ''), "llm_prompt_retry.prompt.md"))
 
 bot_config = BotConfig(
     token=os.getenv('DISCORD_BOT_TOKEN', ''),
