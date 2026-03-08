@@ -75,7 +75,7 @@ class Graph:
         result_state = self.graph.invoke(llm_state)
         if result_state.get("message_type", "") == "max_retries":
             logger.warning("Max retries reached. Ending conversation.")
-            return "Max retries reached. Please try again later."
+            return "Max retries reached. Please try to improve query."
         last_message = result_state["messages"][0]
         return clean_gherkin(last_message.content)
 

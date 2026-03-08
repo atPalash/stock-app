@@ -1,4 +1,7 @@
 #! /bin/bash
+## STEPS
+# 1. Run ollama server
+# 2. Run Redis
 
 # Cap native BLAS/OpenMP thread pools to avoid oversubscription
 export OPENBLAS_NUM_THREADS=${OPENBLAS_NUM_THREADS:-1}
@@ -23,7 +26,7 @@ function runApp() {
 
     find_free_port() {
         # Find a free port in range 1024-65535
-        for port in $(seq 5000 65535); do
+        for port in $(seq 8000 65535); do
             if ! lsof -i:$port >/dev/null; then
                 echo $port
                 return

@@ -43,8 +43,13 @@ class BotConfig:
     default_ticker: str
     redis_url: str
     convo_ttl_seconds: int
+    modal_timeout: int
+    llm_timeout: int
     guild_id: int
+    ollama_model: str
+    openai_model: str
     llm_prompt: str
+    retry_prompt: str
 
 
 class RetVal(BaseModel):
@@ -63,11 +68,12 @@ class TextModal(discord.ui.Modal):
         title: str,
         label: str,
         placeholder: str,
+        interaction: discord.Interaction,
         validate_user_callback: Callable[[int], RetVal],
         llm_router_callback: Callable[[int, str], RetVal],
         execute_callback: Callable[[str, discord.Interaction], RetVal],
         send_msg_callback: Callable[[discord.Interaction, str, discord.Embed, bool], None],
-        timeout: int = 20,
+        timeout: int,
         ephemeral: bool = False,
     ):
         super().__init__(title=title, timeout=timeout)
@@ -86,9 +92,12 @@ class TextModal(discord.ui.Modal):
         self._llm_router_callback = llm_router_callback
         self._send_msg_callback = send_msg_callback
         self._ephemeral = ephemeral
+        self._interaction = interaction
+        self._submitted = False
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
+            self._submitted = True
             await interaction.response.defer(thinking=True)
             try:
                 result = self._validate_user(interaction.user.id)
@@ -97,7 +106,7 @@ class TextModal(discord.ui.Modal):
                     return
 
                 result = self._llm_router_callback(
-                    interaction.user.id, self.input.value, self.timeout)
+                    interaction.user.id, self.input.value)
                 gherkin = result.data.get('gherkin', '')
                 if not result.status or gherkin == '':
                     await self._send_msg_callback(interaction, content=result.message)
@@ -119,10 +128,22 @@ class TextModal(discord.ui.Modal):
                 else:
                     await self._send_msg_callback(interaction, content=result.message)
             except Exception as e:
-                logger.exception(f"Exception: {self.input.value}")
+                logger.warning(f"Exception: {self.input.value}")
                 await self._send_msg_callback(interaction, content=f"Error: {e}")
         except Exception as e:
             logger.warning(f"Failure: {e}")
+
+    async def on_timeout(self):
+        if self._submitted:
+            return
+        try:
+            await self._send_msg_callback(
+                self._interaction,
+                content="⏰ This modal timed out. Please run the command again.",
+                ephemeral=True
+            )
+        except Exception as e:
+            logger.warning(f"Modal timeout notification failed: {e}")
 
 
 class DiscordBot(commands.Bot):
@@ -134,8 +155,16 @@ class DiscordBot(commands.Bot):
         super().__init__(command_prefix=config.command_prefix, intents=intents)
         self.config = config
         self.users_config_path = config.users_config_path
-        self.llm_handler = Graph(
-            system_prompt=config.llm_prompt, retry_prompt='', ollama_model='llama3')
+        self.modal_timeout = config.modal_timeout
+        self.llm_timeout = config.llm_timeout
+        self.ollama_handler = Graph(
+            system_prompt=config.llm_prompt,
+            retry_prompt=config.retry_prompt,
+            ollama_model=config.ollama_model)
+        self.openai_handler = Graph(
+            system_prompt=config.llm_prompt,
+            retry_prompt=config.retry_prompt,
+            openai_model=config.openai_model)
         self.scheduler = Scheduler(config.tz, is_async=True)
 
         # set up command groups
@@ -295,11 +324,13 @@ class DiscordBot(commands.Bot):
             Typically invoked in response to a Discord slash command.
         """
         def callback(code, interaction) -> RetVal:
-            return self.__do_run(interaction=interaction, query=code)
+            return self.__do_run(interaction=interaction, query=code, timeout=self.llm_timeout)
 
         modal = TextModal(title="🤖 Run query", label="Query",
                           placeholder="🤖 AI auto-fixes queries (10/day) ✨\n \
 Or use: Feature → Scenario → Given/When/Then",
+                          interaction=interaction,
+                          timeout=self.modal_timeout,
                           validate_user_callback=self.__validate_user,
                           llm_router_callback=self.__llm_router,
                           execute_callback=callback,
@@ -342,6 +373,8 @@ Or use: Feature → Scenario → Given/When/Then",
         modal = TextModal(title="🤖 Subscribe to query", label="Query",
                           placeholder="🤖 AI auto-fixes queries (10/day) ✨\n \
 Or use: Feature → Scenario → Given/When/Then",
+                          interaction=interaction,
+                          timeout=self.modal_timeout,
                           validate_user_callback=self.__validate_user,
                           llm_router_callback=self.__llm_router,
                           execute_callback=callback,
@@ -398,6 +431,8 @@ Or use: Feature → Scenario → Given/When/Then",
                 return RetVal(status=False, errors=[str(e)], message='error in unsubscribe')
         modal = TextModal(title="🤖 Un-subscribe from a query", label="Query",
                           placeholder="Enter the exact query to un-subscribe",
+                          interaction=interaction,
+                          timeout=self.modal_timeout,
                           validate_user_callback=self.__validate_user,
                           llm_router_callback=self.__gherkin_check_router,
                           execute_callback=callback,
@@ -418,15 +453,12 @@ Or use: Feature → Scenario → Given/When/Then",
             per_count = self.convo_store.incr_rate(user_id)
             if per_count > 1:
                 return RetVal(status=False, message="You're sending requests too quickly — please slow down.")
-            daily_count = self.convo_store.get_daily_llm(user_id)
-            if daily_count > 100:
-                return RetVal(status=False, message="You've reached the daily limit for guided messages. Please try again tomorrow.")
             return RetVal(status=True, message="Ok")
         except Exception as e:
             logger.warning(f"{e}")
             return RetVal(status=False, message=f"{e}", errors=[str(e)])
 
-    def __llm_router(self, user_id: int, input: str, timeout: int) -> RetVal:
+    def __llm_router(self, user_id: int, input: str) -> RetVal:
         """Call LLM to generate a short guidance message directing user to configured commands.
         Returns the message to send.
         """
@@ -439,24 +471,44 @@ Or use: Feature → Scenario → Given/When/Then",
                 return RetVal(status=True, message='Query valid', data={'gherkin': query})
 
             query = clean_gherkin(input)
-            try:
-                # Call LLM to convert to gherkin
-                # global daily count for llm usage
-                self.convo_store.incr_daily_llm(user_id=user_id)
-                llm_converted_input = func_timeout(
-                    timeout,
-                    self.llm_handler.run,
-                    args=(query,)
-                )
-                return RetVal(status=True, data={"gherkin": llm_converted_input}, message='llm converted gherkin')
-            except FunctionTimedOut:
-                logger.warning(f"LLM conversion timed out: {query}")
-                return RetVal(status=False, message=f"⏰ AI conversion timed out for {query}", errors=["Timeout"])
+
+            def send_llm_conversion(llm_handler, query) -> RetVal:
+                llm_result = ""
+                try:
+                    # First call local ollama
+                    llm_result = func_timeout(
+                        self.llm_timeout,
+                        self.ollama_handler.run,
+                        args=(query,)
+                    )
+                    # logger.info(
+                    #     f'{query} converted by {llm_handler.llm} to gherkin')
+                    if 'Feature' in llm_result:
+                        return RetVal(status=True, data={"gherkin": llm_result}, message=f'{llm_handler.llm} converted gherkin')
+                    return RetVal(status=False, message=f'Conversion failed: {query} \n{llm_result}')
+                except FunctionTimedOut:
+                    logger.warning(
+                        f"{llm_handler} conversion timed out: {query}")
+                    return RetVal(status=False, message=f"⏰ AI conversion timed out for {query}", errors=["Timeout"])
+
+            # Will send result from either else timeout
+            ret = send_llm_conversion(
+                llm_handler=self.ollama_handler, query=query)
+            if not ret.status:
+                daily_count = self.convo_store.get_daily_llm(user_id)
+                if daily_count > 10:
+                    return RetVal(status=False, message=f"🚫 Limit reached: {daily_count} premium guided messages used today. 🤖 Free AI is still here.")
+                self.convo_store.incr_daily_llm(
+                    user_id=user_id)
+                logger.info(f'{user_id} used premium for {query}')
+                ret = send_llm_conversion(
+                    llm_handler=self.openai_handler, query=query)
+            return ret
         except Exception as e:
             logger.warning(f"{e}")
             return RetVal(status=False, message=f"{e}", errors=[str(e)])
 
-    def __gherkin_check_router(self, _user_id: int, input: str, _timeout: int) -> RetVal:
+    def __gherkin_check_router(self, _user_id: int, input: str) -> RetVal:
         """Check valid gherkin.
         """
         return self.__is_gherkin_format(input=input)
@@ -479,7 +531,7 @@ Or use: Feature → Scenario → Given/When/Then",
                 logger.error(
                     f"Error setting up scheduler for interval {interval}: {e}")
 
-    def __do_run(self, interaction: discord.Interaction, query: str, previous_results: list = [], timeout=20) -> RetVal:
+    def __do_run(self, interaction: discord.Interaction, query: str, timeout: int, previous_results: list = []) -> RetVal:
         try:
             try:
                 success, results, errors, _ = func_timeout(
@@ -566,7 +618,7 @@ Or use: Feature → Scenario → Given/When/Then",
             for sub, sub_interval in subscribed_queries.items():
                 if sub_interval == interval:
                     result = self.__do_run(
-                        interaction=user_interaction, query=sub)
+                        interaction=user_interaction, query=sub, timeout=self.llm_timeout)
                     if not result.status:
                         logger.warning(
                             f"Failure interval {sub_interval}: {sub}")

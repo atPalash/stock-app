@@ -63,9 +63,14 @@ bot_config = BotConfig(
     redis_url=os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
     convo_ttl_seconds=int(os.getenv('CONVO_TTL_SECONDS', '900')),
     guild_id=int(os.getenv('DISCORD_GUILD_ID', '0')),
+    modal_timeout=120,
+    llm_timeout=60,
+    ollama_model='gemma3',
+    openai_model='gpt-5.4',
     llm_prompt=read_file(file_path=os.path.join(app_config.get(
-        'app_data_path', ''), "llm_prompt.prompt.md"))
-
+        'app_data_path', ''), "llm_prompt_init.prompt.md")),
+    retry_prompt=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "llm_prompt_retry.prompt.md"))
 )
 discord_bot = DiscordBot(config=bot_config)
 
@@ -120,19 +125,19 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # # start scheduler
-    # scheduler = Scheduler(tz)
-    # scheduler.start()
+    scheduler = Scheduler(tz)
+    scheduler.start()
 
-    # # Schedule ohlc fetching jobs
-    # for interval, params in cron_schedules.items():
-    #     data_handler.set_tables(tickers=tickers, interval=interval)
-    #     scheduler.add_periodic_job(func=lambda tickers=tickers,
-    #                                interval=interval: data_handler.set_tables(tickers=tickers, interval=interval),
-    #                                params=params, job_id=f"yf_job_{interval}")
-    # # Schedule corporate actions fetching job in 5 minutes interval
-    # notification_handler.set_corporate_actions(tickers=tickers)
-    # scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),
-    #                            params=cron_notification, job_id="corp_actions_job")
+    # Schedule ohlc fetching jobs
+    for interval, params in cron_schedules.items():
+        data_handler.set_tables(tickers=tickers, interval=interval)
+        scheduler.add_periodic_job(func=lambda tickers=tickers,
+                                   interval=interval: data_handler.set_tables(tickers=tickers, interval=interval),
+                                   params=params, job_id=f"yf_job_{interval}")
+    # Schedule corporate actions fetching job in 5 minutes interval
+    notification_handler.set_corporate_actions(tickers=tickers)
+    scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),
+                               params=cron_notification, job_id="corp_actions_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
     def _start_discord():
@@ -151,7 +156,7 @@ if __name__ == "__main__":
     finally:
         # ensure scheduler stops on shutdown
         try:
-            # scheduler.stop()
-            pass
+            scheduler.stop()
+            # pass
         except Exception:
             logger.exception("Exception stopping scheduler")

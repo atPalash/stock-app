@@ -15,7 +15,8 @@ logger = get_logger(__file__, logging.DEBUG)
 config = os.environ.get("CONFIG_FILE")
 app_config = read_config(file_path=config)
 
-def download_stock_data(ticker:str, interval:str, tz:str)->pd.DataFrame:
+
+def download_stock_data(ticker: str, interval: str, tz: str) -> pd.DataFrame:
     """Download stock data from Yahoo Finance.
 
     Args:
@@ -26,7 +27,7 @@ def download_stock_data(ticker:str, interval:str, tz:str)->pd.DataFrame:
     Returns:
         pd.DataFrame: Stock data for the specified ticker and interval.
     """
-    ticker_symbol = f"{ticker}{'.NS' if tz=='Asia/Kolkata' else ''}"
+    ticker_symbol = f"{ticker}{'.NS' if tz == 'Asia/Kolkata' else ''}"
     data = yf.download(
         tickers=[ticker_symbol],
         period="max",
@@ -43,7 +44,8 @@ def download_stock_data(ticker:str, interval:str, tz:str)->pd.DataFrame:
     data.to_csv(f"{ticker}_{interval}.csv")
     return data
 
-def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
+
+def calculate_indicators(ticker: str, df: pd.DataFrame, indicators: dict) -> dict:
     """Calculate technical indicators for the given DataFrame.
 
     Args:
@@ -70,36 +72,42 @@ def calculate_indicators(ticker:str, df: pd.DataFrame, indicators:dict) -> dict:
                     elif ind_type == 'ema':
                         series = ta.ema(df[src_col], length=period)
                     elif ind_type == 'atr':
-                        series = ta.atr(df['High'], df['Low'], df['Close'], length=period)
+                        series = ta.atr(df['High'], df['Low'],
+                                        df['Close'], length=period)
                     elif ind_type == 'vwap':
-                        series = ta.vwap(df['High'], df['Low'], df['Close'], df['Volume'])
+                        series = ta.vwap(
+                            df['High'], df['Low'], df['Close'], df['Volume'])
                     elif ind_type == 'rvol':
-                        df["avgVolume"] = df["Volume"].rolling(window=period).mean().shift(1)
+                        df["avgVolume"] = df["Volume"].rolling(
+                            window=period).mean().shift(1)
                         series = (df["Volume"] / df["avgVolume"])
                         df.drop(columns="avgVolume", inplace=True)
                     else:
-                        logger.warning(f"Unsupported indicator type: {ind_type}")
+                        logger.warning(
+                            f"Unsupported indicator type: {ind_type}")
                     if series is not None:
                         # only round & assign if we really got a Series
                         df[col_name] = series.round(2)
                 except Exception as e:
                     msg = f"Exception calculating {ind_type} for period {period} and source {src}: {e}"
                     errors.append(msg)
-    return {'ticker': ticker, 'df' : df, 'errors': errors}
+    return {'ticker': ticker, 'df': df, 'errors': errors}
+
 
 def get_nifty50_tickers() -> list:
     tickers_csv = f"{app_config.get('app_data_path')}/ind_nifty50list.csv"
     nifty50 = pd.read_csv(tickers_csv)
     return nifty50['Symbol'].tolist()
-    
+
+
 class DataFrameHandler:
-    def __init__(self, tz:str, indicators:dict, test_data_path: str = None):
+    def __init__(self, tz: str, indicators: dict, test_data_path: str = None):
         self.tables = {}
         self.tz = tz
         self.indicators = indicators
         self.test_data_path = test_data_path
 
-    def get_tables(self, tickers:list, interval: str) -> dict:
+    def get_tables(self, tickers: list, interval: str) -> dict:
         """Get the OHLC tables for the specified tickers and interval.
 
         Args:
@@ -114,12 +122,14 @@ class DataFrameHandler:
         try:
             table_interval = self.tables.get(interval, None)
             if table_interval is not None:
-                ret['data'] = {k: v for k, v in table_interval.items() if k in tickers}
+                ret['data'] = {k: v for k,
+                               v in table_interval.items() if k in tickers}
                 ret['success'] = True
         except Exception as e:
-            logger.warning(f"Exception retrieving DataFrame for interval {interval}: {e}")
+            logger.warning(
+                f"Exception retrieving DataFrame for interval {interval}: {e}")
         return ret
-    
+
     def set_tables(self, tickers: list, interval: str) -> dict:
         """Set the OHLC tables for the specified tickers and interval. sets the
         self.tables[interval] with a dict of {ticker: DataFrame}.
@@ -130,17 +140,20 @@ class DataFrameHandler:
         """
         ret = {'success': False, 'data': None}
         try:
-            tickers_yf = [f"{ticker}{'.NS' if self.tz=='Asia/Kolkata' else ''}" for ticker in tickers]
+            tickers_yf = [
+                f"{ticker}{'.NS' if self.tz == 'Asia/Kolkata' else ''}" for ticker in tickers]
             if self.test_data_path is not None:
                 # Load test data from CSV files
                 ohlc = {}
                 for ticker in tickers_yf:
-                    cols = pd.read_csv(f"{self.test_data_path}/{ticker}_{interval}.csv", nrows=0).columns
+                    cols = pd.read_csv(
+                        f"{self.test_data_path}/{ticker}_{interval}.csv", nrows=0).columns
                     date_col = 'Date' if 'Date' in cols else 'Datetime' if 'Datetime' in cols else None
-                    df = pd.read_csv(f"{self.test_data_path}/{ticker}_{interval}.csv", parse_dates=[date_col])
+                    df = pd.read_csv(
+                        f"{self.test_data_path}/{ticker}_{interval}.csv", parse_dates=[date_col])
                     df.set_index(date_col, inplace=True)
                     ohlc[ticker] = df
-            else:   
+            else:
                 # Download data from Yahoo Finance
                 ohlc = yf.download(
                     tickers=tickers_yf,
@@ -158,8 +171,9 @@ class DataFrameHandler:
                 )
             clean_ohlc = {}
             for ticker in tickers_yf:
-                df = ohlc[ticker] #.xs(ticker, axis=1, level=0)
-                df = df.dropna(subset=['Open', 'High', 'Low', 'Close', 'Volume'], how='all')
+                df = ohlc[ticker]  # .xs(ticker, axis=1, level=0)
+                df = df.dropna(
+                    subset=['Open', 'High', 'Low', 'Close', 'Volume'], how='all')
                 if df.empty:
                     logger.warning(f"No data found for ticker: {ticker}")
                 clean_ohlc[ticker] = df
@@ -195,13 +209,14 @@ class DataFrameHandler:
             self.tables[interval] = result
             ret['success'] = True
         except Exception as e:
-            logger.warning(f"Exception setting DataFrame for interval {interval}: {e}")
+            logger.warning(
+                f"Exception setting DataFrame for interval {interval}: {e}")
         return ret
-        
+
 
 if __name__ == "__main__":
     # config_path = "config_debug.yaml"
     # indicators = read_config(config_path).get('indicators', {})
     # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
-    print(get_nifty50_tickers())
-    # download_stock_data("TMPV", "1d", "Asia/Kolkata")
+    # print(get_nifty50_tickers())
+    download_stock_data("TMPV", "1d", "Asia/Kolkata")

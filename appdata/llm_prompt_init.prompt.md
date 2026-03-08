@@ -29,7 +29,7 @@ Each pattern must match exactly:
 - Group 1 (<variable_name>): any word (e.g., ema10, sma20_var)
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
-- Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
+- Group 4 (<interval>): minute5, minute15, minute30, hour, hour, day, week, month
 - Group 5 (<ohlc>): close, open, high, low, volume
 - Group 6 (<indicator>): sma, ema, atr, vwap, rvol
 - Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)
@@ -42,23 +42,27 @@ Each pattern must match exactly:
   - rvol: 10, 20
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use the first option as default.
 
-**Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (atr) (\d+)$`
-
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$`
 - Group 1 (<variable_name>): any word (e.g., notif_count, alerts)
 - Group 2 (<data_point>): latest, oldest
 - Group 3 (<sample_count>): positive integer (e.g., 1, 5, 10)
-- Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
+- Group 4 (<interval>): minute5, minute15, minute30, hour, hour, day, week, month
 - Group 5: literal 'notification'
 
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (close|open|high|low|volume)$`
 - Group 1 (<variable_name>): any word (e.g., close_val, open_price)
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
-- Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
+- Group 4 (<interval>): minute5, minute15, minute30, hour, hour, day, week, month
 - Group 5 (<ohlc>): close, open, high, low, volume
 
 
+
+### TIMEFRAME CONSISTENCY RULES:
+- All `When` steps in one scenario MUST use the same `<interval>` token.
+- If any `When` step uses `minute5`, all `When` steps must use `minute5` (same for `day`, `week`, etc.).
+- Only allow mixed intervals when the user explicitly asks for multiple timeframes (example: "compare day EMA with minute5 close").
+- If user does not specify interval, choose one default interval and use it for every `When` step in that scenario.
 
 ### AVAILABLE THEN STEPS:
 

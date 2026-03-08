@@ -2,8 +2,8 @@
 tz: Asia/Kolkata
 discord_llm_msg: "🤖 converting query. Please wait..."
 interval_translation:
-  "1m": "minute"
-  "2m": "minute2"
+  # "1m": "minute"
+  # "2m": "minute2"
   "5m": "minute5"
   "15m": "minute15"
   "30m": "minute30"
@@ -13,8 +13,8 @@ interval_translation:
   "1wk": "week"
   "1mo": "month"
 interval_seconds:
-  "minute": 60
-  "minute2": 120
+  # "minute": 60
+  # "minute2": 120
   "minute5": 300
   "minute15": 900
   "minute30": 1800

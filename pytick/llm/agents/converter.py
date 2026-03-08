@@ -24,12 +24,13 @@ def converter_agent(state: State, llm: BaseChatModel) -> State:
 
         if not user_input:
             return state
-        messages = [system_msg] + [user_input]
+        messages = [system_msg, user_input]
     elif retry_count > 0:
         retry_msg = SystemMessage(content=state.get('retry_prompt', ''))
         # Extract errors from state
         errors = state.get('errors', [])
-        error_context = "\n".join(f"- {err}" for err in errors) if errors else "- No validator error provided"
+        error_context = "\n".join(
+            f"- {err}" for err in errors) if errors else "- No validator error provided"
 
         ai_message = ""
         user_query = ""

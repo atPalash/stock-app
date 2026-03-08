@@ -1,10 +1,6 @@
 # Pytick Prompt - Fix gherkin errors
 
 The gherkin scenario has errors. Please fix the errors and ensure the output is in valid Gherkin syntax. Follow the step patterns exactly as shown below and use the provided examples as a guide.
-This is a repair task, not a rewrite task.
-Do not change the original user intent/query.
-Preserve all valid lines and only modify lines needed to resolve the provided validator errors.
-Output only the corrected Gherkin scenario.
 
 ### VARIABLE NAMING CONVENTIONS:
 - Variables created in When steps (e.g., `let ema10 = ...`) become available for use in Then steps
@@ -32,7 +28,7 @@ Each pattern must match exactly:
 - Group 1 (<variable_name>): any word (e.g., ema10, sma20_var)
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
-- Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
+- Group 4 (<interval>): minute5, minute15, minute30, hour, hour, day, week, month
 - Group 5 (<ohlc>): close, open, high, low, volume
 - Group 6 (<indicator>): sma, ema, atr, vwap, rvol
 - Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)
@@ -45,23 +41,27 @@ Each pattern must match exactly:
   - rvol: 10, 20
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use the first option as default.
 
-**Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (atr) (\d+)$`
-
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$`
 - Group 1 (<variable_name>): any word (e.g., notif_count, alerts)
 - Group 2 (<data_point>): latest, oldest
 - Group 3 (<sample_count>): positive integer (e.g., 1, 5, 10)
-- Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
+- Group 4 (<interval>): minute5, minute15, minute30, hour, hour, day, week, month
 - Group 5: literal 'notification'
 
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (close|open|high|low|volume)$`
 - Group 1 (<variable_name>): any word (e.g., close_val, open_price)
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
-- Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
+- Group 4 (<interval>): minute5, minute15, minute30, hour, hour, day, week, month
 - Group 5 (<ohlc>): close, open, high, low, volume
 
 
+
+### TIMEFRAME CONSISTENCY RULES:
+- All `When` steps in one scenario MUST use the same `<interval>` token.
+- If any `When` step uses `minute5`, all `When` steps must use `minute5` (same for `day`, `week`, etc.).
+- Only allow mixed intervals when the user explicitly asks for multiple timeframes (example: "compare day EMA with minute5 close").
+- If user does not specify interval, choose one default interval and use it for every `When` step in that scenario.
 
 ### AVAILABLE THEN STEPS:
 
@@ -131,3 +131,4 @@ When let prev_close = oldest in 2 samples of day close
 Then list movers = tickers with close > prev_close
 Fix: 
 Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.
+

@@ -66,6 +66,7 @@ def generate_prompt(config: dict, output_init_prompt: str, output_retry_prompt: 
             when_steps_doc += f"- Group 3 (<sample_count>): positive integer (e.g., 1, 5, 10)\n"
             when_steps_doc += f"- Group 4 (<interval>): {interval_str}\n"
             when_steps_doc += f"- Group 5: literal 'notification'\n"
+            # when_steps_doc += f"- Defaults:<data_point> - latest, <sample_count> - 1, <interval> - day\n"
         elif "(\\w+) (\\d+)$" in pattern:  # Indicator pattern has (\w+) (\d+) at end
             when_steps_doc += f"- Group 1 (<variable_name>): any word (e.g., ema10, sma20_var)\n"
             when_steps_doc += f"- Group 2 (<data_point>): {data_points_str}\n"
@@ -74,6 +75,7 @@ def generate_prompt(config: dict, output_init_prompt: str, output_retry_prompt: 
             when_steps_doc += f"- Group 5 (<ohlc>): {ohlc_str}\n"
             when_steps_doc += f"- Group 6 (<indicator>): {indi_str}\n"
             when_steps_doc += f"- Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)\n"
+            # when_steps_doc += f"- Defaults:<data_point> - latest, <sample_count> - 1, <interval> - day, <ohlc>-close, <indicator>-ema\n"
             when_steps_doc += f"\n**Indicator Periods:**\n{indicators_text}\n\
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use \
 the first option as default.\n"
@@ -83,7 +85,8 @@ the first option as default.\n"
             when_steps_doc += f"- Group 3 (<sample_count>): positive integer\n"
             when_steps_doc += f"- Group 4 (<interval>): {interval_str}\n"
             when_steps_doc += f"- Group 5 (<ohlc>): {ohlc_str}\n"
-        when_steps_doc += "\n"
+            # when_steps_doc += f"- Defaults:<data_point> - latest, <sample_count> - 1, <interval> - day, <ohlc>-close\n"
+        when_steps_doc += f"\n"
 
     # Build then steps documentation with parameter mappings
     then_steps_doc = ""
@@ -243,6 +246,12 @@ Each pattern must match exactly:
 
 {when_steps_doc}
 
+### TIMEFRAME CONSISTENCY RULES:
+- All `When` steps in one scenario MUST use the same `<interval>` token.
+- If any `When` step uses `minute5`, all `When` steps must use `minute5` (same for `day`, `week`, etc.).
+- Only allow mixed intervals when the user explicitly asks for multiple timeframes (example: "compare day EMA with minute5 close").
+- If user does not specify interval, choose one default interval and use it for every `When` step in that scenario.
+
 ### AVAILABLE THEN STEPS:
 
 Each pattern must match exactly:
@@ -262,7 +271,7 @@ Each pattern must match exactly:
         with open(output_path, 'w') as f:
             f.write(prompt_content)
 
-        print(f"✅ Prompt generated: {output_path}")
+        # print(f"✅ Prompt generated: {output_path}")
 
     # Generate initial prompt
     get_prompt_content(
