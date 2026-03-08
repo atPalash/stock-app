@@ -102,7 +102,7 @@ if __name__ == "__main__":
         # "close > vwap",
     ]
     handler = Graph(system_prompt=prompt,
-                    retry_prompt=retry_prompt, ollama_model="llama3")
+                    retry_prompt=retry_prompt, ollama_model="phi4")
     for msg in test_messages:
         start = time.perf_counter()
         print(f"----Input: {msg}----")

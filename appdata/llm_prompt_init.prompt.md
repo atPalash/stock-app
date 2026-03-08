@@ -30,7 +30,7 @@ Each pattern must match exactly:
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
 - Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
-- Group 5 (<data_type>): close, open, high, low, volume
+- Group 5 (<ohlc>): close, open, high, low, volume
 - Group 6 (<indicator>): sma, ema, atr, vwap, rvol
 - Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)
 
@@ -41,6 +41,8 @@ Each pattern must match exactly:
   - vwap: 10
   - rvol: 10, 20
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use the first option as default.
+
+**Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (atr) (\d+)$`
 
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$`
 - Group 1 (<variable_name>): any word (e.g., notif_count, alerts)
@@ -54,7 +56,7 @@ Each pattern must match exactly:
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
 - Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
-- Group 5 (<data_type>): close, open, high, low, volume
+- Group 5 (<ohlc>): close, open, high, low, volume
 
 
 
@@ -85,7 +87,7 @@ Each pattern must match exactly:
 1. Analyze the user input to understand what they want to test
 2. Match their intent to the most appropriate step patterns above
 3. Convert their input into a complete Gherkin scenario with Given, When, and Then steps
-4. Use the exact step formats shown above
+4. Use the exact step formats shown above, MUST ENSURE all the groups for a pattern are filled
 5. Create variables in When steps and use them in Then steps
 6. Always start with a Feature as pytick llm 
 7. Follow the format in example conversions below to ensure the output is in valid Gherkin syntax

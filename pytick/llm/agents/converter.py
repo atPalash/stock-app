@@ -29,21 +29,30 @@ def converter_agent(state: State, llm: BaseChatModel) -> State:
         retry_msg = SystemMessage(content=state.get('retry_prompt', ''))
         # Extract errors from state
         errors = state.get('errors', [])
-        error_context = ""
-        if errors:
-            error_context = f"\n\n⚠️ PREVIOUS ERRORS TO FIX:\n" + \
-                "\n".join(f"- {err}" for err in errors)
+        error_context = "\n".join(f"- {err}" for err in errors) if errors else "- No validator error provided"
 
-        ai_message = None
-        for msg in state.get("messages", []):
+        ai_message = ""
+        user_query = ""
+        # Use latest AI message and earliest human query for stable retry context.
+        for msg in reversed(state.get("messages", [])):
             if hasattr(msg, "type") and msg.type == "ai":
                 ai_message = msg.content
                 break
-        ai_context = ""
-        if ai_message:
-            ai_context = f"\n\n💡 PREVIOUS AI SUGGESTION FIX THIS:\n{ai_message}"
-        messages = [retry_msg] + \
-            [HumanMessage(content=ai_context + error_context)]
+        for msg in state.get("messages", []):
+            if hasattr(msg, "type") and msg.type == "human":
+                user_query = msg.content
+                break
+
+        retry_context = (
+            "Repair the previous Gherkin using the validator errors.\n"
+            "Do not change the original intent/query. Keep valid lines as-is.\n"
+            "Only fix lines required to satisfy the regex validation errors.\n"
+            "Return only the corrected Gherkin scenario.\n\n"
+            f"Original user query:\n{user_query}\n\n"
+            f"Previous AI Gherkin to fix:\n{ai_message}\n\n"
+            f"Validator errors to fix:\n{error_context}"
+        )
+        messages = [retry_msg, HumanMessage(content=retry_context)]
 
     # Use the full conversation history for context
     reply = llm.invoke(messages)

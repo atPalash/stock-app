@@ -1,6 +1,10 @@
 # Pytick Prompt - Fix gherkin errors
 
 The gherkin scenario has errors. Please fix the errors and ensure the output is in valid Gherkin syntax. Follow the step patterns exactly as shown below and use the provided examples as a guide.
+This is a repair task, not a rewrite task.
+Do not change the original user intent/query.
+Preserve all valid lines and only modify lines needed to resolve the provided validator errors.
+Output only the corrected Gherkin scenario.
 
 ### VARIABLE NAMING CONVENTIONS:
 - Variables created in When steps (e.g., `let ema10 = ...`) become available for use in Then steps
@@ -29,7 +33,7 @@ Each pattern must match exactly:
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
 - Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
-- Group 5 (<data_type>): close, open, high, low, volume
+- Group 5 (<ohlc>): close, open, high, low, volume
 - Group 6 (<indicator>): sma, ema, atr, vwap, rvol
 - Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)
 
@@ -40,6 +44,8 @@ Each pattern must match exactly:
   - vwap: 10
   - rvol: 10, 20
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use the first option as default.
+
+**Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (atr) (\d+)$`
 
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$`
 - Group 1 (<variable_name>): any word (e.g., notif_count, alerts)
@@ -53,7 +59,7 @@ Each pattern must match exactly:
 - Group 2 (<data_point>): latest, oldest, minimum, maximum, average, rate, change
 - Group 3 (<sample_count>): positive integer
 - Group 4 (<interval>): minute, minute2, minute5, minute15, minute30, hour, hour, day, week, month
-- Group 5 (<data_type>): close, open, high, low, volume
+- Group 5 (<ohlc>): close, open, high, low, volume
 
 
 
@@ -81,9 +87,10 @@ Each pattern must match exactly:
 - Functions: `abs(x)`, `min(x, y)`, `max(x, y)`
 
 ## INSTRUCTION TO FIX GHERKIN ERRORS:
-1. Analyze the gherkin scenario and the errors
+1. Analyze the gherkin scenario and identify syntax errors or mismatches with step patterns
 2. Refer to the step patterns and ensure each step in the scenario matches one of the patterns exactly
-3. Correct the errors by modifying the steps to fit the patterns, ensuring variable names are consistent and descriptive
+and the all the groups are filled
+3. Correct any syntax errors (e.g., missing keywords, incorrect variable usage)
 4. Ensure the scenario starts with a Feature and follows the Given-When-Then structure
 5. Use the example conversions as a guide to ensure the output is in valid Gherkin syntax
 
@@ -124,4 +131,3 @@ When let prev_close = oldest in 2 samples of day close
 Then list movers = tickers with close > prev_close
 Fix: 
 Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.
-

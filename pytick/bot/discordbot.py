@@ -134,7 +134,8 @@ class DiscordBot(commands.Bot):
         super().__init__(command_prefix=config.command_prefix, intents=intents)
         self.config = config
         self.users_config_path = config.users_config_path
-        self.llm_handler = Graph(system_prompt=config.llm_prompt)
+        self.llm_handler = Graph(
+            system_prompt=config.llm_prompt, retry_prompt='', ollama_model='llama3')
         self.scheduler = Scheduler(config.tz, is_async=True)
 
         # set up command groups

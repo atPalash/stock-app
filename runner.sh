@@ -63,7 +63,8 @@ function killApp() {
 function runRedis() {
     tmux kill-session -t redis || true
     tmux new-session -d -s redis redis-server --port 6379
-    OLLAMA_KEEP_ALIVE=-1 ollama serve
+    tmux kill-session -t ollama || true
+    tmux new-session -d -s ollama env OLLAMA_KEEP_ALIVE=-1 ollama serve
 }
 
 function backupRedis() {

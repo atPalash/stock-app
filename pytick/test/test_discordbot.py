@@ -17,39 +17,49 @@ config = os.environ.get("CONFIG_FILE")
 app_config = read_config(file_path=config)
 users_config_path = os.environ.get("USERS_DIR")
 
+
 class DummyNotificationHandler:
     def __init__(self, tz=None):
         self.tz = tz
+
     def get_corporate_actions(self, *args, **kwargs):
         return {}
+
     def get_corporate_actions_dfs(self, *args, **kwargs):
-        df = pd.read_csv(f"{app_config.get('pytick_test_path', '')}/data/corporate_actions.csv", parse_dates=['datetime'])
+        df = pd.read_csv(
+            f"{app_config.get('pytick_test_path', '')}/data/corporate_actions.csv", parse_dates=['datetime'])
         df["datetime"] = pd.to_datetime(df['datetime'], format='%d-%b-%Y %H:%M:%S').\
-                        dt.tz_localize(self.tz)
+            dt.tz_localize(self.tz)
         tickers = kwargs.get('tickers', [])
         ret = {}
         for ticker in tickers:
             ticker_df = df[df["symbol"] == ticker]
             ret[ticker] = ticker_df if not ticker_df.empty else None
         return ret
-    
-class TestQueryHandler:    
+
+
+class TestQueryHandler:
     tickers = ["TCS", "BEL", "SBIN", "TMPV"]
     indicators = app_config.get('indicators', {})
     cron_schedules = app_config.get('cron_schedules', {})
     cron_notification = app_config.get('cron_notification', {})
     tz = app_config.get('tz', 'Asia/Kolkata')
-    data_handler = DataFrameHandler(tz=tz, indicators=indicators, test_data_path=f"{app_config.get('pytick_test_path', '')}/data")
+    data_handler = DataFrameHandler(
+        tz=tz, indicators=indicators, test_data_path=f"{app_config.get('pytick_test_path', '')}/data")
     data_handler.set_tables(tickers, "1d")
     data_handler.set_tables(tickers, "5m")
     notification_handler = DummyNotificationHandler(tz=tz)
+
     def __init__(self):
-        self.gherkin_handler = query.QueryHandler(data_handler=self.data_handler, 
-                                        notification_handler=self.notification_handler,
-                                        interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()},
-                                        interval_seconds=app_config.get('interval_seconds', {}))
+        self.gherkin_handler = query.QueryHandler(data_handler=self.data_handler,
+                                                  notification_handler=self.notification_handler,
+                                                  interval_translation={v: k for k, v in app_config.get(
+                                                      'interval_translation', {}).items()},
+                                                  interval_seconds=app_config.get('interval_seconds', {}))
+
     def getQueryHandler(self):
         return self.gherkin_handler
+
 
 def make_bot_config(tmp_path):
     return BotConfig(
@@ -61,17 +71,24 @@ def make_bot_config(tmp_path):
         tz='Asia/Kolkata',
         schedules=app_config.get('cron_schedules', {}),
         users_config_path=str(f"{tmp_path}/users"),
-        update_users_callback=lambda *args, **kwargs: None,
-        zerodha_df=pd.read_csv(app_config.get("zerodha_instrument_tokens_path", "")),
+        zerodha_df=pd.read_csv(app_config.get(
+            "zerodha_instrument_tokens_path", "")),
         trading_view_url=app_config.get('trading_view_url', ''),
         zerodha_url=app_config.get('zerodha_url', ''),
         link_type='zerodha',
         backtest_iterations=1,
-        default_ticker='SBIN'
+        default_ticker='SBIN',
+        llm_prompt='TEST PROMPT',
+        redis_url='',
+        convo_ttl_seconds=10,
+        guild_id=''
     )
 
-bot_config = make_bot_config(tmp_path=f"{app_config.get('pytick_test_path', '')}")
+
+bot_config = make_bot_config(
+    tmp_path=f"{app_config.get('pytick_test_path', '')}")
 bot = DiscordBot(bot_config)
+
 
 class DiscordBotWrapper:
     class DummyAuthor:
@@ -85,6 +102,7 @@ class DiscordBotWrapper:
         def __init__(self, content: str):
             self.content = content
             self.reference = None  # no replied message during restart
+
     class DummyCtx:
         def __init__(self, bot, command_name='run', query=""):
             self.author = DiscordBotWrapper.DummyAuthor()
@@ -92,7 +110,8 @@ class DiscordBotWrapper:
             # collect sends
             self.sent = []
             self.invoked_with = command_name
-            self.message = DiscordBotWrapper.DummyMessage(f"/{command_name} {query}")
+            self.message = DiscordBotWrapper.DummyMessage(
+                f"/{command_name} {query}")
 
         async def send(self, *args, **kwargs):
             self.sent.append((args, kwargs))
@@ -103,7 +122,8 @@ class DiscordBotWrapper:
         self.edit_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'edit')
         self.sub_ctx = DiscordBotWrapper.DummyCtx(self.bot, 'sub', query=query)
 
-async def run_command(query:str):
+
+async def run_command(query: str):
     try:
         discord_bot_wrapper = DiscordBotWrapper()
         await cmd_mod.run(discord_bot_wrapper.run_ctx, (query,))
@@ -111,8 +131,9 @@ async def run_command(query:str):
         return discord_bot_wrapper.run_ctx.sent
     except Exception as e:
         raise e
-    
-async def sub_command(query:str, period='1d'):
+
+
+async def sub_command(query: str, period='1d'):
     try:
         discord_bot_wrapper = DiscordBotWrapper(query=query)
         await cmd_mod.sub(discord_bot_wrapper.sub_ctx, period)
@@ -120,7 +141,8 @@ async def sub_command(query:str, period='1d'):
         return discord_bot_wrapper.sub_ctx.sent
     except Exception as e:
         raise e
-    
+
+
 @pytest.mark.asyncio
 async def test_valid_run():
     query_expectation = [
@@ -181,9 +203,12 @@ Then list bull = tickers with ((close1 > close2) & (close2 > close3)) | ((high1 
         sent = await run_command(query)
         fields = sent[2][1]['embed'].fields
         for field_name in expected_fields:
-            assert any(field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
+            assert any(
+                field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
         for value in expected_values:
-            assert any(value in field.value for field in fields), f"Expected value '{value}' in embed values"
+            assert any(
+                value in field.value for field in fields), f"Expected value '{value}' in embed values"
+
 
 @pytest.mark.asyncio
 async def test_error_run():
@@ -284,6 +309,7 @@ Then list bull = tickers with (ema100 > 0) & (ema200 > 0) & (abs(close - ema100)
     for item in query_expectation:
         await test_func(item)
 
+
 @pytest.mark.asyncio
 async def test_data_missing():
     query_expectation = [
@@ -308,9 +334,11 @@ Then list result = tickers with (close > ema200)
         sent = await run_command(query)
         fields = sent[2][1]['embed'].fields
         for field_name in expected_fields:
-            assert any(field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
+            assert any(
+                field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
         for value in expected_values:
-            assert any(value in field.value for field in fields), f"Expected value '{value}' in embed values"
+            assert any(
+                value in field.value for field in fields), f"Expected value '{value}' in embed values"
     for item in query_expectation:
         await test_func(item)
 
@@ -366,13 +394,17 @@ Then list bull = tickers with ((close - prev_close) / prev_close > 0.01) & notif
         sent = await run_command(query)
         fields = sent[2][1]['embed'].fields
         for field_name in expected_fields:
-            assert any(field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
+            assert any(
+                field.name == field_name for field in fields), f"Expected field '{field_name}' in embed"
         for value in expected_values:
-            assert any(value in field.value for field in fields), f"Expected value '{value}' in embed values"
+            assert any(
+                value in field.value for field in fields), f"Expected value '{value}' in embed values"
         for value in item['not_expected_values']:
-            assert not any(value in field.value for field in fields), f"Unexpected value '{value}' in embed values"
+            assert not any(
+                value in field.value for field in fields), f"Unexpected value '{value}' in embed values"
     for item in query_expectation:
         await test_func(item)
+
 
 @pytest.mark.asyncio
 async def test_sub_command():
@@ -383,6 +415,5 @@ Given stocks from index nifty50
 When let notification = latest in 20 samples of minute5 notification
 Then list result = tickers with notification"""
     wrapper1 = DiscordBotWrapper(query=query1)
-    assert(len(wrapper1.bot.scheduler.scheduler.get_jobs()) == len(app_config.get('cron_schedules', {}))), "Expected number of scheduled jobs to match cron schedules in config"
-    
-    
+    assert (len(wrapper1.bot.scheduler.scheduler.get_jobs()) == len(app_config.get(
+        'cron_schedules', {}))), "Expected number of scheduled jobs to match cron schedules in config"

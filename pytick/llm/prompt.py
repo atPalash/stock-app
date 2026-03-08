@@ -71,7 +71,7 @@ def generate_prompt(config: dict, output_init_prompt: str, output_retry_prompt: 
             when_steps_doc += f"- Group 2 (<data_point>): {data_points_str}\n"
             when_steps_doc += f"- Group 3 (<sample_count>): positive integer\n"
             when_steps_doc += f"- Group 4 (<interval>): {interval_str}\n"
-            when_steps_doc += f"- Group 5 (<data_type>): {ohlc_str}\n"
+            when_steps_doc += f"- Group 5 (<ohlc>): {ohlc_str}\n"
             when_steps_doc += f"- Group 6 (<indicator>): {indi_str}\n"
             when_steps_doc += f"- Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)\n"
             when_steps_doc += f"\n**Indicator Periods:**\n{indicators_text}\n\
@@ -82,7 +82,7 @@ the first option as default.\n"
             when_steps_doc += f"- Group 2 (<data_point>): {data_points_str}\n"
             when_steps_doc += f"- Group 3 (<sample_count>): positive integer\n"
             when_steps_doc += f"- Group 4 (<interval>): {interval_str}\n"
-            when_steps_doc += f"- Group 5 (<data_type>): {ohlc_str}\n"
+            when_steps_doc += f"- Group 5 (<ohlc>): {ohlc_str}\n"
         when_steps_doc += "\n"
 
     # Build then steps documentation with parameter mappings
@@ -117,7 +117,7 @@ You are an expert in converting user input to gherkin. Your task is to understan
 1. Analyze the user input to understand what they want to test
 2. Match their intent to the most appropriate step patterns above
 3. Convert their input into a complete Gherkin scenario with Given, When, and Then steps
-4. Use the exact step formats shown above
+4. Use the exact step formats shown above, MUST ENSURE all the groups for a pattern are filled
 5. Create variables in When steps and use them in Then steps
 6. Always start with a Feature as pytick llm 
 7. Follow the format in example conversions below to ensure the output is in valid Gherkin syntax"""
@@ -178,6 +178,7 @@ The gherkin scenario has errors. Please fix the errors and ensure the output is 
     retry_instruction = f"""## INSTRUCTION TO FIX GHERKIN ERRORS:
 1. Analyze the gherkin scenario and identify syntax errors or mismatches with step patterns
 2. Refer to the step patterns and ensure each step in the scenario matches one of the patterns exactly
+and the all the groups are filled
 3. Correct any syntax errors (e.g., missing keywords, incorrect variable usage)
 4. Ensure the scenario starts with a Feature and follows the Given-When-Then structure
 5. Use the example conversions as a guide to ensure the output is in valid Gherkin syntax"""
