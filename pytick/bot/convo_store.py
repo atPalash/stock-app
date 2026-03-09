@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Optional
 
+
 class ConvoStore:
     def __init__(self, redis):
         self.redis = redis
@@ -33,7 +34,7 @@ class ConvoStore:
         if count is None:
             return 0
         return int(count)
-    
+
     def incr_daily_llm(self, user_id: int) -> int:
         """Increment daily LLM usage counter (UTC date) and return count."""
         key = f"llm_count:{user_id}"
@@ -47,10 +48,10 @@ class ConvoStore:
             self.redis.expire(key, seconds)
         return int(count)
 
-    def subscribe_query(self, user_id: int, query: str, interval: str) -> None:
+    def subscribe_query(self, user_id: int, query: str, data: dict) -> None:
         """Subscribe user to a persistent query."""
         key = f"subs:{user_id}"
-        self.redis.hset(key, query, interval)
+        self.redis.hset(key, query, json.dumps(data))
 
     def unsubscribe_query(self, user_id: int, query: str) -> bool:
         """Unsubscribe from specific query. Returns True if existed."""
@@ -61,7 +62,7 @@ class ConvoStore:
         """Get {query: guild/dm} for user."""
         key = f"subs:{user_id}"
         return self.redis.hgetall(key)
-        
+
     def get_all_user_sub_ids(self) -> list[int]:
         subs_keys = self.redis.keys("subs:*")
         ret = []

@@ -202,19 +202,6 @@ class DiscordBot(commands.Bot):
     async def on_ready(self):
         logger.info(f'Logged in as {self.user}\nSubscribing to queries')
         self.__set_schedulers()
-        # Send hello message to all users on bot alive
-        try:
-            user_ids = []
-            # List all user config files
-            user_ids = get_user_ids(self.users_config_path)
-            for uid in user_ids:
-                user = await self.fetch_user(int(uid))
-                try:
-                    await user.send('Hello! 👋 The bot is now alive.')
-                except Exception as e:
-                    logger.warning(f"Could not send hello to user {uid}: {e}")
-        except Exception as e:
-            logger.warning(f"Exception sending hello messages: {e}")
 
     async def on_command_error(self, ctx, error):
         """Global command error handler.
@@ -366,7 +353,9 @@ Or use: Feature → Scenario → Given/When/Then",
         def callback(code, interaction) -> RetVal:
             try:
                 self.convo_store.subscribe_query(
-                    query=code, user_id=interaction.user.id, interval=interval.value)
+                    query=code, user_id=interaction.user.id, data={
+                        'interval': interval.value,
+                        'results': []})
                 return RetVal(status=True, message='Subscribed')
             except Exception as e:
                 return RetVal(status=False, errors=[str(e)], message='Unsuccessful subscription')
@@ -399,14 +388,16 @@ Or use: Feature → Scenario → Given/When/Then",
                 return
             fixed = []
             separator = '----------'
-            for query, interval in subscriptions.items():
+            for query, data in subscriptions.items():
+                sub_data = json.load(data)
+                interval = sub_data.get("interval", "")
                 fixed.append(f'Query interval: {interval}\n')
                 fixed.append(f'{query}\n')
                 fixed.append(separator)
             await self.__send_followup_msg(interaction=interaction, content='\n'.join(fixed), ephemeral=False)
         except Exception as e:
             await self.__send_followup_msg(interaction=interaction, content='Failure: {e}', ephemeral=False)
-            logger.warning(f'Failure: {e}')
+            logger.warning(f'Failure: {e.args}')
 
     async def query_unsubscribe(self, interaction: discord.Interaction):
         """
@@ -604,7 +595,7 @@ Or use: Feature → Scenario → Given/When/Then",
             logger.warning(f"{e}")
             raise e
 
-    async def __do_sub_run(self, interval: int):
+    async def __do_sub_run(self, interval: str):
         """Run scheduler job for subscription. This is used to set tables for subscription
         queries based on interval. 
         """
@@ -615,20 +606,31 @@ Or use: Feature → Scenario → Given/When/Then",
             user_interaction.user = user
             subscribed_queries = self.convo_store.get_user_subs(
                 user_id=user.id)
-            for sub, sub_interval in subscribed_queries.items():
+            for sub, data in subscribed_queries.items():
+                sub_data = json.loads(data)
+                sub_interval = sub_data.get("interval", "")
+                previous_results = sub_data.get("results", [])
                 if sub_interval == interval:
                     result = self.__do_run(
-                        interaction=user_interaction, query=sub, timeout=self.llm_timeout)
+                        interaction=user_interaction,
+                        query=sub,
+                        timeout=self.llm_timeout,
+                        previous_results=previous_results)
                     if not result.status:
                         logger.warning(
                             f"Failure interval {sub_interval}: {sub}")
                         await self.__send_direct_msg(user=user, content=f"{result.errors}")
                         return
-                    count = 0
-                    for embed in result.data.get("embeds", []):
-                        content = sub if count == 0 else ""
-                        count += 1
-                        await self.__send_direct_msg(user=user, content=content, embed=embed)
+
+                    results = result.data.get('results', [])
+                    if previous_results != results:
+                        self.convo_store.subscribe_query(
+                            user_id=uid, query=sub, data={'interval': sub_interval, 'results': results})
+                        count = 0
+                        for embed in result.data.get("embeds", []):
+                            content = sub if count == 0 else ""
+                            count += 1
+                            await self.__send_direct_msg(user=user, content=content, embed=embed)
 
     def __getEmbeds(self, title: str, parts: list[str]) -> list[discord.Embed]:
         try:
