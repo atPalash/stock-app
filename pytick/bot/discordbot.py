@@ -50,6 +50,7 @@ class BotConfig:
     openai_model: str
     llm_prompt: str
     retry_prompt: str
+    joining_prompt: str = ""
 
 
 class RetVal(BaseModel):
@@ -185,12 +186,25 @@ class DiscordBot(commands.Bot):
         self.query_group.command(
             name="subscribe", description="Subscribe to a query")(self.query_subscribe)
         self.query_group.command(
-            name="subscribe_ls", description="List subscribed querie")(self.query_subscribe_ls)
+            name="subscribe_ls", description="List subscribed query")(self.query_subscribe_ls)
         self.query_group.command(
             name="unsubscribe", description="Unsubscribe to a query")(self.query_unsubscribe)
         self.query_group.command(
             name="help", description="Show help for query commands")(self.help_doc)
         self.tree.add_command(self.query_group)
+
+    def query_commands_guide(self) -> str:
+        """Build a user-facing list of query slash commands dynamically."""
+        lines = [
+            "# 📊 Query commands guide",
+            "",
+            "Use these commands to run and manage your queries:",
+            "",
+        ]
+        for cmd in self.query_group.commands:
+            lines.append(
+                f"**/{self.query_group.name} {cmd.name}** – {cmd.description}")
+        return "\n".join(lines)
 
     async def run_async(self):
         redis_url = redis.from_url(
@@ -267,7 +281,9 @@ class DiscordBot(commands.Bot):
         await interaction.response.send_message("Sending you a direct message, bot conversation will take place in private messages.", ephemeral=True)
         # attempt DM
         try:
-            joining_message = f"Hello! 👋 I'm your friendly bot here to assist you.\n\n"
+            joining_message = self.config.joining_prompt or (
+                f"Hello! 👋 I'm your friendly bot, and I'm here to help with your queries.\n\n"
+            )
             dm = await interaction.user.create_dm()
             await dm.send(joining_message)
         except Exception:
@@ -697,13 +713,13 @@ Or use: Feature → Scenario → Given/When/Then",
             if interaction:
                 for chunk in safe_chunks:
                     if chunk != "":
-                        await interaction.followup.send(content=f"```{chunk}```", ephemeral=ephemeral)
+                        await interaction.followup.send(content=f"{chunk}", ephemeral=ephemeral)
                 if embed:
                     await interaction.followup.send(embed=embed, ephemeral=ephemeral)
             if user:
                 for chunk in safe_chunks:
                     if chunk != "":
-                        await user.send(content=f"```{chunk}```")
+                        await user.send(content=f"{chunk}")
                 if embed:
                     await user.send(embed=embed)
         except Exception as e:

@@ -38,11 +38,6 @@ gherkin_handler = query.QueryHandler(data_handler=data_handler,
                                      interval_translation={v: k for k, v in app_config.get(
                                          'interval_translation', {}).items()},
                                      interval_seconds=app_config.get('interval_seconds', {}))
-generate_prompt(config=app_config,
-                output_init_prompt=os.path.join(app_config.get(
-                    'app_data_path', ''), "llm_prompt_init.prompt.md"),
-                output_retry_prompt=os.path.join(app_config.get(
-                    'app_data_path', ''), "llm_prompt_retry.prompt.md"))
 
 bot_config = BotConfig(
     token=os.getenv('DISCORD_BOT_TOKEN', ''),
@@ -70,9 +65,20 @@ bot_config = BotConfig(
     llm_prompt=read_file(file_path=os.path.join(app_config.get(
         'app_data_path', ''), "llm_prompt_init.prompt.md")),
     retry_prompt=read_file(file_path=os.path.join(app_config.get(
-        'app_data_path', ''), "llm_prompt_retry.prompt.md"))
+        'app_data_path', ''), "llm_prompt_retry.prompt.md")),
+    joining_prompt=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "joining_prompt.prompt.md"))
 )
 discord_bot = DiscordBot(config=bot_config)
+
+generate_prompt(config=app_config,
+                output_init_prompt=os.path.join(app_config.get(
+                    'app_data_path', ''), "llm_prompt_init.prompt.md"),
+                output_retry_prompt=os.path.join(app_config.get(
+                    'app_data_path', ''), "llm_prompt_retry.prompt.md"),
+                output_join_prompt=os.path.join(app_config.get(
+                    'app_data_path', ''), "joining_prompt.prompt.md"),
+                discord_bot=discord_bot)
 
 
 @app.get("/")

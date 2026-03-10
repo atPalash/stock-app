@@ -1,5 +1,6 @@
-"""Generate LLM prompt from config.yaml and steps.py"""
+"""Generate prompt files from config.yaml and steps.py."""
 from pytick.query.steps import StepData
+from pytick.bot.discordbot import DiscordBot
 import yaml
 import sys
 import os
@@ -9,8 +10,14 @@ from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 
-def generate_prompt(config: dict, output_init_prompt: str, output_retry_prompt: str):
-    """Generate prompt file from config.yaml and steps.py"""
+def generate_prompt(
+    config: dict,
+    output_init_prompt: str,
+    output_retry_prompt: str,
+    output_join_prompt: str,
+    discord_bot: DiscordBot
+):
+    """Generate LLM prompts and Discord join message prompt."""
 
     # Extract data from config
     intervals = config.get('interval_translation', {})
@@ -279,3 +286,33 @@ Each pattern must match exactly:
     # Generate retry prompt
     get_prompt_content(retry_prompt, retry_instruction,
                        retry_examples, output_retry_prompt)
+
+    subscription_intervals = list(config.get("cron_schedules", {}).keys())
+    if not subscription_intervals:
+        subscription_intervals = list(
+            config.get("interval_translation", {}).keys())
+
+    indicator_lines = []
+    for name, meta in indicators.items():
+        periods = meta.get("periods", [])
+        if periods:
+            indicator_lines.append(
+                f"- {name.upper()}: periods {', '.join(map(str, periods))}")
+        else:
+            indicator_lines.append(f"- {name.upper()}")
+    indicator_text = "\n".join(
+        indicator_lines) if indicator_lines else "- No indicator list configured"
+    interval_text = ", ".join(
+        subscription_intervals) if subscription_intervals else "Not configured"
+    query_commands = discord_bot.query_commands_guide()
+
+    join_prompt = (
+        "Hello! 👋 I'm your friendly bot, and I'm here to help with your queries.\n\n"
+        f"{query_commands}\n\n"
+        f"Supported subscription intervals: {interval_text}\n\n"
+        "Supported indicators and periods:\n"
+        f"{indicator_text}\n\n"
+        "Tip: Share your intent in plain language and I'll try to convert it into a runnable query. 🚀\n"
+    )
+    with open(output_join_prompt, "w") as f:
+        f.write(join_prompt)
