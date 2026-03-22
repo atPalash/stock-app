@@ -3,8 +3,12 @@ from typing import Any
 
 def draw_graph(graph: Any, path: str):
     try:
+        drawable_graph = graph
+        if hasattr(drawable_graph, "get_graph"):
+            drawable_graph = drawable_graph.get_graph()
+
         # Generate the PNG visualization
-        png_data = graph.get_graph().draw_mermaid_png()
+        png_data = drawable_graph.draw_mermaid_png()
 
         # Save to file
         with open(path, "wb") as f:
@@ -46,3 +50,11 @@ def extract_gherkin(ai_content: str | Any) -> str:
     gherkin_section = '\n'.join(
         lines[first_gherkin_line:last_gherkin_line + 1]).strip()
     return gherkin_section
+
+
+def clean_llm_message(content: str | Any) -> str:
+    """Clean AI response by removing extraneous text and keeping only the relevant part."""
+    # For now, we will just return the content as is, but this function can be expanded
+    # to include more sophisticated cleaning logic if needed.
+    return content.split()[0].strip(
+        '.,!?;:"\'-') if content.split() else ""

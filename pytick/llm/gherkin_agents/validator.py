@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage, HumanMessage
 
-from pytick.llm.llm_types import MessageClassifier, State
+from pytick.llm.llm_types import State
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from pytick.query.query import QueryHandler

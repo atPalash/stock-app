@@ -21,5 +21,5 @@ Use this exact conventional commit format:
 - Check for changed files using git status and git diff to understand what has been modified
 - Review the actual diffs to understand the scope and nature of the changes
 - Determine if the changes should be grouped into one commit or multiple commits based on logical separation of changes
-- Generate commit message(s) following the specified format and guidelines and show it to user for confirmation or edits
+- Generate commit message(s) following the specified format and guidelines and show it to user for confirmation or edits. Ensure the line lengths are within limits.
 - Remove the temporary files created during the review process

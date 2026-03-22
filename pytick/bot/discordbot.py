@@ -1,25 +1,42 @@
 from collections.abc import Callable
+import asyncio
 from datetime import datetime, tzinfo
 import functools
 import inspect
 import json
 import logging
-from unittest.mock import Mock
+from urllib.parse import quote_plus
+from unittest.mock import MagicMock, Mock
+import trafilatura
 from attr import dataclass
 import discord
 from discord import app_commands
 from discord.ext import commands
 import pandas
 from pydantic import BaseModel, typing
+from pygooglenews import GoogleNews
 import redis
 from func_timeout import func_timeout, FunctionTimedOut
+from ddgs import DDGS
 from pytick.bot.convo_store import ConvoStore
 from pytick.bot.utility import get_user_ids
+from pytick.llm.gherkin_agents.converter import converter_agent as gherkin_converter
+from pytick.llm.gherkin_agents.router import router as gherkin_router
+from pytick.llm.gherkin_agents.validator import validator_agent as gherkin_validator
+from pytick.llm.common_agents.converter import converter_agent as common_converter
+from pytick.llm.common_agents.validator import validator_agent as common_validator
+from pytick.llm.common_agents.router import router as common_router
+from pytick.llm.gherkin_agents.converter import converter_agent as gherkin_converter
+from pytick.llm.gherkin_agents.validator import validator_agent as gherkin_validator
+from pytick.llm.gherkin_agents.router import router as gherkin_router
+from pytick.llm.classifier_agents.converter import converter_agent as classifier_converter
+from pytick.llm.classifier_agents.validator import validator_agent as classifier_validator
+from pytick.llm.search_agents.converter import converter_agent as search_converter
 from pytick.llm.graph import Graph
+from pytick.llm.multi_graph import MultiGraph
 from pytick.query.query import QueryHandler
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.utility import clean_gherkin, get_logger
-from collections.abc import Callable
 
 logger = get_logger(__file__, logging.DEBUG)
 
@@ -50,7 +67,7 @@ class BotConfig:
     openai_model: str
     llm_prompt: str
     retry_prompt: str
-    joining_prompt: str = ""
+    joining_prompt: str
 
 
 class RetVal(BaseModel):
@@ -161,11 +178,54 @@ class DiscordBot(commands.Bot):
         self.ollama_handler = Graph(
             system_prompt=config.llm_prompt,
             retry_prompt=config.retry_prompt,
+            converter_agent=gherkin_converter,
+            validator_agent=gherkin_validator,
+            router_agent=gherkin_router,
             ollama_model=config.ollama_model)
         self.openai_handler = Graph(
             system_prompt=config.llm_prompt,
             retry_prompt=config.retry_prompt,
+            converter_agent=gherkin_converter,
+            validator_agent=gherkin_validator,
+            router_agent=gherkin_router,
             openai_model=config.openai_model)
+
+        classifier_system_prompt = f"""You are a classfier to route user instructions
+
+CRITICAL INSTRUCTIONS:
+1. You MUST respond with ONLY one of these VALID_WORKERS
+2. Your response must be a single word, nothing else
+3. Do NOT include any explanation, punctuation, or additional text
+4. If unsure, respond with "default"
+"""
+        self.multi_handler = MultiGraph(
+            classifier=Graph(
+                id='classifier',
+                system_prompt=classifier_system_prompt,
+                retry_prompt='Retry classification, Note: there might be keywords which can help in classification',
+                converter_agent=classifier_converter,
+                validator_agent=classifier_validator,
+                router_agent=common_router,
+                ollama_model='llama3',
+                openai_model=''),
+            default=Graph(
+                id='default',
+                system_prompt='You are a chatbot to answer user query',
+                retry_prompt='You are a chatbot to answer user query',
+                converter_agent=common_converter,
+                validator_agent=common_validator,
+                router_agent=common_router,
+                ollama_model='gemma3',
+                openai_model=''),
+            search=Graph(
+                id='search',
+                system_prompt='You are a chatbot which makes a web search for latest data and answer user query based on web content',
+                retry_prompt='Retry to make a web search again for latest data and answer user query based on web content',
+                converter_agent=search_converter,
+                validator_agent=common_validator,
+                router_agent=common_router,
+                ollama_model='gemma3',
+                openai_model=''))
         self.scheduler = Scheduler(config.tz, is_async=True)
 
         # set up command groups
@@ -216,6 +276,65 @@ class DiscordBot(commands.Bot):
     async def on_ready(self):
         logger.info(f'Logged in as {self.user}\nSubscribing to queries')
         self.__set_schedulers()
+
+    async def on_message(self, message: discord.Message):
+        """Route normal chat messages to guidance replies in DM or when mentioned."""
+        try:
+            if message.author.bot:
+                return
+
+            content = (message.content or "").strip()
+            if content == "" or content.startswith("/"):
+                return
+
+            # Extract replied-to message once for reuse
+            replied_to = None
+            if message.reference:
+                try:
+                    replied_to = message.reference.resolved
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to get replied message context: {e}")
+
+            if not self.__should_handle_chat_message(message, replied_to):
+                return
+
+            # Build replied context from extracted message
+            replied_content = ""
+            if replied_to:
+                replied_content = f"{replied_to.content}"
+
+            # Clean mention so the LLM/input checks receive the actual user text.
+            if self.user:
+                content = content.replace(self.user.mention, "").strip()
+            if content == "":
+                await message.channel.send(self.query_commands_guide())
+                return
+            if content.startswith("/"):
+                await message.channel.send("Use slash commands directly in the composer. Try `/query help`.")
+                return
+
+            # Combine replied context with current input
+            # full_input = replied_content + content
+
+            dm = await message.author.create_dm()
+            async with dm.typing():
+                replies = await asyncio.to_thread(
+                    self.__build_chat_reply,
+                    query=content,
+                    replied_content=replied_content,
+                    user_id=message.author.id,
+                )
+            for reply in replies:
+                if isinstance(reply, discord.embeds.Embed):
+                    await self.__send_direct_msg(user=message.author, embed=reply)
+                if reply == "":
+                    continue
+                await self.__send_direct_msg(user=message.author, content=reply)
+        except Exception as e:
+            logger.warning(f"Chat routing failed: {e}")
+        finally:
+            await self.process_commands(message)
 
     async def on_command_error(self, ctx, error):
         """Global command error handler.
@@ -272,7 +391,7 @@ class DiscordBot(commands.Bot):
     async def admin_join(self, interaction: discord.Interaction):
         """
         Handles joining request from user to join server and get bot services. The
-        Bot will send helper to the user via direct message 
+        Bot will send helper to the user via direct message
 
         Usage:
             Typically invoked in response to a Discord slash command
@@ -316,10 +435,10 @@ class DiscordBot(commands.Bot):
     async def query_run(self, interaction: discord.Interaction):
         """
         Handles the single run for a query via a Discord interaction.
-        This function presents the user with a modal for query submission within Discord. 
+        This function presents the user with a modal for query submission within Discord.
         It automatically applies AI enhancements to the query if applicable (up to 10 times per day),
-        or accepts queries following the "Feature → Scenario → Given/When/Then" format. 
-        The modal verifies user access, routes the query through the relevant LLM handler, 
+        or accepts queries following the "Feature → Scenario → Given/When/Then" format.
+        The modal verifies user access, routes the query through the relevant LLM handler,
         executes the query, and provides feedback or results to the user.
         Args:
             interaction (discord.Interaction): The Discord interaction object representing the user's action.
@@ -353,10 +472,10 @@ Or use: Feature → Scenario → Given/When/Then",
     async def query_subscribe(self, interaction: discord.Interaction, interval: app_commands.Choice[str]):
         """
         Handles the subscription process for a query via a Discord interaction.
-        This function presents the user with a modal for query submission within Discord. 
+        This function presents the user with a modal for query submission within Discord.
         It automatically applies AI enhancements to the query if applicable (up to 10 times per day),
-        or accepts queries following the "Feature → Scenario → Given/When/Then" format. 
-        The modal verifies user access, routes the query through the relevant LLM handler, 
+        or accepts queries following the "Feature → Scenario → Given/When/Then" format.
+        The modal verifies user access, routes the query through the relevant LLM handler,
         executes the query, and provides feedback or results to the user.
         Args:
             interaction (discord.Interaction): The Discord interaction object representing the user's action.
@@ -418,7 +537,7 @@ Or use: Feature → Scenario → Given/When/Then",
     async def query_unsubscribe(self, interaction: discord.Interaction):
         """
         Handles the un-subscription process for a query via a Discord interaction.
-        This function presents the user with a modal for query submission within Discord. 
+        This function presents the user with a modal for query submission within Discord.
         Unsubscription relies on user sending the exact query to unsubscribe.
         Args:
             interaction (discord.Interaction): The Discord interaction object representing the user's action.
@@ -453,10 +572,9 @@ Or use: Feature → Scenario → Given/When/Then",
         """
         # rate limiting checks
         try:
-            user_exists = len(self.convo_store.get_user(
-                user_id=user_id).keys()) == 0
-            if user_exists:
-                return RetVal(status=False, message="You're not registered. send /admin join from server")
+            registration = self.__is_registered_user(user_id=user_id)
+            if not registration.status:
+                return registration
             per_count = self.convo_store.incr_rate(user_id)
             if per_count > 1:
                 return RetVal(status=False, message="You're sending requests too quickly — please slow down.")
@@ -465,7 +583,15 @@ Or use: Feature → Scenario → Given/When/Then",
             logger.warning(f"{e}")
             return RetVal(status=False, message=f"{e}", errors=[str(e)])
 
-    def __llm_router(self, user_id: int, input: str) -> RetVal:
+    def __is_registered_user(self, user_id: int) -> RetVal:
+        """Check whether the user has joined the bot service."""
+        user_exists = len(self.convo_store.get_user(
+            user_id=user_id).keys()) == 0
+        if user_exists:
+            return RetVal(status=False, message="You're not registered. send /admin join from server")
+        return RetVal(status=True, message="Ok")
+
+    def __llm_router(self, user_id: int, input: str, allow_openai=True) -> RetVal:
         """Call LLM to generate a short guidance message directing user to configured commands.
         Returns the message to send.
         """
@@ -479,41 +605,42 @@ Or use: Feature → Scenario → Given/When/Then",
 
             query = clean_gherkin(input)
 
-            def send_llm_conversion(llm_handler, query) -> RetVal:
-                llm_result = ""
-                try:
-                    # First call local ollama
-                    llm_result = func_timeout(
-                        self.llm_timeout,
-                        self.ollama_handler.run,
-                        args=(query,)
-                    )
-                    # logger.info(
-                    #     f'{query} converted by {llm_handler.llm} to gherkin')
-                    if 'Feature' in llm_result:
-                        return RetVal(status=True, data={"gherkin": llm_result}, message=f'{llm_handler.llm} converted gherkin')
-                    return RetVal(status=False, message=f'Conversion failed: {query} \n{llm_result}')
-                except FunctionTimedOut:
-                    logger.warning(
-                        f"{llm_handler} conversion timed out: {query}")
-                    return RetVal(status=False, message=f"⏰ AI conversion timed out for {query}", errors=["Timeout"])
-
             # Will send result from either else timeout
-            ret = send_llm_conversion(
+            ret = self.__do_llm_conversion(
                 llm_handler=self.ollama_handler, query=query)
-            if not ret.status:
+            if allow_openai and not ret.status:
                 daily_count = self.convo_store.get_daily_llm(user_id)
                 if daily_count > 10:
                     return RetVal(status=False, message=f"🚫 Limit reached: {daily_count} premium guided messages used today. 🤖 Free AI is still here.")
                 self.convo_store.incr_daily_llm(
                     user_id=user_id)
                 logger.info(f'{user_id} used premium for {query}')
-                ret = send_llm_conversion(
+                ret = self.__do_llm_conversion(
                     llm_handler=self.openai_handler, query=query)
             return ret
         except Exception as e:
             logger.warning(f"{e}")
             return RetVal(status=False, message=f"{e}", errors=[str(e)])
+
+    def __do_llm_conversion(self, llm_handler, query) -> RetVal:
+        llm_result = ""
+        try:
+            # First call local ollama
+            llm_result = func_timeout(
+                self.llm_timeout,
+                llm_handler.run,
+                args=(query,)
+            )
+            llm_result = clean_gherkin(llm_result)
+            # logger.info(
+            #     f'{query} converted by {llm_handler.llm} to gherkin')
+            if 'Feature' in llm_result:
+                return RetVal(status=True, data={"gherkin": llm_result}, message=f'{llm_handler.llm} converted gherkin')
+            return RetVal(status=False, message=f'Conversion failed: {query} \n{llm_result}')
+        except FunctionTimedOut:
+            logger.warning(
+                f"{llm_handler} conversion timed out: {query}")
+            return RetVal(status=False, message=f"⏰ AI conversion timed out for {query}", errors=["Timeout"])
 
     def __gherkin_check_router(self, _user_id: int, input: str) -> RetVal:
         """Check valid gherkin.
@@ -613,7 +740,7 @@ Or use: Feature → Scenario → Given/When/Then",
 
     async def __do_sub_run(self, interval: str):
         """Run scheduler job for subscription. This is used to set tables for subscription
-        queries based on interval. 
+        queries based on interval.
         """
         user_ids = self.convo_store.get_all_user_sub_ids()
         for uid in user_ids:
@@ -752,3 +879,59 @@ Or use: Feature → Scenario → Given/When/Then",
         if current_chunk:
             chunks.append('\n'.join(current_chunk))
         return chunks
+
+    def __should_handle_chat_message(self, message: discord.Message, replied_to: discord.Message = None) -> bool:
+        """Only handle DM chats, guild messages mentioning the bot, or replies to the bot."""
+        if isinstance(message.channel, discord.DMChannel):
+            return True
+        if self.user and self.user in message.mentions:
+            return True
+        # Check if this is a reply to the bot's message
+        if replied_to and replied_to.author.id == self.user.id:
+            return True
+        return False
+
+    def __build_chat_reply(self, query: str, replied_content: str, user_id: int) -> list:
+        """Build a guidance-first chat reply for non-command conversations."""
+        try:
+            return func_timeout(10, self.__build_chat_reply_impl, args=(query, replied_content, user_id))
+        except FunctionTimedOut:
+            logger.warning(f"{user_id} Chat reply timed out for {query}")
+            return self.__make_chat_reply("I'm thinking too slow on that one. Try `/query run` for quick results.")
+
+    def __build_chat_reply_impl(self, query: str, replied_content: str, user_id) -> list:
+        """Build user message reply"""
+
+        # # 1. First try to convert to valid gherkin query
+        # ret = self.__do_llm_conversion(
+        #     llm_handler=self.ollama_handler, query=input)
+        # gherkin = ret.data.get('gherkin', '')
+        # if ret.status and gherkin != '':
+        #     return [gherkin, self.config]
+
+        # 1. Check if the replied content is valid gherkin, run the query
+        if replied_content != "":
+            result = self.__is_gherkin_format(input=replied_content)
+            if result.status:
+                result = self.__llm_router(user_id=user_id,
+                                           input=f"{replied_content}\n {query}", allow_openai=False)
+                gherkin = result.data.get('gherkin', '')
+                if not result.status or gherkin == '':
+                    return [f'Failure: {query}\n{result.errors}']
+                result = self.__do_run(MagicMock(user=MagicMock(id=user_id)),
+                                       query=gherkin, timeout=self.llm_timeout, previous_results=[])
+                if not result.status:
+                    logger.warning(f"Failure: {gherkin}\n")
+                    return [f'Failure: {query}\n{result.errors}']
+                embeds = result.data.get("embeds", [])
+                return [gherkin, *embeds]
+
+        # On failure proceed as normal chat
+        reply = self.multi_handler.run(f"{query}")
+        return self.__make_chat_reply(reply)
+
+    def __make_chat_reply(self, *contents) -> list:
+        greeting = "Hello! 👋 I'm your friendly bot, and I'm here to help with stock queries. Check my capabilities in `/admin join`\n"
+        ai_generated = "⚠️ Notice: This response includes AI-generated data. It may be inaccurate or incomplete\n"
+
+        return [greeting, ai_generated, *contents]
