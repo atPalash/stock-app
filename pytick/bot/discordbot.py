@@ -170,6 +170,8 @@ class DiscordBot(commands.Bot):
         intents.message_content = True
         intents.dm_messages = True
         intents.guilds = True
+        # Required to receive member update events (e.g., onboarding pending -> False)
+        intents.members = True
         super().__init__(command_prefix=config.command_prefix, intents=intents)
         self.config = config
         self.users_config_path = config.users_config_path
@@ -276,6 +278,38 @@ CRITICAL INSTRUCTIONS:
     async def on_ready(self):
         logger.info(f'Logged in as {self.user}\nSubscribing to queries')
         self.__set_schedulers()
+
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
+        # Membership screening/onboarding completed when pending flips True -> False.
+        user_id = after.id
+        if self.convo_store.get_user(user_id):
+            return  # already handled
+        if after.flags.completed_onboarding:
+            try:
+                dm = await after.create_dm()
+                # Use configured joining prompt or provide a default welcome message
+                joining_message = self.config.joining_prompt
+                await dm.send(joining_message)
+
+                # Register the user in the conversation store
+                self.convo_store.set_user(
+                    user_id=after.id,
+                    user_name=after.name,
+                    display_name=after.display_name,
+                    chart="tradingview",
+                    joined_at=datetime.now().strftime("%Y-%m-%d"),
+                    origin_guild_id=after.guild.id,
+                    origin_channel_id=after.dm_channel.id
+                )
+                logger.info(
+                    f"Onboarding completed for {after.id}-{after.display_name}")
+            except discord.Forbidden:
+                # User has DMs closed or blocked the bot.
+                logger.warning(
+                    f"{after.id}-{after.display_name} has disabled dm")
+            except Exception as e:
+                logger.warning(
+                    f"Error during onboarding for {after.id}-{after.display_name}: {e}")
 
     async def on_message(self, message: discord.Message):
         """Route normal chat messages to guidance replies in DM or when mentioned."""

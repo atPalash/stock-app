@@ -1,3 +1,8 @@
+# TODO
+1. User on-boarding
+2. If user executes command in server ask user to use dm 
+
+
 # Pytick - AI-Powered Stock Analysis & Discord Bot
 
 Pytick is a comprehensive stock market analysis platform that combines real-time market data, technical indicators, and AI-powered natural language processing to provide intelligent trading insights through Discord.
