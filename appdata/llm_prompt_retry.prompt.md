@@ -1,4 +1,4 @@
-# Pytick Prompt - Fix gherkin errors
+# chattick Prompt - Fix gherkin errors
 
 The gherkin scenario has errors. Please fix the errors and ensure the output is in valid Gherkin syntax. Follow the step patterns exactly as shown below and use the provided examples as a guide.
 
@@ -13,7 +13,7 @@ The gherkin scenario has errors. Please fix the errors and ensure the output is 
 Each pattern must match exactly:
 
 **Pattern:** `^stocks from index (.+)$`
-- Group 1 (<index_name>): nifty50
+- Group 1 (<index_name>): nifty50, nifty100
 
 **Pattern:** `^stocks from list (.+)$`
 - Group 1 (<equity_names>): comma-separated stock symbols (sample: ADANIENT, ADANIPORTS, APOLLOHOSP, ASIANPAINT, AXISBANK)
@@ -34,11 +34,11 @@ Each pattern must match exactly:
 - Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)
 
 **Indicator Periods:**
-  - sma: 5, 10, 20, 50, 100, 200
-  - ema: 5, 10, 20, 50, 100, 200
-  - atr: 10, 14
-  - vwap: 10
-  - rvol: 10, 20
+* sma: 5, 10, 20, 50, 100, 200
+* ema: 5, 10, 20, 50, 100, 200
+* atr: 10, 14
+* vwap: 10
+* rvol: 10, 20
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use the first option as default.
 
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$`
@@ -100,16 +100,16 @@ Input: Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
-* let vwap = latest in 1 samples of day close vwap
+And let close = latest in 1 samples of day close
+And let vwap = latest in 1 samples of day close vwap
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
 Output:
 Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
-* let vwap10 = latest in 1 samples of day close vwap 10
+And let close = latest in 1 samples of day close
+And let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
 Fix: 
 vwap is an indicator that requires a period (e.g., vwap10). The step must specify the indicator and period to match the when step pattern for indicators.
@@ -120,14 +120,14 @@ Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
+And let close = latest in 1 samples of day close
 Then list movers = tickers with close > prev_close
 Output:
 Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
+And let close = latest in 1 samples of day close
 Then list movers = tickers with close > prev_close
 Fix: 
 Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.

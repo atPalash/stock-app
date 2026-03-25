@@ -94,10 +94,10 @@ def calculate_indicators(ticker: str, df: pd.DataFrame, indicators: dict) -> dic
     return {'ticker': ticker, 'df': df, 'errors': errors}
 
 
-def get_nifty50_tickers() -> list:
-    tickers_csv = f"{app_config.get('app_data_path')}/ind_nifty50list.csv"
-    nifty50 = pd.read_csv(tickers_csv)
-    return nifty50['Symbol'].tolist()
+def get_nifty_tickers(filename: str) -> list:
+    tickers_csv = f"{app_config.get('app_data_path')}/{filename}"
+    tickers = pd.read_csv(tickers_csv)
+    return tickers['Symbol'].tolist()
 
 
 class DataFrameHandler:
@@ -218,5 +218,5 @@ if __name__ == "__main__":
     # config_path = "config_debug.yaml"
     # indicators = read_config(config_path).get('indicators', {})
     # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
-    # print(get_nifty50_tickers())
-    download_stock_data("TMPV", "1d", "Asia/Kolkata")
+    print(get_nifty_tickers('ind_nifty100list.csv'))
+    # download_stock_data("TMPV", "1d", "Asia/Kolkata")

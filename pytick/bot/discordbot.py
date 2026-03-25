@@ -281,28 +281,30 @@ CRITICAL INSTRUCTIONS:
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         # Membership screening/onboarding completed when pending flips True -> False.
-        user_id = after.id
-        if self.convo_store.get_user(user_id):
-            return  # already handled
         if after.flags.completed_onboarding:
             try:
+                user_id = after.id
                 dm = await after.create_dm()
                 # Use configured joining prompt or provide a default welcome message
                 joining_message = self.config.joining_prompt
                 await dm.send(joining_message)
 
-                # Register the user in the conversation store
-                self.convo_store.set_user(
-                    user_id=after.id,
-                    user_name=after.name,
-                    display_name=after.display_name,
-                    chart="tradingview",
-                    joined_at=datetime.now().strftime("%Y-%m-%d"),
-                    origin_guild_id=after.guild.id,
-                    origin_channel_id=after.dm_channel.id
-                )
-                logger.info(
-                    f"Onboarding completed for {after.id}-{after.display_name}")
+                if not self.convo_store.get_user(user_id):
+                    # Register the user in the conversation store
+                    self.convo_store.set_user(
+                        user_id=user_id,
+                        user_name=after.name,
+                        display_name=after.display_name,
+                        chart="tradingview",
+                        joined_at=datetime.now().strftime("%Y-%m-%d"),
+                        origin_guild_id=after.guild.id,
+                        origin_channel_id=after.dm_channel.id
+                    )
+                    logger.info(
+                        f"Onboarding completed for {after.id}-{after.display_name}")
+                else:
+                    logger.info(
+                        f"Onboarding completed for existing {after.id}-{after.display_name}")
             except discord.Forbidden:
                 # User has DMs closed or blocked the bot.
                 logger.warning(

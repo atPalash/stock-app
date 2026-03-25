@@ -14,7 +14,7 @@ You are an expert in converting user input to gherkin. Your task is to understan
 Each pattern must match exactly:
 
 **Pattern:** `^stocks from index (.+)$`
-- Group 1 (<index_name>): nifty50
+- Group 1 (<index_name>): nifty50, nifty100
 
 **Pattern:** `^stocks from list (.+)$`
 - Group 1 (<equity_names>): comma-separated stock symbols (sample: ADANIENT, ADANIPORTS, APOLLOHOSP, ASIANPAINT, AXISBANK)
@@ -35,11 +35,11 @@ Each pattern must match exactly:
 - Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)
 
 **Indicator Periods:**
-  - sma: 5, 10, 20, 50, 100, 200
-  - ema: 5, 10, 20, 50, 100, 200
-  - atr: 10, 14
-  - vwap: 10
-  - rvol: 10, 20
+* sma: 5, 10, 20, 50, 100, 200
+* ema: 5, 10, 20, 50, 100, 200
+* atr: 10, 14
+* vwap: 10
+* rvol: 10, 20
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use the first option as default.
 
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$`
@@ -104,17 +104,8 @@ Feature: pytick llm
 Scenario: EMA10 greater than close price analysis
 Given stocks from index nifty50
 When let ema10 = latest in 1 samples of day close ema 10
-* let close = latest in 1 samples of day close
+And let close = latest in 1 samples of day close
 Then list result = tickers with (ema10 > close)
-
-Input: "sma20 < open"
-Output:
-Feature: pytick llm
-Scenario: SMA20 less than open price analysis
-Given stocks from index nifty50
-When let sma20 = latest in 1 samples of day close sma 20
-* let open = latest in 1 samples of day open
-Then list result = tickers with (sma20 < open)
 
 Input: "close > ema10 and close > ema100"
 Output:
@@ -122,8 +113,8 @@ Feature: pytick llm
 Scenario: Close price greater than EMA10 and EMA100 analysis
 Given stocks from index nifty50
 When let close = latest in 1 samples of minute5 close
-* let ema10 = latest in 1 samples of minute5 close ema 10
-* let ema100 = latest in 1 samples of minute5 close ema 100
+And let ema10 = latest in 1 samples of minute5 close ema 10
+And let ema100 = latest in 1 samples of minute5 close ema 100
 Then list result = tickers with (close > ema10) & (close > ema100)
 
 Input: "close > previous close"
@@ -132,7 +123,7 @@ Feature: pytick llm
 Scenario: Today close greater than previous close analysis
 Given stocks from index nifty50
 When let close = latest in 1 samples of day close
-* let prev_close = oldest in 2 samples of day close
+And let prev_close = oldest in 2 samples of day close
 Then list result = tickers with (close > prev_close)
 Note: "oldest in 2 samples" retrieves the second-most recent value (previous candle)
 
@@ -142,7 +133,7 @@ Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
-* let vwap10 = latest in 1 samples of day close vwap 10
+And let close = latest in 1 samples of day close
+And let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
 

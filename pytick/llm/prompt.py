@@ -53,7 +53,7 @@ def generate_prompt(
         periods = ind_config.get('periods', [])
         if periods:
             periods_str = ', '.join(map(str, periods))
-            indicator_sections.append(f"  - {ind_name}: {periods_str}")
+            indicator_sections.append(f"* {ind_name}: {periods_str}")
 
     indicators_text = '\n'.join(indicator_sections)
 
@@ -139,17 +139,8 @@ Feature: pytick llm
 Scenario: EMA10 greater than close price analysis
 Given stocks from index nifty50
 When let ema10 = latest in 1 samples of day close ema 10
-* let close = latest in 1 samples of day close
+And let close = latest in 1 samples of day close
 Then list result = tickers with (ema10 > close)
-
-Input: "sma20 < open"
-Output:
-Feature: pytick llm
-Scenario: SMA20 less than open price analysis
-Given stocks from index nifty50
-When let sma20 = latest in 1 samples of day close sma 20
-* let open = latest in 1 samples of day open
-Then list result = tickers with (sma20 < open)
 
 Input: "close > ema10 and close > ema100"
 Output:
@@ -157,8 +148,8 @@ Feature: pytick llm
 Scenario: Close price greater than EMA10 and EMA100 analysis
 Given stocks from index nifty50
 When let close = latest in 1 samples of minute5 close
-* let ema10 = latest in 1 samples of minute5 close ema 10
-* let ema100 = latest in 1 samples of minute5 close ema 100
+And let ema10 = latest in 1 samples of minute5 close ema 10
+And let ema100 = latest in 1 samples of minute5 close ema 100
 Then list result = tickers with (close > ema10) & (close > ema100)
 
 Input: "close > previous close"
@@ -167,7 +158,7 @@ Feature: pytick llm
 Scenario: Today close greater than previous close analysis
 Given stocks from index nifty50
 When let close = latest in 1 samples of day close
-* let prev_close = oldest in 2 samples of day close
+And let prev_close = oldest in 2 samples of day close
 Then list result = tickers with (close > prev_close)
 Note: "oldest in 2 samples" retrieves the second-most recent value (previous candle)
 
@@ -177,12 +168,12 @@ Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
-* let vwap10 = latest in 1 samples of day close vwap 10
+And let close = latest in 1 samples of day close
+And let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
 """
 
-    retry_prompt = f"""# Pytick Prompt - Fix gherkin errors
+    retry_prompt = f"""# chattick Prompt - Fix gherkin errors
 
 The gherkin scenario has errors. Please fix the errors and ensure the output is in valid Gherkin syntax. Follow the step patterns exactly as shown below and use the provided examples as a guide."""
     retry_instruction = f"""## INSTRUCTION TO FIX GHERKIN ERRORS:
@@ -198,16 +189,16 @@ Input: Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
-* let vwap = latest in 1 samples of day close vwap
+And let close = latest in 1 samples of day close
+And let vwap = latest in 1 samples of day close vwap
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
 Output:
 Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
-* let vwap10 = latest in 1 samples of day close vwap 10
+And let close = latest in 1 samples of day close
+And let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
 Fix: 
 vwap is an indicator that requires a period (e.g., vwap10). The step must specify the indicator and period to match the when step pattern for indicators.
@@ -218,14 +209,14 @@ Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
+And let close = latest in 1 samples of day close
 Then list movers = tickers with close > prev_close
 Output:
 Feature: pytick llm
 Scenario: Multiple condition analysis with price change and VWAP deviation
 Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
-* let close = latest in 1 samples of day close
+And let close = latest in 1 samples of day close
 Then list movers = tickers with close > prev_close
 Fix: 
 Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.
@@ -316,3 +307,45 @@ Each pattern must match exactly:
     )
     with open(output_join_prompt, "w") as f:
         f.write(join_prompt)
+
+    getting_started = f"""🎉 Welcome to chattick! 🇮🇳
+
+Hey there 👋 — awesome to have you with us! chattick turns your trading ideas into structured, ready‑to‑run scenarios — instantly.
+
+💬 Try simple ideas:
+ema10 > close
+close > previous close
+sma20 < open
+
+🧩 Quick Reference
+indexes: {index_names}
+Indicators:\n{indicators_text}\n
+Intervals: {interval_str}
+
+📚 Explore:
+See working examples in #examples 
+See demos in  #demos
+
+Let’s turn smart ideas into powerful trade logic — welcome aboard! 🚀
+"""
+    with open(os.path.join(config.get('app_data_path', ''), "getting_started.md"), "w") as f:
+        f.write(getting_started)
+
+    rules = f""":scroll: chattick Server Rules
+
+No financial advice — the bot helps generate logic, not market recommendations.
+
+Use the bot properly — don’t spam or flood the bot with random text.
+
+No misuse or exploits — don’t attempt to break, overload, or bypass the bot’s logic.
+
+Report issues responsibly —
+:lady_beetle: For bugs → Post in #bug-reports or tag @admin
+:bulb: For new features or ideas → Use #feature-requests 
+
+Respect others — no harassment, hate speech, or off-topic arguments.
+
+Stay organized — Your interaction with bot happens in direct message.
+"""
+    with open(os.path.join(config.get('app_data_path', ''), "rules.md"), "w") as f:
+        f.write(rules)
