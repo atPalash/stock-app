@@ -14,8 +14,7 @@ def generate_prompt(
     config: dict,
     output_init_prompt: str,
     output_retry_prompt: str,
-    output_join_prompt: str,
-    discord_bot: DiscordBot
+    output_getting_started: str,
 ):
     """Generate LLM prompts and Discord join message prompt."""
 
@@ -129,7 +128,7 @@ You are an expert in converting user input to gherkin. Your task is to understan
 3. Convert their input into a complete Gherkin scenario with Given, When, and Then steps
 4. Use the exact step formats shown above, MUST ENSURE all the groups for a pattern are filled
 5. Create variables in When steps and use them in Then steps
-6. Always start with a Feature as pytick llm 
+6. Always start with a Feature as pytick llm
 7. Follow the format in example conversions below to ensure the output is in valid Gherkin syntax"""
     starting_examples = f"""## EXAMPLE CONVERSIONS:
 
@@ -200,7 +199,7 @@ When let prev_close = oldest in 2 samples of day close
 And let close = latest in 1 samples of day close
 And let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
-Fix: 
+Fix:
 vwap is an indicator that requires a period (e.g., vwap10). The step must specify the indicator and period to match the when step pattern for indicators.
 The variable name in the condition must also be updated to match the variable created in the When step (vwap10 instead of vwap).
 
@@ -218,7 +217,7 @@ Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
 And let close = latest in 1 samples of day close
 Then list movers = tickers with close > prev_close
-Fix: 
+Fix:
 Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.
 """
 
@@ -278,39 +277,12 @@ Each pattern must match exactly:
     get_prompt_content(retry_prompt, retry_instruction,
                        retry_examples, output_retry_prompt)
 
-    subscription_intervals = list(config.get("cron_schedules", {}).keys())
-    if not subscription_intervals:
-        subscription_intervals = list(
-            config.get("interval_translation", {}).keys())
-
-    indicator_lines = []
-    for name, meta in indicators.items():
-        periods = meta.get("periods", [])
-        if periods:
-            indicator_lines.append(
-                f"- {name.upper()}: periods {', '.join(map(str, periods))}")
-        else:
-            indicator_lines.append(f"- {name.upper()}")
-    indicator_text = "\n".join(
-        indicator_lines) if indicator_lines else "- No indicator list configured"
-    interval_text = ", ".join(
-        subscription_intervals) if subscription_intervals else "Not configured"
-    query_commands = discord_bot.query_commands_guide()
-
-    join_prompt = (
-        "Hello! 👋 I'm your friendly bot, and I'm here to help with your queries.\n\n"
-        f"{query_commands}\n\n"
-        f"Supported subscription intervals: {interval_text}\n\n"
-        "Supported indicators and periods:\n"
-        f"{indicator_text}\n\n"
-        "Tip: Share your intent in plain language and I'll try to convert it into a runnable query. 🚀\n"
-    )
-    with open(output_join_prompt, "w") as f:
-        f.write(join_prompt)
-
+    # Getting started
     getting_started = f"""🎉 Welcome to chattick! 🇮🇳
 
 Hey there 👋 — awesome to have you with us! chattick turns your trading ideas into structured, ready‑to‑run scenarios — instantly.
+
+📥 Check your inbox: All bot conversations happen in direct message
 
 💬 Try simple ideas:
 ema10 > close
@@ -322,15 +294,23 @@ indexes: {index_names}
 Indicators:\n{indicators_text}\n
 Intervals: {interval_str}
 
-📚 Explore:
-See working examples in #examples 
-See demos in  #demos
+⚙️ Slash Commands:
+</query run:1480627118227460210> → Run a single query
+</query subscribe:1480627118227460210> → Subscribe to live query results
+</query subscribe_ls:1480627118227460210> → List your active subscriptions
+</query unsubscribe:1480627118227460210>→ Stop a subscription
 
-Let’s turn smart ideas into powerful trade logic — welcome aboard! 🚀
+📚 Explore:
+See working examples in #examples
+See demos in  #demos
+Copy prompt from #prompt
+
+🚀 Ready? Start testing your first idea!
 """
-    with open(os.path.join(config.get('app_data_path', ''), "getting_started.md"), "w") as f:
+    with open(os.path.join(config.get('app_data_path', ''), output_getting_started), "w") as f:
         f.write(getting_started)
 
+    # Rules
     rules = f""":scroll: chattick Server Rules
 
 No financial advice — the bot helps generate logic, not market recommendations.

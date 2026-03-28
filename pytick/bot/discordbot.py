@@ -886,7 +886,7 @@ Or use: Feature → Scenario → Given/When/Then",
                 if embed:
                     await user.send(embed=embed)
         except Exception as e:
-            logger.warning(f"Failure: {e}")
+            logger.warning(f"Failure: cannot send message to user")
 
     async def __send_followup_msg(self, interaction: discord.Interaction, content: str = "", embed: discord.Embed = None, ephemeral=False):
         """Helper to send follow-up messages, ensuring we catch any exceptions to avoid unhandled errors."""

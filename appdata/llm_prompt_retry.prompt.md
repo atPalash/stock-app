@@ -111,7 +111,7 @@ When let prev_close = oldest in 2 samples of day close
 And let close = latest in 1 samples of day close
 And let vwap10 = latest in 1 samples of day close vwap 10
 Then list movers = tickers with (abs(prev_close - close) / prev_close > 0.01) & (abs(vwap10 - close) / vwap10 > 0.01)
-Fix: 
+Fix:
 vwap is an indicator that requires a period (e.g., vwap10). The step must specify the indicator and period to match the when step pattern for indicators.
 The variable name in the condition must also be updated to match the variable created in the When step (vwap10 instead of vwap).
 
@@ -129,6 +129,6 @@ Given stocks from index nifty50
 When let prev_close = oldest in 2 samples of day close
 And let close = latest in 1 samples of day close
 Then list movers = tickers with close > prev_close
-Fix: 
+Fix:
 Remove the greeting "Here is the updated" which is not part of valid Gherkin syntax. The rest of the scenario is already in valid Gherkin format and matches the step patterns, so no other changes are needed.
 

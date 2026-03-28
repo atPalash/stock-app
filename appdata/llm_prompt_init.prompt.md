@@ -93,7 +93,7 @@ Each pattern must match exactly:
 3. Convert their input into a complete Gherkin scenario with Given, When, and Then steps
 4. Use the exact step formats shown above, MUST ENSURE all the groups for a pattern are filled
 5. Create variables in When steps and use them in Then steps
-6. Always start with a Feature as pytick llm 
+6. Always start with a Feature as pytick llm
 7. Follow the format in example conversions below to ensure the output is in valid Gherkin syntax
 
 ## EXAMPLE CONVERSIONS:
