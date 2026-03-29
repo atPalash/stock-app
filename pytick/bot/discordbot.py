@@ -19,7 +19,6 @@ import redis
 from func_timeout import func_timeout, FunctionTimedOut
 from ddgs import DDGS
 from pytick.bot.convo_store import ConvoStore
-from pytick.bot.utility import get_user_ids
 from pytick.llm.gherkin_agents.converter import converter_agent as gherkin_converter
 from pytick.llm.gherkin_agents.router import router as gherkin_router
 from pytick.llm.gherkin_agents.validator import validator_agent as gherkin_validator
@@ -51,7 +50,6 @@ class BotConfig:
     llm_convert_msg: str
     tz: tzinfo
     schedules: dict
-    users_config_path: str
     zerodha_df: pandas.DataFrame
     trading_view_url: str
     zerodha_url: str
@@ -174,7 +172,6 @@ class DiscordBot(commands.Bot):
         intents.members = True
         super().__init__(command_prefix=config.command_prefix, intents=intents)
         self.config = config
-        self.users_config_path = config.users_config_path
         self.modal_timeout = config.modal_timeout
         self.llm_timeout = config.llm_timeout
         self.ollama_handler = Graph(
@@ -323,7 +320,8 @@ CRITICAL INSTRUCTIONS:
             if not ret.status:
                 await message.channel.send(ret.message)
                 return
-            await message.channel.send("Please use slash commands to interact with me. Refer #getting-started for guidance.")
+            # refer to getting-started channel for help
+            await message.channel.send("Please use slash commands to interact with me. Refer <#1485674291037995128> for guidance.")
             return
             """ INTENTIONAL DEACTIVATION OF MESSAGE-BASED INTERACTION TO FOCUS ON SLASH COMMANDS
             content = (message.content or "").strip()

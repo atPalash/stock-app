@@ -23,7 +23,6 @@ logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
-users_config_path = os.environ.get("USERS_DIR", '')
 app_config = read_config(file_path=config)
 tickers = list(set(app_config.get('indexes', {}).get('nifty50', []))
                | set(app_config.get('indexes', {}).get('nifty100', [])))
@@ -56,7 +55,6 @@ bot_config = BotConfig(
     llm_convert_msg=app_config.get('discord_llm_msg', ''),
     tz=tz,
     schedules=cron_schedules,
-    users_config_path=users_config_path,
     zerodha_df=pandas.read_csv(app_config.get(
         "zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
