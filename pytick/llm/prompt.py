@@ -282,6 +282,9 @@ Each pattern must match exactly:
 
 Hey there 👋 — awesome to have you with us! chattick turns your trading ideas into structured, ready‑to‑run scenarios — instantly.
 
+⚠️ Important Notice:
+chattick is a technical screener. We do not provide trading tips or SEBI-registered advice. All query results are technical data filters for your own research and study. Use of this bot implies agreement with our full terms in #rules.
+
 📥 Check your inbox: All bot conversations happen in direct message
 
 💬 Try simple ideas:
@@ -313,7 +316,13 @@ Copy prompt from #prompt
     # Rules
     rules = f""":scroll: chattick Server Rules
 
-No financial advice — the bot helps generate logic, not market recommendations.
+chattick is a technical screener. We are NOT SEBI-registered advisors.
+
+No Advice: Results are data-driven filters, not buy/sell recommendations.
+
+User Responsibility: You are solely responsible for your own trading decisions.
+
+Screener Only: This is a technical snapshot tool; verify all data before use.
 
 Use the bot properly — don’t spam or flood the bot with random text.
 

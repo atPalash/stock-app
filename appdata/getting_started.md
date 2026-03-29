@@ -2,6 +2,9 @@
 
 Hey there 👋 — awesome to have you with us! chattick turns your trading ideas into structured, ready‑to‑run scenarios — instantly.
 
+⚠️ Important Notice:
+chattick is a technical screener. We do not provide trading tips or SEBI-registered advice. All query results are technical data filters for your own research and study. Use of this bot implies agreement with our full terms in #rules.
+
 📥 Check your inbox: All bot conversations happen in direct message
 
 💬 Try simple ideas:

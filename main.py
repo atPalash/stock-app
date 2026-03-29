@@ -74,7 +74,9 @@ bot_config = BotConfig(
     retry_prompt=read_file(file_path=os.path.join(app_config.get(
         'app_data_path', ''), "llm_prompt_retry.prompt.md")),
     joining_prompt=read_file(file_path=os.path.join(app_config.get(
-        'app_data_path', ''), "getting_started.md"))
+        'app_data_path', ''), "getting_started.md")),
+    disclaimer=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "disclaimer.md"))
 )
 discord_bot = DiscordBot(config=bot_config)
 

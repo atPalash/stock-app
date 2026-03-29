@@ -8,6 +8,7 @@ import logging
 from urllib.parse import quote_plus
 from unittest.mock import MagicMock, Mock
 import trafilatura
+import pytz
 from attr import dataclass
 import discord
 from discord import app_commands
@@ -48,7 +49,7 @@ class BotConfig:
     query_handler: object
     notification_handler: object
     llm_convert_msg: str
-    tz: tzinfo
+    tz: str | tzinfo
     schedules: dict
     zerodha_df: pandas.DataFrame
     trading_view_url: str
@@ -66,6 +67,7 @@ class BotConfig:
     llm_prompt: str
     retry_prompt: str
     joining_prompt: str
+    disclaimer: str
 
 
 class RetVal(BaseModel):
@@ -819,12 +821,20 @@ Or use: Feature → Scenario → Given/When/Then",
 
     def __getEmbeds(self, title: str, parts: list[str]) -> list[discord.Embed]:
         try:
+            def get_new_embed(title):
+                # Add disclaimer to footer, with time
+                footer_tz = pytz.timezone(
+                    self.config.tz) if isinstance(self.config.tz, str) else self.config.tz
+                embed_footer_text = f"{self.config.disclaimer}\n{datetime.now(tz=footer_tz):%Y-%m-%d %H:%M:%S}"
+                embed = discord.Embed(
+                    title=title, color=discord.Color.blurple())
+                embed.set_footer(text=embed_footer_text)
+                return embed
+
             emdbeds = []
             current_section = ""
             field_count = 0
-            embed_title = title
-            embed = discord.Embed(
-                title=embed_title, color=discord.Color.blurple())
+            embed = get_new_embed(title=title)
             for part in parts:
                 # Handle section headers
                 if part.startswith("**") or part.strip() == "":
@@ -844,12 +854,8 @@ Or use: Feature → Scenario → Given/When/Then",
                 # Send when embed gets too large (Discord limit is 25 fields)
                 if field_count >= 20:
                     emdbeds.append(embed)
-                    embed = discord.Embed(
-                        title=embed_title, color=discord.Color.blurple())
                     field_count = 0
-                    embed_title = f"{title} (cont.)"
-                    embed = discord.Embed(
-                        title=embed_title, color=discord.Color.blurple())
+                    embed = get_new_embed(title=f"{title} (cont.)")
                     if current_section:
                         embed.add_field(name=current_section,
                                         value="⎯" * 20, inline=False)

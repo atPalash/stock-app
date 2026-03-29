@@ -87,6 +87,7 @@ indicators:
     periods: [10, 20]
     sources: ["Volume"]
 default_ticker: SBIN
+discord_invites: "https://discord.gg/WeS5TPV6yt"
 indexes:
   nifty50:
     [
