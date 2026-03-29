@@ -319,6 +319,13 @@ CRITICAL INSTRUCTIONS:
             if message.author.bot:
                 return
 
+            ret = self.__validate_user(message.author.id)
+            if not ret.status:
+                await message.channel.send(ret.message)
+                return
+            await message.channel.send("Please use slash commands to interact with me. Refer #getting-started for guidance.")
+            return
+            """ INTENTIONAL DEACTIVATION OF MESSAGE-BASED INTERACTION TO FOCUS ON SLASH COMMANDS
             content = (message.content or "").strip()
             if content == "" or content.startswith("/"):
                 return
@@ -367,6 +374,7 @@ CRITICAL INSTRUCTIONS:
                 if reply == "":
                     continue
                 await self.__send_direct_msg(user=message.author, content=reply)
+            """
         except Exception as e:
             logger.warning(f"Chat routing failed: {e}")
         finally:
