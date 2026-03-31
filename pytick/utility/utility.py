@@ -67,7 +67,7 @@ def normalize_index_to_tz(df, tz_str):
     Normalize DataFrame index to tz-aware with the given timezone.
     Handles both tz-naive and tz-aware indices.
     """
-    df.index = pd.to_datetime(df.index, errors='coerce')
+    df.index = pd.to_datetime(df.index, errors='coerce', utc=True)
     if getattr(df.index, 'tz', None) is None:
         df.index = df.index.tz_localize(tz_str)
     else:

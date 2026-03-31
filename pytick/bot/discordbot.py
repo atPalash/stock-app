@@ -318,6 +318,9 @@ CRITICAL INSTRUCTIONS:
             if message.author.bot:
                 return
 
+            if message.guild is not None:
+                return
+
             ret = self.__validate_user(message.author.id)
             if not ret.status:
                 await message.channel.send(ret.message)
