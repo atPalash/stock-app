@@ -1,4 +1,5 @@
 from pytick.query.query import QueryHandler
+from pytick.test.utility import TestQueryHandler
 
 
 def test_valid_gherkin():
@@ -98,3 +99,26 @@ Then list bull = tickers with (close > ema10) & notification
     for i, v in expected_functions.items():
         function_name = step_data[i]['logic'].__name__
         assert function_name == v, f"Expected step {i} to use logic function '{v}' but got '{function_name}'"
+
+
+def test_query_result():
+    gherkin = """
+Feature: pytick llm  
+Scenario: Test index not found error 
+Given stocks from index nifty50  
+When let ema10 = latest in 20 samples of minute5 close ema 10  
+* let close = latest in 20 samples of minute5 close
+* let rsi = latest in 20 samples of minute5 close rsi 14
+Then list bull = tickers with (close > ema10) & rsi > 30 & rsi < 70 
+* list bear = tickers with (close < ema10) & rsi > 70 & rsi < 30
+"""
+    handler = TestQueryHandler().getQueryHandler()
+    result = handler.get_gherkin_result(gherkin_str=gherkin)[1]
+    bull = result[0]
+    bear = result[1]
+    expected_bull = {'bull': ['BEL', 'TCS', 'TMPV']}
+    expected_bear = {'bear': []}
+    assert isinstance(bull, dict), "Bull result should be a dict"
+    assert isinstance(bear, dict), "Bear result should be a dict"
+    assert bull == expected_bull, f"Expected bull result {expected_bull} but got {bull}"
+    assert bear == expected_bear, f"Expected bear result {expected_bear} but got {bear}"

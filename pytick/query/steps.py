@@ -57,7 +57,8 @@ class StepData:
     condition = [">", "<", "!=", "==", ">=", "<="]
     number = ["<number>"]
     ohlc = ["close", "open", "high", "low", "volume"]
-    indicator = ["sma", "ema", "atr", "vwap", "rvol"]
+    # ["sma", "ema", "atr", "vwap", "rvol", "rsi"]
+    indicator = list(indicators.keys())
     word = ["<word>"]
     condition = ["<condition>"]  # multiline condition
     operator = [
@@ -220,3 +221,7 @@ class StepData:
                 },
             ),
         }
+
+
+if __name__ == "__main__":
+    print(StepData.indicator)

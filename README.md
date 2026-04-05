@@ -1,6 +1,6 @@
 # TODO
-1. User on-boarding
-2. If user executes command in server ask user to use dm 
+1. Use podman compose to initialize and run pytick
+2. Demo trade execute feature 
 
 
 # chattick - AI-Powered Stock Analysis & Discord Bot

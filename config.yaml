@@ -92,6 +92,9 @@ indicators:
   rvol:
     periods: [10, 20]
     sources: ["Volume"]
+  rsi:
+    periods: [14]
+    sources: ["Close"]
 default_ticker: SBIN
 discord_invites: "https://discord.gg/WeS5TPV6yt"
 indexes:

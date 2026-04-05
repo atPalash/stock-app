@@ -82,6 +82,8 @@ def calculate_indicators(ticker: str, df: pd.DataFrame, indicators: dict) -> dic
                             window=period).mean().shift(1)
                         series = (df["Volume"] / df["avgVolume"])
                         df.drop(columns="avgVolume", inplace=True)
+                    elif ind_type == 'rsi':
+                        series = ta.rsi(df[src_col], length=period)
                     else:
                         logger.warning(
                             f"Unsupported indicator type: {ind_type}")
@@ -187,11 +189,14 @@ class DataFrameHandler:
                 for ticker in tickers_yf
             ]
             result = {}
-            # Use a process pool executor for true parallelism
-            with multiprocessing.Pool(processes=num_processes) as pool:
-                # Map the processing function to all tickers with their parameters
-                results = pool.starmap(calculate_indicators, process_args)
-
+            try:
+                # Use a process pool executor for true parallelism
+                with multiprocessing.Pool(processes=num_processes) as pool:
+                    # Map the processing function to all tickers with their parameters
+                    results = pool.starmap(calculate_indicators, process_args)
+            except Exception as e:
+                logger.warning(f"Exception during multiprocessing: {e}")
+                return ret
             for point in results:
                 ticker = point['ticker'].split('.')[0]
                 df = point['df']

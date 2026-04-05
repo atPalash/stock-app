@@ -20,6 +20,7 @@ Indicators:
 * atr: 10, 14
 * vwap: 10
 * rvol: 10, 20
+* rsi: 14
 
 Intervals: minute5, minute15, minute30, hour, hour, day, week, month
 

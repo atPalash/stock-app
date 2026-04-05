@@ -39,6 +39,7 @@ Each pattern must match exactly:
 * atr: 10, 14
 * vwap: 10
 * rvol: 10, 20
+* rsi: 14
 ⚠️ **CRITICAL:** Indicator periods are MANDATORY and must ALWAYS be included in the step. If the user query doesn't specify a period, use the first option as default.
 
 **Pattern:** `^let (\w+) = (\w+) in (\d+) samples of (\w+) (notification)$`
