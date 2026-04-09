@@ -104,7 +104,7 @@ Then list bull = tickers with (close > ema10) & notification
 def test_query_result():
     gherkin = """
 Feature: pytick llm  
-Scenario: Test index not found error 
+Scenario: Test RSI and EMA conditions
 Given stocks from index nifty50  
 When let ema10 = latest in 20 samples of minute5 close ema 10  
 * let close = latest in 20 samples of minute5 close

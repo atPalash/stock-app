@@ -48,30 +48,30 @@ class ConvoStore:
             self.redis.expire(key, seconds)
         return int(count)
 
-    def subscribe_query(self, user_id: int, query: str, data: dict) -> None:
+    def subscribe_query(self, user_id: int, query: str, data: dict, sub_type="subs") -> None:
         """Subscribe user to a persistent query."""
-        key = f"subs:{user_id}"
+        key = f"{sub_type}:{user_id}"
         self.redis.hset(key, query, json.dumps(data))
 
-    def unsubscribe_query(self, user_id: int, query: str) -> bool:
+    def unsubscribe_query(self, user_id: int, query: str, sub_type="subs") -> bool:
         """Unsubscribe from specific query. Returns True if existed."""
-        key = f"subs:{user_id}"
+        key = f"{sub_type}:{user_id}"
         return self.redis.hdel(key, query) > 0
 
-    def get_user_subs(self, user_id: int) -> dict[str, str]:
+    def get_user_subs(self, user_id: int, sub_type="subs") -> dict[str, str]:
         """Get {query: guild/dm} for user."""
-        key = f"subs:{user_id}"
+        key = f"{sub_type}:{user_id}"
         return self.redis.hgetall(key)
 
-    def get_all_user_sub_ids(self) -> list[int]:
-        subs_keys = self.redis.keys("subs:*")
+    def get_all_user_sub_ids(self, sub_type="subs") -> list[int]:
+        subs_keys = self.redis.keys(f"{sub_type}:*")
         ret = []
         for key in subs_keys:
             id = int(key.split(':')[1])
             ret.append(id)
         return ret
 
-    def clear_user_subs(self, user_id: int) -> int:
+    def clear_user_subs(self, user_id: int, sub_type="subs") -> int:
         """Clear all user subscriptions. Returns count deleted."""
-        key = f"subs:{user_id}"
+        key = f"{sub_type}:{user_id}"
         return self.redis.delete(key)

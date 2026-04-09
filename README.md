@@ -1,7 +1,5 @@
 # TODO
 1. Use podman compose to initialize and run pytick
-2. Demo trade execute feature 
-
 
 # chattick - AI-Powered Stock Analysis & Discord Bot
 

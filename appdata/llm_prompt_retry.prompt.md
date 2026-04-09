@@ -30,7 +30,7 @@ Each pattern must match exactly:
 - Group 3 (<sample_count>): positive integer
 - Group 4 (<interval>): minute5, minute15, minute30, hour, hour, day, week, month
 - Group 5 (<ohlc>): close, open, high, low, volume
-- Group 6 (<indicator>): sma, ema, atr, vwap, rvol
+- Group 6 (<indicator>): sma, ema, atr, vwap, rvol, rsi
 - Group 7 (<period>): depends on indicator (e.g., 10 for ema, 20 for sma)
 
 **Indicator Periods:**

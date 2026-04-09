@@ -1,4 +1,5 @@
 import sys
+from pydantic import BaseModel
 import yaml
 import logging
 import pandas as pd
@@ -66,11 +67,14 @@ def normalize_index_to_tz(df, tz_str):
     """
     Normalize DataFrame index to tz-aware with the given timezone.
     Handles both tz-naive and tz-aware indices.
+    Assumes naive datetimes are already in the target timezone.
     """
-    df.index = pd.to_datetime(df.index, errors='coerce', utc=True)
+    df.index = pd.to_datetime(df.index, errors='coerce')
     if getattr(df.index, 'tz', None) is None:
+        # Assume naive datetimes are already in the target timezone
         df.index = df.index.tz_localize(tz_str)
     else:
+        # Convert from existing timezone to target timezone
         df.index = df.index.tz_convert(tz_str)
     return df
 
@@ -90,3 +94,10 @@ def clean_gherkin(gherkin: str) -> str:
             lines.append(line)
     # Join non-empty lines with a single newline
     return '\n'.join(lines)
+
+
+class RetVal(BaseModel):
+    status: bool = False
+    message: str
+    errors: list[str] = []
+    data: dict = {}
