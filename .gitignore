@@ -1,9 +1,6 @@
 .vscode
-venv
-stock-app
 __pycache__
 .env
 *.egg*
 log.txt
-discord
 *.rdb

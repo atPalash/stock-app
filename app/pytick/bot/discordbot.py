@@ -1,5 +1,6 @@
 from collections.abc import Callable
 import asyncio
+import copy
 from datetime import datetime, tzinfo
 import functools
 import inspect
@@ -9,6 +10,7 @@ from urllib.parse import quote_plus
 from unittest.mock import MagicMock, Mock
 from numpy.strings import title
 
+import io
 import trafilatura
 import pytz
 from attr import dataclass
@@ -24,7 +26,7 @@ from ddgs import DDGS
 from pytick.bot.utility import format_table
 from pytick.trade.trade_executor import COLUMNS
 from pytick.utility.convo_store import ConvoStore
-from pytick.trade.trade import TradeHandler
+from pytick.query.trade import TradeHandler
 from pytick.dataframe.notification import NotificationHandler
 from pytick.llm.gherkin_agents.converter import converter_agent as gherkin_converter
 from pytick.llm.gherkin_agents.router import router as gherkin_router
@@ -42,6 +44,7 @@ from pytick.llm.graph import Graph
 from pytick.llm.multi_graph import MultiGraph
 from pytick.query.query import QueryHandler
 from pytick.scheduler.scheduler import Scheduler
+from discord.app_commands import Range
 from pytick.utility.utility import RetVal, clean_gherkin, get_logger
 
 logger = get_logger(__file__, logging.DEBUG)
@@ -126,6 +129,7 @@ class TextModal(discord.ui.Modal):
                 result = self._llm_router_callback(
                     interaction.user.id, self.input.value)
                 gherkin = result.data.get('gherkin', '')
+
                 if not result.status or gherkin == '':
                     await self._send_msg_callback(interaction, content=result.message)
                     return
@@ -136,6 +140,8 @@ class TextModal(discord.ui.Modal):
                     await self._send_msg_callback(interaction, content=f"{result.errors}")
                     return
 
+                open_df = result.data.get('open', pandas.DataFrame())
+                close_df = result.data.get('close', pandas.DataFrame())
                 embeds = result.data.get("embeds", [])
                 if len(embeds) > 0:
                     count = 0
@@ -143,8 +149,36 @@ class TextModal(discord.ui.Modal):
                         content = gherkin if count == 0 else ""
                         count += 1
                         await self._send_msg_callback(interaction, content=content, embed=embed)
+                elif len(open_df) > 0 or len(close_df):
+                    async def send_table_func(df: pandas.DataFrame, title):
+                        columns = list(df.columns)
+                        trades = df.to_dict(orient='records')
+                        if len(trades) > 0:
+                            # Split the list into chunks of 10
+                            chunk_size = 5
+                            chunks = [trades[i:i + chunk_size]
+                                      for i in range(0, len(trades), chunk_size)]
+                            for chunk in chunks:
+                                table = format_table(chunk, columns)
+                                await self._send_msg_callback(interaction, content=f"{title}:\n{table}")
+
+                    async def send_csv_func(df: pandas.DataFrame, title):
+                        with io.BytesIO() as binary_stream:
+                            df = df.round(2)
+                            df.to_csv(binary_stream, index=False,
+                                      encoding='utf-8', float_format='%.2f')
+                            binary_stream.seek(0)
+                            discord_file = discord.File(
+                                binary_stream, filename=f"{title}.csv")
+                            await interaction.followup.send(f"**{title}**", file=discord_file)
+
+                    await self._send_msg_callback(interaction, content=gherkin)
+                    await send_csv_func(open_df, 'Open trades')
+                    await send_csv_func(close_df, 'Closed trades')
+                    await self._send_msg_callback(interaction, content=result.message)
                 else:
                     await self._send_msg_callback(interaction, content=result.message)
+
             except Exception as e:
                 logger.warning(f"Exception: {self.input.value}")
                 await self._send_msg_callback(interaction, content=f"Error: {e}")
@@ -252,11 +286,7 @@ CRITICAL INSTRUCTIONS:
         self.query_group.command(
             name="unsubscribe", description="Unsubscribe to a query")(self.query_unsubscribe)
         self.query_group.command(
-            name="trade", description="Trade on a query")(self.query_trade)
-        self.query_group.command(
-            name="trade_ls", description="Summarise trades for a query")(self.query_trade_ls)
-        self.query_group.command(
-            name="trade_rm", description="Remove a query from trading")(self.query_trade_rm)
+            name="backtest", description="Backtest a query")(self.query_bt)
         self.query_group.command(
             name="help", description="Show help for query commands")(self.help_doc)
         self.tree.add_command(self.query_group)
@@ -613,10 +643,10 @@ Or use: Feature → Scenario → Given/When/Then",
                           ephemeral=False)
         await interaction.response.send_modal(modal)
 
-    @app_commands.describe(stop_loss_percent="Percentage for setting stop loss", rolling_stop_loss="Enable rolling stop loss")
-    async def query_trade(self, interaction: discord.Interaction, stop_loss_percent: int, rolling_stop_loss: bool = False):
+    @app_commands.describe(window="Window size for backtesting (max 100)", stop_loss_percent="Percentage for setting stop loss")
+    async def query_bt(self, interaction: discord.Interaction, window: Range[int, 1, 100], stop_loss_percent: int):
         """
-        Handles executeion of trading actions for a query via a Discord interaction.
+        Handles execution of backtesting actions for a query via a Discord interaction.
         This function presents the user with a modal for query submission within Discord.
         It automatically applies AI enhancements to the query if applicable (up to 10 times per day),
         or accepts queries following the "Feature → Scenario → Given/When/Then" format.
@@ -624,6 +654,8 @@ Or use: Feature → Scenario → Given/When/Then",
         executes the query, and provides feedback or results to the user.
         Args:
             interaction (discord.Interaction): The Discord interaction object representing the user's action.
+            interval (str): The time interval for the backtesting query.
+            window (int): The window size for the backtesting query.
             stop_loss_percent (float): The percentage for setting stop loss in trading action. The stop loss
             will be rolling based on the latest price with the defined percentage as buffer. 
             For example, if the stop_loss_percent is 5 and the latest price is 100, the stop loss will be set at 95. 
@@ -636,91 +668,16 @@ Or use: Feature → Scenario → Given/When/Then",
             when a user wants to subscribe to query results.
         """
         def callback(code, interaction) -> RetVal:
-            try:
-                self.convo_store.subscribe_query(
-                    query=code, user_id=interaction.user.id, data={
-                        'interval': '5m',  # for trade check use 5m interval for more real-time execution
-                        'stop_loss_percent': stop_loss_percent,
-                        'rolling_stop_loss': rolling_stop_loss,
-                        'portfolio': []}, sub_type='trade')
-                return RetVal(status=True, message='Trade subscribed')
-            except Exception as e:
-                return RetVal(status=False, errors=[str(e)], message='Unsuccessful trade subscription')
-        modal = TextModal(title="🤖 Set trade on query", label="Query",
+            return self.__do_backtest(interaction=interaction, query=code,
+                                      window=window, stop_loss_percent=stop_loss_percent)
+
+        modal = TextModal(title="🤖 Set backtest on query", label="Query",
                           placeholder="🤖 AI auto-fixes queries (10/day) ✨\n \
 Or use: Feature → Scenario → Given/When/Then",
                           interaction=interaction,
                           timeout=self.modal_timeout,
                           validate_user_callback=self.__validate_user,
                           llm_router_callback=self.__llm_router,
-                          execute_callback=callback,
-                          send_msg_callback=self.__send_followup_msg,
-                          ephemeral=False)
-        await interaction.response.send_modal(modal)
-
-    async def query_trade_ls(self, interaction: discord.Interaction):
-        """
-        Handles listing queries traded by user with it's interval via a Discord interaction.
-
-        Usage:
-            Typically invoked in response to a Discord slash command
-            when a user wants to list traded queries
-        """
-        try:
-            await interaction.response.defer()
-            subscriptions = self.convo_store.get_user_subs(
-                user_id=interaction.user.id, sub_type='trade')
-            if len(subscriptions.keys()) == 0:
-                await self.__send_followup_msg(interaction=interaction, content='No query traded', ephemeral=False)
-                return
-
-            for query, data in subscriptions.items():
-                sub_data = json.loads(data)
-                sl = sub_data.get("stop_loss_percent", "")
-                sl_roll = sub_data.get("rolling_stop_loss", "")
-                portfolio = sub_data.get("portfolio", [])
-                await self.__send_followup_msg(interaction=interaction, content=f'Trades stop-loss: {sl} with rolling: {sl_roll}\n', ephemeral=False)
-                await self.__send_followup_msg(interaction=interaction, content=f'{query}\n', ephemeral=False)
-
-                # Split the list into chunks of 10
-                chunk_size = 10
-                chunks = [portfolio[i:i + chunk_size]
-                          for i in range(0, len(portfolio), chunk_size)]
-                for chunk in chunks:
-                    table = format_table(chunk, COLUMNS)
-                    await self.__send_followup_msg(interaction=interaction, content=table, ephemeral=False)
-
-        except Exception as e:
-            await self.__send_followup_msg(interaction=interaction, content=f'Failure: {e}', ephemeral=False)
-            logger.warning(f'Failure: {e}')
-
-    async def query_trade_rm(self, interaction: discord.Interaction):
-        """
-        Handles the un-subscription process for a query via a Discord interaction.
-        This function presents the user with a modal for query submission within Discord.
-        Unsubscription relies on user sending the exact query to unsubscribe.
-        Args:
-            interaction (discord.Interaction): The Discord interaction object representing the user's action.
-        Usage:
-            Typically invoked in response to a Discord slash command
-            when a user wants to subscribe to query results.
-        """
-        def callback(code, interaction) -> RetVal:
-            try:
-                status = self.convo_store.unsubscribe_query(
-                    query=code, user_id=interaction.user.id, sub_type='trade')
-                if status:
-                    return RetVal(status=True, message=f'Un-subscribed:\n{code} ')
-                else:
-                    return RetVal(status=True, message=f'Failed unsubscribe:\n{code}')
-            except Exception as e:
-                return RetVal(status=False, errors=[str(e)], message='error in unsubscribe')
-        modal = TextModal(title="🤖 Un-subscribe from a query", label="Query",
-                          placeholder="Enter the exact query to un-subscribe",
-                          interaction=interaction,
-                          timeout=self.modal_timeout,
-                          validate_user_callback=self.__validate_user,
-                          llm_router_callback=self.__gherkin_check_router,
                           execute_callback=callback,
                           send_msg_callback=self.__send_followup_msg,
                           ephemeral=False)
@@ -751,7 +708,7 @@ Or use: Feature → Scenario → Given/When/Then",
             return RetVal(status=False, message="You're not registered. send /admin join from server")
         return RetVal(status=True, message="Ok")
 
-    def __llm_router(self, user_id: int, input: str, allow_openai=True) -> RetVal:
+    def __llm_router(self, user_id: int, input: str, allow_openai=False) -> RetVal:
         """Call LLM to generate a short guidance message directing user to configured commands.
         Returns the message to send.
         """
@@ -865,7 +822,34 @@ Or use: Feature → Scenario → Given/When/Then",
             logger.warning(f"{e}")
             raise e
 
-    def __create_ticker_list(self, results: dict, user_config: dict, new_tickers: dict, previous_results: list) -> str:
+    def __do_backtest(self, interaction: discord.Interaction, query: str, window: int, stop_loss_percent: int) -> RetVal:
+        try:
+            trade_handler = TradeHandler()
+
+            def backtest_func():
+                for itr in range(window, 0, -1):
+                    bt_query_handler = copy.deepcopy(self.config.query_handler)
+                    bt_query_handler.get_backtest_result(query=query, trade_handler=trade_handler,
+                                                         window=itr, stop_loss_percent=stop_loss_percent)
+            func_timeout(
+                self.modal_timeout,
+                backtest_func,
+            )
+            open_trades_count = len(trade_handler.open_df)
+            closed_trades_count = len(trade_handler.close_df)
+            total_rr = round(trade_handler.close_df['rmulti'].sum(
+            ) + trade_handler.open_df['rmulti'].sum())
+            return RetVal(status=True, data={"open": trade_handler.open_df, "close": trade_handler.close_df},
+                          message=f"Trade summary: {open_trades_count} open and {closed_trades_count} closed trades with net risk ratio {total_rr}")
+
+        except FunctionTimedOut:
+            logger.warning(f"Backtest timeout: {query}")
+            return RetVal(status=False, message=f"⏰ Cannot complete backtest for {input} within {self.llm_timeout}s", errors=["Timeout"])
+        except Exception as e:
+            logger.warning(f"{e}")
+            raise e
+
+    def __create_ticker_list(self, results: dict, user_config: dict, new_tickers: dict, previous_results: list) -> list[str]:
         parts = []
         for i in range(len(results)):
             point = results[i]
@@ -909,103 +893,57 @@ Or use: Feature → Scenario → Given/When/Then",
         """Run scheduler job for subscription. This is used to set tables for subscription
         queries based on interval.
         """
-        async def run_query(user_ids, sub_type, callback):
-            for uid in user_ids:
-                user = await self.fetch_user(uid)
-                user_interaction = Mock(spec=discord.Interaction)
-                user_interaction.user = user
-                subscribed_queries = self.convo_store.get_user_subs(
-                    user_id=user.id, sub_type=sub_type)
-                for sub, data in subscribed_queries.items():
-                    sub_data = json.loads(data)
-                    sub_interval = sub_data.get("interval", "")
-                    previous_results = sub_data.get("results", [])
-                    if sub_interval == interval:
-                        result = self.__do_run(
-                            interaction=user_interaction,
-                            query=sub,
-                            timeout=self.llm_timeout,
-                            previous_results=previous_results)
-                        if not result.status:
-                            logger.warning(
-                                f"Failure interval {sub_type} {sub_interval}: {sub}")
-                            await self.__send_direct_msg(user=user, content=f"{result.errors}")
-                            return
+        await self.__run_query(interval, self.convo_store.get_all_user_sub_ids(), 'subs', self.__sub_logic)
+        # await self.__run_query(interval, self.convo_store.get_all_user_sub_ids(sub_type='trade'), 'trade', self.__trade_callback)
 
-                        await callback(user=user, query=sub, db_data=sub_data, result=result)
+    async def __run_query(self, interval, user_ids, sub_type, callback, test_data=[]):
+        for uid in user_ids:
+            user = await self.fetch_user(uid)
+            user_interaction = Mock(spec=discord.Interaction)
+            user_interaction.user = user
+            subscribed_queries = self.convo_store.get_user_subs(
+                user_id=user.id, sub_type=sub_type)
+            for sub, data in subscribed_queries.items():
+                sub_data = json.loads(data)
+                sub_interval = sub_data.get("interval", "")
+                previous_results = sub_data.get("results", [])
+                if sub_interval == interval:
+                    result = self.__do_run(
+                        interaction=user_interaction,
+                        query=sub,
+                        timeout=self.llm_timeout,
+                        previous_results=previous_results)
+                    if not result.status:
+                        logger.warning(
+                            f"Failure interval {sub_type} {sub_interval}: {sub}")
+                        await self.__send_direct_msg(user=user, content=f"{result.errors}")
+                        return
+                    await callback(user=user, query=sub, db_data=sub_data, result=result)
 
-        def has_tickers(result) -> bool:
-            for val in result:
-                for qid, tickers in val.items():
-                    if len(tickers) > 0:
-                        return True
-            return False
+    async def __sub_logic(self, user, query, db_data, result):
+        current_results = result.data.get('results', [])
+        previous_results = db_data.get("results", [])
+        if previous_results != current_results:
+            db_data['results'] = current_results
+            self.convo_store.subscribe_query(
+                user_id=user.id, query=query, data=db_data, sub_type='subs')
 
-        async def sub_logic(user, query, db_data, result):
-            current_results = result.data.get('results', [])
-            previous_results = db_data.get("results", [])
-            if previous_results != current_results:
-                db_data['results'] = current_results
-                self.convo_store.subscribe_query(
-                    user_id=user.id, query=query, data=db_data, sub_type='subs')
+            if not self.__has_tickers(current_results):
+                # logger.info(f"No tickers found for {query}, skipping")
+                return
 
-                if not has_tickers(current_results):
-                    # logger.info(f"No tickers found for {query}, skipping")
-                    return
+            count = 0
+            for embed in result.data.get("embeds", []):
+                content = query if count == 0 else ""
+                count += 1
+                await self.__send_direct_msg(user=user, content=content, embed=embed)
 
-                count = 0
-                for embed in result.data.get("embeds", []):
-                    content = query if count == 0 else ""
-                    count += 1
-                    await self.__send_direct_msg(user=user, content=content, embed=embed)
-        await run_query(self.convo_store.get_all_user_sub_ids(), 'subs', sub_logic)
-
-        async def trade_callback(user, query, db_data, result):
-            def get_portfolio_trades(portfolio: list[dict]) -> list:
-                traded = [{'buy': []}, {'sell': []}]
-                for pt in portfolio:
-                    if pt.get('side', '') == 'buy':
-                        traded[0]['buy'].append(pt.get('ticker', ''))
-                    elif pt.get('side', '') == 'sell':
-                        traded[1]['sell'].append(pt.get('ticker', ''))
-                return traded
-
-            ret = self.config.trade_handler.do_trade(
-                user, query, db_data, result)
-            if ret.status:
-                user_config = self.convo_store.get_user(user.id)
-                current_portfolio = ret.data.get('portfolio', [])
-                current_trades = get_portfolio_trades(current_portfolio)
-                opened = ret.data.get('opened', [])
-                closed = ret.data.get('closed', [])
-                db_data['portfolio'] = current_portfolio
-                self.convo_store.subscribe_query(
-                    user_id=user.id, query=query, data=db_data, sub_type='trade')
-
-                if len(opened) == 0 and len(closed) == 0:
-                    return
-
-                if not has_tickers(current_trades):
-                    # logger.info(f"No tickers found for {query}, skipping")
-                    return
-
-                parts = self.__create_ticker_list(
-                    current_trades, user_config, {}, [])
-                embeds = self.__getEmbeds('Open trades', parts)
-                for embed in embeds:
-                    await self.__send_direct_msg(user=user, embed=embed)
-
-                # Split the list into chunks of 10
-                chunk_size = 10
-                chunks = [closed[i:i + chunk_size]
-                          for i in range(0, len(closed), chunk_size)]
-                columns = list(closed[0].keys())
-                for chunk in chunks:
-                    table = format_table(chunk, columns)
-                    await self.__send_direct_msg(user=user, content=table, ephemeral=False)
-            else:
-                await self.__send_direct_msg(user=user, content=f"Trade execution failed: {ret.errors}")
-        await run_query(self.convo_store.get_all_user_sub_ids(sub_type='trade'), 'trade', trade_callback)
+    def __has_tickers(self, result: list[dict]) -> bool:
+        for val in result:
+            for qid, tickers in val.items():
+                if len(tickers) > 0:
+                    return True
+        return False
 
     def __getEmbeds(self, title: str, parts: list[str]) -> list[discord.Embed]:
         try:
@@ -1068,7 +1006,7 @@ Or use: Feature → Scenario → Given/When/Then",
         except Exception as e:
             logger.warning(f"{e}")
             return RetVal(status=False, errors=[e], message=f'Invalid query {e}')
-        return RetVal(status=True, data={"gherkin": clean_input}, errors=[], message='invalid gherkin')
+        return RetVal(status=True, data={"gherkin": clean_input}, errors=[], message='valid gherkin')
 
     async def __send_discord_msg(self, interaction: discord.Interaction = None, user: discord.user = None, content: str = "", embed: discord.Embed = None, ephemeral=False):
         try:

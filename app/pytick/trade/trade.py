@@ -80,7 +80,7 @@ class TradeHandler:
             for trade in executor.get_open_trades():
                 ticker = trade['ticker']
                 entry_price = trade['entry']
-
+                initial_sl = trade['initial_sl']
                 try:
                     # Get current price (always use 5m for real-time pricing)
                     price_df = self.data_handler.get_tables(
@@ -91,45 +91,72 @@ class TradeHandler:
                         continue
 
                     current_price = price_df['close'].iat[-1]
-
+                    current_price_t1 = price_df['close'].iat[-2]
+                    exit_time = price_df['datetime'].iat[-1].isoformat()
                     # Stop-loss: rolling or hard
                     if trade['side'] == 'buy':
                         if use_rolling_stop:
-                            # Rolling SL: move stop up if price goes up
-                            rolling_sl = current_price * \
-                                (1 - stop_loss_percent / 100)
-                            entry_sl = entry_price * \
-                                (1 - stop_loss_percent / 100)
-                            current_sl = max(rolling_sl, entry_sl)
-                            # Update SL in portfolio
-                            executor.update_col(
-                                ticker, 'stop', current_sl)
+                            if current_price > current_price_t1:
+                                # Rolling SL: move stop up if price goes up
+                                rolling_sl = current_price * \
+                                    (1 - stop_loss_percent / 100)
+                                entry_sl = entry_price * \
+                                    (1 - stop_loss_percent / 100)
+                                current_sl = max(rolling_sl, entry_sl)
+                                # Update SL in portfolio
+                                executor.update_col(
+                                    ticker, 'stop', current_sl)
+                            else:
+                                # Keep existing SL if price not moving in favorable direction
+                                current_sl = trade['stop']
                         else:
                             # Hard SL: fixed at entry
                             current_sl = entry_price * \
                                 (1 - stop_loss_percent / 100)
                         should_close = current_price <= current_sl
+                        executor.update_col(
+                            ticker, 'current_datetime', exit_time)
+                        executor.update_col(
+                            ticker, 'profit', current_price - entry_price)
+                        r = round((current_sl - entry_price) /
+                                  (entry_price - initial_sl), 2)
+                        executor.update_col(
+                            ticker, 'rmulti', r)
 
                     else:  # sell
                         if use_rolling_stop:
-                            # Rolling SL: move stop down if price goes down
-                            rolling_sl = current_price * \
-                                (1 + stop_loss_percent / 100)
-                            entry_sl = entry_price * \
-                                (1 + stop_loss_percent / 100)
-                            current_sl = min(rolling_sl, entry_sl)
-                            # Update SL in portfolio
-                            executor.update_col(
-                                ticker, 'stop', current_sl)
+                            if current_price < current_price_t1:
+                                # Rolling SL: move stop down if price goes down
+                                rolling_sl = current_price * \
+                                    (1 + stop_loss_percent / 100)
+                                entry_sl = entry_price * \
+                                    (1 + stop_loss_percent / 100)
+                                current_sl = min(rolling_sl, entry_sl)
+                                # Update SL in portfolio
+                                executor.update_col(
+                                    ticker, 'stop', current_sl)
+                            else:
+                                # Keep existing SL if price not moving in favorable direction
+                                current_sl = trade['stop']
                         else:
                             # Hard SL: fixed at entry
                             current_sl = entry_price * \
                                 (1 + stop_loss_percent / 100)
                         should_close = current_price >= current_sl
-                    executor.update_col(ticker, 'profit', current_price)
+                        executor.update_col(
+                            ticker, 'current_datetime', exit_time)
+                        executor.update_col(
+                            ticker, 'profit', entry_price - current_price)
+                        r = round((entry_price - current_sl) /
+                                  (initial_sl - entry_price), 2)
+                        executor.update_col(
+                            ticker, 'rmulti', r)
+
+                    # executor.update_col(ticker, 'profit', current_price)
+
                     if should_close:
                         closed_trade = executor.close_trade(
-                            ticker, current_price, 'stop')
+                            ticker, current_price, 'stop', exit_time)
                         if closed_trade:
                             closed.append(closed_trade)
                             logger.info(
@@ -138,11 +165,6 @@ class TradeHandler:
                     logger.warning(
                         f"Failed to process trade for {ticker}: {e}")
 
-            # Update stored data with current results
-            # current_results = result.data.get('results', [])
-            # db_data['results'] = current_results
-            # self.convo_store.subscribe_query(
-            #     user.id, query, db_data, 'trade')
             return RetVal(status=True, message="Trade execution completed",
                           data={'portfolio': executor.get_portfolio().to_dict(orient='records'),
                                 'opened': opened, 'closed': closed})

@@ -1,4 +1,3 @@
-#! venv/bin/python3
 from dotenv import load_dotenv
 import numpy
 import pandas
@@ -22,6 +21,7 @@ import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
 
 app = FastAPI()
+
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
@@ -135,6 +135,11 @@ async def parse_gherkin_query(request: Request):
         return {"success": False, "errors": errors}
     return {"success": True, "tickers": step_data, "data": df.to_dict(orient='records')}
 
+# Health check endpoint for Docker Compose
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
@@ -143,7 +148,7 @@ if __name__ == "__main__":
                         help='Port to run the server on')
     args = parser.parse_args()
 
-    # # start scheduler
+    # start scheduler
     scheduler = Scheduler(tz)
     scheduler.start()
 
@@ -171,11 +176,11 @@ if __name__ == "__main__":
 
     # Run the FastAPI app using uvicorn. When uvicorn exits, we'll stop the scheduler.
     try:
-        uvicorn.run(app, host="localhost", port=args.port)
+        uvicorn.run(app, host="localhost", port=args.port, access_log=False)
     finally:
         # ensure scheduler stops on shutdown
         try:
             scheduler.stop()
-            # pass
+            pass
         except Exception:
             logger.exception("Exception stopping scheduler")

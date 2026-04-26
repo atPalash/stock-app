@@ -27,6 +27,8 @@ def format_table(data: list[dict], headers: list[str]) -> str:
                 time_obj = datetime.fromisoformat(value)
                 time_str = time_obj.strftime("%Y-%m-%d %H:%M")
                 value = time_str
+            elif isinstance(value, (float, int)) and not isinstance(value, bool):
+                value = f"{value:.2f}"
             row.append(value)
         table_rows.append(row)
 

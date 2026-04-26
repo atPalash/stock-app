@@ -1,5 +1,10 @@
+import copy
+
+import pandas
+
 from pytick.query.query import QueryHandler
-from pytick.test.utility import TestQueryHandler
+from pytick.test.utility import DummyQueryHandler
+from pytick.query.trade import TradeHandler
 
 
 def test_valid_gherkin():
@@ -112,7 +117,7 @@ When let ema10 = latest in 20 samples of minute5 close ema 10
 Then list bull = tickers with (close > ema10) & rsi > 30 & rsi < 70 
 * list bear = tickers with (close < ema10) & rsi > 70 & rsi < 30
 """
-    handler = TestQueryHandler().getQueryHandler()
+    handler = DummyQueryHandler().getQueryHandler()
     result = handler.get_gherkin_result(gherkin_str=gherkin)[1]
     bull = result[0]
     bear = result[1]
@@ -122,3 +127,55 @@ Then list bull = tickers with (close > ema10) & rsi > 30 & rsi < 70
     assert isinstance(bear, dict), "Bear result should be a dict"
     assert bull == expected_bull, f"Expected bull result {expected_bull} but got {bull}"
     assert bear == expected_bear, f"Expected bear result {expected_bear} but got {bear}"
+
+
+def test_ticker_list():
+    # This test assumes StepData and step regexes are set up to validate allowed values
+    # You may need to adjust this test based on your StepData implementation
+    gherkin = """
+Feature: pytick llm
+Scenario: EMA10 and EMA20 rate analysis over 10 samples with close proximity and 0.5*ATR10
+Given stocks from list BEL, INFY, TMPV, SBIN
+When let ema10 = latest in 1 samples of day close ema 10
+* let ema20 = latest in 1 samples of day close ema 20
+* let ema10_rate = rate in 10 samples of day close ema 10
+* let ema20_rate = rate in 10 samples of day close ema 20
+* let close = latest in 1 samples of day close
+* let atr10 = latest in 1 samples of day close atr 10
+Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - ema10) < 0.25 * atr10)
+"""
+    handler = DummyQueryHandler().getQueryHandler()
+    result = handler.get_gherkin_result(gherkin_str=gherkin)[1]
+    bull = result[0]
+    expected_bull = {'buy': ['BEL']}
+    assert isinstance(bull, dict), "Bull result should be a dict"
+    assert bull == expected_bull, f"Expected bull result {expected_bull} but got {bull}"
+
+
+def test_query_backtest():
+    gherkin = """
+Feature: pytick llm
+Scenario: EMA10 and EMA20 rate analysis over 10 samples with close proximity and 0.5*ATR10
+Given stocks from index nifty50
+When let ema10 = latest in 1 samples of day close ema 10
+* let ema20 = latest in 1 samples of day close ema 20
+* let ema10_rate = rate in 10 samples of day close ema 10
+* let ema20_rate = rate in 10 samples of day close ema 20
+* let close = latest in 1 samples of day close
+* let atr10 = latest in 1 samples of day close atr 10
+Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - ema10) < 0.5 * atr10)
+* list sell = tickers with (ema10_rate < 0) & (ema20_rate < 0) & (abs(close - ema10) < 0.5 * atr10)
+"""
+    trade_handler = TradeHandler()
+    query_handler = DummyQueryHandler().getQueryHandler()
+    for itr in range(10, 0, -1):
+        handler = copy.deepcopy(query_handler)
+        handler.get_backtest_result(
+            query=gherkin, trade_handler=trade_handler, window=itr, stop_loss_percent=1)
+        # print(trade_handler.open_df)
+
+    print(trade_handler.close_df)
+
+
+if __name__ == "__main__":
+    test_ticker_list()

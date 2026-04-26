@@ -218,6 +218,32 @@ class DataFrameHandler:
                 f"Exception setting DataFrame for interval {interval}: {e}")
         return ret
 
+    def trim_tables(self, interval: str, trim_rows: int):
+        """Trim OHLC tables to remove the last N rows for specified tickers.
+
+        Args:
+            tickers (list): List of ticker symbols to trim.
+            interval (str): Time interval (e.g., '1d', '5m').
+            trim_rows (int): Number of rows to remove from the end.
+
+        Returns:
+            self: For method chaining.
+        """
+        if interval not in self.tables:
+            logger.warning(f"Interval {interval} not found in tables")
+            return self
+
+        if trim_rows <= 0:
+            logger.warning(f"trim_rows must be positive, got {trim_rows}")
+            return self
+
+        self.tables[interval] = {
+            ticker: df.iloc[:-trim_rows]
+            for ticker, df in self.tables[interval].items()
+            # if ticker in tickers
+        }
+        return self
+
 
 if __name__ == "__main__":
     # config_path = "config_debug.yaml"

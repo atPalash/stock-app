@@ -1,0 +1,47 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - ./redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    network_mode: host
+
+  stockappdev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: palash
+    image: stockappdev:latest
+    container_name: stockappdev
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    devices:
+      - nvidia.com/gpu=all
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent
+      - VENV_PATH=/home/palash/venv
+    network_mode: host
+    userns_mode: keep-id      
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health > /dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - ./:/home/palash/stock-app
+      - ${SSH_AUTH_SOCK}:/ssh-agent
+
+      
+

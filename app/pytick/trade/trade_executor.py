@@ -2,7 +2,8 @@ from datetime import datetime
 import json
 import pandas as pd
 
-COLUMNS = ['datetime', 'ticker', 'side', 'entry', 'stop', 'profit']
+COLUMNS = ['datetime', 'ticker', 'side', 'entry',
+           'stop', 'initial_sl', 'profit', 'current_datetime', 'rmulti']
 
 
 class TradeExecutor:
@@ -58,7 +59,13 @@ class TradeExecutor:
                 new_row[col] = entry_price
             elif col == 'stop':
                 new_row[col] = round(float(initial_sl), 2)
+            elif col == 'initial_sl':
+                new_row['initial_sl'] = round(float(initial_sl), 2)
             elif col == 'profit':
+                new_row[col] = 0.0
+            elif col == 'current_datetime':
+                new_row[col] = datetime
+            elif col == 'rmulti':
                 new_row[col] = 0.0
             else:
                 raise ValueError(f"Unknown column {col}")
@@ -70,7 +77,7 @@ class TradeExecutor:
         self._save_portfolio(portfolio_df)
         return True
 
-    def close_trade(self, ticker, exit_price, reason):
+    def close_trade(self, ticker, exit_price, reason, datetime=None):
         """Close trade, calculate PnL, and remove from portfolio"""
         portfolio_df = self.get_portfolio()
         trade = portfolio_df[portfolio_df['ticker'] == ticker]
@@ -85,15 +92,21 @@ class TradeExecutor:
             pnl = (exit_price - trade_row['entry']) * 1
         else:
             pnl = (trade_row['entry'] - exit_price) * 1
-
+        r = round((exit_price - trade_row['entry']) /
+                  (trade_row['entry'] - trade_row['initial_sl']), 2)
+        closed_gain = self.db_data.get('closed_gain', 0.0) + self.db_data.get(
+            'investment', 0) * r * self.db_data.get('stop_loss_percent', 0) / 100
+        self.db_data['closed_gain'] = round(closed_gain, 2)
         # Build trade summary before removing
         closed_trade = {
+            'datetime': datetime,
             'ticker': ticker,
             'side': trade_row['side'],
             'entry': trade_row['entry'],
             'exit_price': exit_price,
-            'current_sl': trade_row['current_sl'],
-            'pnl': pnl,
+            'current_sl': trade_row['stop'],
+            'pnl': round(pnl, 2),
+            'r': r,
             'reason': reason
         }
 
@@ -112,18 +125,22 @@ class TradeExecutor:
         if ticker not in portfolio_df['ticker'].values:
             return False
 
-        if col == 'profit':
-            # Also update current SL for gain column
-            entry_price = portfolio_df.loc[portfolio_df['ticker']
-                                           == ticker, 'entry'].values[0]
-            direction = portfolio_df.loc[portfolio_df['ticker']
-                                         == ticker, 'side'].values[0]
-            if direction == 'buy':
-                profit = value - entry_price
-            else:
-                profit = entry_price - value
+        # if col == 'profit':
+        #     # Also update current SL for gain column
+        #     entry_price = portfolio_df.loc[portfolio_df['ticker']
+        #                                    == ticker, 'entry'].values[0]
+        #     direction = portfolio_df.loc[portfolio_df['ticker']
+        #                                  == ticker, 'side'].values[0]
+        #     if direction == 'buy':
+        #         profit = value - entry_price
+        #     else:
+        #         profit = entry_price - value
+        #     portfolio_df.loc[portfolio_df['ticker']
+        #                      == ticker, 'profit'] = round(float(profit), 2)
+        # el
+        if col == 'current_datetime':
             portfolio_df.loc[portfolio_df['ticker']
-                             == ticker, 'profit'] = round(float(profit), 2)
+                             == ticker, 'current_datetime'] = value
         else:
             portfolio_df.loc[portfolio_df['ticker']
                              == ticker, col] = round(float(value), 2)

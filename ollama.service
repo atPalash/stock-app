@@ -1,0 +1,23 @@
+[Unit]
+Description=Ollama daemon (example unit)
+After=network.target
+
+[Service]
+# Run the Ollama server as the host user `palash` so it has GPU/device access
+Environment=OLLAMA_KEEP_ALIVE=-1
+# add other Environment=VAR=value lines here if needed
+User=palash
+ExecStart=/usr/local/bin/ollama serve
+Restart=always
+RestartSec=5
+
+# Allow access to common NVIDIA device nodes when running as a non-root user
+DeviceAllow=/dev/nvidiactl rwm
+DeviceAllow=/dev/nvidia-uvm rwm
+DeviceAllow=/dev/nvidia0 rwm
+
+# Increase file descriptor limit
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

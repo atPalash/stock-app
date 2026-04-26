@@ -37,7 +37,7 @@ class DummyNotificationHandler:
         return ret
 
 
-class TestQueryHandler:
+class DummyQueryHandler:
     def __init__(self):
         self.tickers = ["TCS", "BEL", "SBIN", "TMPV"]
         self.indicators = app_config.get('indicators', {})
@@ -70,7 +70,7 @@ When let ema10 = latest in 20 samples of minute5 close ema 10
 Then list bull = tickers with (close > ema10) & notification
 * list bear = tickers with (close < ema10) & notification
 """
-    handler = TestQueryHandler().getQueryHandler()
+    handler = DummyQueryHandler().getQueryHandler()
     result = handler.get_gherkin_result(gherkin_str=gherkin)
     print("Result:", result)
     print("Testing invalid index scenario...")

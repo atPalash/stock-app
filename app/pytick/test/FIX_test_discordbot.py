@@ -38,7 +38,7 @@ class DummyNotificationHandler:
         return ret
 
 
-class TestQueryHandler:
+class DummyQueryHandler:
     tickers = ["TCS", "BEL", "SBIN", "TMPV"]
     indicators = app_config.get('indicators', {})
     cron_schedules = app_config.get('cron_schedules', {})
@@ -65,7 +65,7 @@ def make_bot_config(tmp_path):
     return BotConfig(
         token="fake-token",
         command_prefix='/',
-        query_handler=TestQueryHandler().getQueryHandler(),
+        query_handler=DummyQueryHandler().getQueryHandler(),
         notification_handler=DummyNotificationHandler(),
         llm_convert_msg='',
         tz='Asia/Kolkata',
