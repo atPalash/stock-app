@@ -70,9 +70,9 @@ cron_schedules:
 cron_notification: { "minute": "*/4", "second": "5", "day_of_week": "mon-fri" } # runs every 4th minute
 cron_news_alerts: { "minute": "*/17", "second": "5", "day_of_week": "mon-fri" } # runs every 17th minute, just some timer to distribute load
 backtest_iterations: 10
-app_data_path: "/home/palash/stock-app/app/appdata"
-pytick_test_path: "/home/palash/stock-app/app/pytick/test"
-zerodha_instrument_tokens_path: "/home/palash/stock-app/app/appdata/instruments.csv"
+app_data_path: "/home/palash/stock-app/appdata"
+pytick_test_path: "/home/palash/stock-app/pytick/test"
+zerodha_instrument_tokens_path: "/home/palash/stock-app/appdata/instruments.csv"
 trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
 zerodha_url: "https://kite.zerodha.com/markets/chart/web/tvc/NSE/"
 link_type: zerodha

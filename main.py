@@ -14,7 +14,6 @@ from pytick.bot.discordbot import BotConfig, DiscordBot
 from pytick.llm.prompt import generate_prompt
 from pytick.query import query
 from pytick.scheduler.scheduler import Scheduler
-from pytick.trade.trade import TradeHandler
 from pytick.utility.convo_store import ConvoStore
 from pytick.utility.utility import get_logger, read_config, read_file
 import pytick.dataframe.dataframe as dataframe
@@ -43,13 +42,6 @@ gherkin_handler = query.QueryHandler(data_handler=data_handler,
                                      interval_translation={v: k for k, v in app_config.get(
                                          'interval_translation', {}).items()},
                                      interval_seconds=app_config.get('interval_seconds', {}))
-trade_handler = TradeHandler(data_handler=data_handler,
-                             notification_handler=notification_handler,
-                             interval_translation={v: k for k, v in app_config.get(
-                                 'interval_translation', {}).items()},
-                             interval_seconds=app_config.get(
-                                 'interval_seconds', {}),
-                             convo_store=convo_store)
 generate_prompt(config=app_config,
                 output_init_prompt=os.path.join(app_config.get(
                     'app_data_path', ''), "llm_prompt_init.prompt.md"),
@@ -63,7 +55,6 @@ bot_config = BotConfig(
     token=os.getenv('DISCORD_BOT_TOKEN', ''),
     command_prefix='/',
     query_handler=gherkin_handler,
-    trade_handler=trade_handler,
     notification_handler=notification_handler,
     llm_convert_msg=app_config.get('discord_llm_msg', ''),
     tz=tz,

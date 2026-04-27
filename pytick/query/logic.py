@@ -102,7 +102,7 @@ def calculate_notification(
                 return True, is_notification_in_range, errors
         return True, False, errors
     except Exception as e:
-        errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")
+        errors.append(f"Exception calculating variable {kwargs['id']}: {e}")
         return False, False, errors
 
 def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:

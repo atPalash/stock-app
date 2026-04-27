@@ -24,7 +24,6 @@ import redis
 from func_timeout import func_timeout, FunctionTimedOut
 from ddgs import DDGS
 from pytick.bot.utility import format_table
-from pytick.trade.trade_executor import COLUMNS
 from pytick.utility.convo_store import ConvoStore
 from pytick.query.trade import TradeHandler
 from pytick.dataframe.notification import NotificationHandler
@@ -56,7 +55,6 @@ class BotConfig:
     command_prefix: str
     token: str
     query_handler: QueryHandler
-    trade_handler: TradeHandler
     notification_handler: NotificationHandler
     llm_convert_msg: str
     tz: str | tzinfo
@@ -809,7 +807,8 @@ Or use: Feature → Scenario → Given/When/Then",
             if not success:
                 msg = f"Exception during query execution: {errors}"
                 logger.warning(msg)
-                raise Exception(errors)
+                return RetVal(status=False, message=msg, errors=[msg])
+                # raise Exception(errors)
 
             user_config = self.convo_store.get_user(interaction.user.id)
             # fetch new tickers for qid

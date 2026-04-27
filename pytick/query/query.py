@@ -300,8 +300,9 @@ class QueryHandler:
                 result.loc[result['ticker'] == ticker, id] = val
                 if not success:
                     logger.warning(
-                        f"Exception calculating variables: {errors}")
-                    return False, None, errors
+                        f"Exception calculating variables: {errors} {ticker}")
+                    ret_errors.append(errors)
+                    # return False, None, errors
                 if success and len(errors) > 0:  # some ticker may have issues
                     logger.warning(f"Calculating variables {ticker}: {errors}")
                     ret_errors.append(errors)

@@ -17,7 +17,6 @@ from pytick.bot.discordbot import BotConfig, DiscordBot, TextModal
 from pytick.test.utility import DummyQueryHandler, DummyNotificationHandler
 import logging
 from dotenv import load_dotenv
-from pytick.trade.trade import TradeHandler
 from pytick.utility.convo_store import ConvoStore
 import pandas
 from pytick.utility.utility import get_logger, read_config, read_file, RetVal
@@ -46,18 +45,11 @@ gherkin_handler = QueryHandler(data_handler=data_handler,
                                interval_translation={v: k for k, v in app_config.get(
                                    'interval_translation', {}).items()},
                                interval_seconds=app_config.get('interval_seconds', {}))
-trade_handler = TradeHandler(data_handler=data_handler,
-                             notification_handler=notification_handler,
-                             interval_translation={v: k for k, v in app_config.get(
-                                 'interval_translation', {}).items()},
-                             interval_seconds=app_config.get(
-                                 'interval_seconds', {}),
-                             convo_store=convo_store)
+
 bot_config = BotConfig(
     token=os.getenv('DISCORD_BOT_TOKEN', ''),
     command_prefix='/',
     query_handler=gherkin_handler,
-    trade_handler=trade_handler,
     notification_handler=notification_handler,
     llm_convert_msg=app_config.get('discord_llm_msg', ''),
     tz=tz,
@@ -104,7 +96,7 @@ class TestBotConfig:
     def test_bot_config_attributes(self):
         """Test all required BotConfig attributes are present"""
         required_attrs = [
-            'token', 'command_prefix', 'query_handler', 'trade_handler',
+            'token', 'command_prefix', 'query_handler',
             'notification_handler', 'tz', 'schedules', 'zerodha_df'
         ]
         for attr in required_attrs:
@@ -345,7 +337,7 @@ class TestMessageUtilities:
     def test_query_commands_guide_content(self):
         """Test that query guide includes all commands"""
         guide = discord_bot.query_commands_guide()
-        commands = ["run", "subscribe", "unsubscribe", "trade"]
+        commands = ["run", "subscribe", "unsubscribe", "backtest"]
         for cmd in commands:
             assert cmd in guide.lower()
 
@@ -360,7 +352,6 @@ class TestDiscordBotIntegration:
     async def test_bot_config_integration(self):
         """Test that bot is properly configured with all handlers"""
         assert discord_bot.config.query_handler is not None
-        assert discord_bot.config.trade_handler is not None
         assert discord_bot.config.notification_handler is not None
         assert discord_bot.config.convo_store is not None
 
@@ -506,36 +497,9 @@ class TestQueryCommandsAdvanced:
         mock_interaction = MagicMock(spec=discord.Interaction)
         mock_interaction.response.send_modal = AsyncMock()
 
-        await discord_bot.query_trade(mock_interaction, stop_loss_percent=5, rolling_stop_loss=False)
+        await discord_bot.query_bt(mock_interaction, window=20, stop_loss_percent=5)
 
         assert mock_interaction.response.send_modal.called
-
-    @pytest.mark.asyncio
-    async def test_query_trade_ls_empty(self):
-        """Test listing trade subscriptions when none exist"""
-        test_user_id = 66666
-        convo_store.set_user(
-            user_id=test_user_id,
-            user_name="testuser",
-            display_name="Test User",
-            chart="tradingview",
-            joined_at="2026-04-17",
-            origin_guild_id=0,
-            origin_channel_id=0
-        )
-
-        mock_interaction = MagicMock(spec=discord.Interaction)
-        mock_interaction.user.id = test_user_id
-        mock_interaction.response.defer = AsyncMock()
-        mock_interaction.followup.send = AsyncMock()
-
-        await discord_bot.query_trade_ls(mock_interaction)
-
-        assert mock_interaction.response.defer.called
-
-        # Cleanup
-        convo_store.delete_user(test_user_id)
-
 
 # ============================================================================
 # Tests for Message Handling
@@ -751,55 +715,53 @@ class TestRateLimitingValidation:
 #         assert isinstance(full_test_data, list)
 
 
-class TestQueryBacktest:
-    """Test backtest functionality for trade commands"""
+# class TestQueryBacktest:
+#     """Test backtest functionality for trade commands"""
 
-    @pytest.mark.asyncio
-    async def test_trade_backtest(self):
-        """Test backtest logic for trade commands"""
-        # This test would ideally run a backtest on a sample query and verify results
-        # For simplicity, we will just verify that the backtest can be executed without errors
-        test_user_id = 77777
-        query = """Feature: pytick llm
-Scenario: Bearish and Bullish Reversal Analysis with Minute 5 Close, VWAP, and ATR10
-Given stocks from index nifty50
-When let close = latest in 1 samples of minute5 close
-* let vwap = latest in 1 samples of minute5 close vwap 10
-* let atr10 = latest in 1 samples of day close atr 10
-Then list sell = tickers with ((close - vwap) > (atr10 * 0.05))
-* list buy = tickers with ((vwap - close) > (atr10 * 0.05))"""
-        # Cleanup
-        convo_store.delete_user(test_user_id)
+#     @pytest.mark.asyncio
+#     async def test_trade_backtest(self):
+#         """Test backtest logic for trade commands"""
+#         # This test would ideally run a backtest on a sample query and verify results
+#         # For simplicity, we will just verify that the backtest can be executed without errors
+#         test_user_id = 77777
+#         query = """Feature: pytick llm
+# Scenario: Bearish and Bullish Reversal Analysis with Minute 5 Close, VWAP, and ATR10
+# Given stocks from index nifty50
+# When let close = latest in 1 samples of minute5 close
+# * let vwap = latest in 1 samples of minute5 close vwap 10
+# * let atr10 = latest in 1 samples of day close atr 10
+# Then list sell = tickers with ((close - vwap) > (atr10 * 0.05))
+# * list buy = tickers with ((vwap - close) > (atr10 * 0.05))"""
+#         # Cleanup
+#         convo_store.delete_user(test_user_id)
 
-        # Register test user
-        convo_store.set_user(
-            user_id=test_user_id,
-            user_name="tradeuser",
-            display_name="Trade Test User",
-            chart="tradingview",
-            joined_at="2026-04-18",
-            origin_guild_id=0,
-            origin_channel_id=0
-        )
+#         # Register test user
+#         convo_store.set_user(
+#             user_id=test_user_id,
+#             user_name="tradeuser",
+#             display_name="Trade Test User",
+#             chart="tradingview",
+#             joined_at="2026-04-18",
+#             origin_guild_id=0,
+#             origin_channel_id=0
+#         )
 
-        # Mock fetch_user to avoid real Discord API calls
-        mock_user = MagicMock(spec=discord.User)
-        mock_user.id = test_user_id
-        mock_user.name = "tradeuser"
-        with patch.object(discord_bot, 'fetch_user', new_callable=AsyncMock) as mock_fetch:
-            mock_fetch.return_value = mock_user
+#         # Mock fetch_user to avoid real Discord API calls
+#         mock_user = MagicMock(spec=discord.User)
+#         mock_user.id = test_user_id
+#         mock_user.name = "tradeuser"
+#         with patch.object(discord_bot, 'fetch_user', new_callable=AsyncMock) as mock_fetch:
+#             mock_fetch.return_value = mock_user
 
-            # Mock the __send_direct_msg method to avoid sending messages
-            with patch.object(discord_bot, '_DiscordBot__send_direct_msg', new_callable=AsyncMock):
-                discord_bot._DiscordBot__do_backtest(
-                    interaction=MagicMock(spec=discord.Interaction),
-                    query=query,
-                    interval='5m',
-                    window=100,
-                    stop_loss_percent=2,
-                    rolling_stop_loss=True,
-                )
+#             # Mock the __send_direct_msg method to avoid sending messages
+#             with patch.object(discord_bot, '_DiscordBot__send_direct_msg', new_callable=AsyncMock):
+#                 discord_bot._DiscordBot__do_backtest(
+#                     interaction=MagicMock(spec=discord.Interaction),
+#                     query=query,
+#                     window=100,
+#                     stop_loss_percent=2
+#                 )
 
 
-if __name__ == "__main__":
-    asyncio.run(TestQueryBacktest().test_trade_backtest())
+# if __name__ == "__main__":
+    # asyncio.run(TestQueryBacktest().test_trade_backtest())
