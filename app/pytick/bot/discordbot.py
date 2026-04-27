@@ -134,7 +134,14 @@ class TextModal(discord.ui.Modal):
                     await self._send_msg_callback(interaction, content=result.message)
                     return
 
-                result = self._execute_callback(gherkin, interaction)
+                loop = asyncio.get_running_loop()
+                result = await loop.run_in_executor(
+                    None, 
+                    self._execute_callback, 
+                    gherkin, 
+                    interaction
+                )
+
                 if not result.status:
                     logger.warning(f"Failure: {gherkin}")
                     await self._send_msg_callback(interaction, content=f"{result.errors}")
