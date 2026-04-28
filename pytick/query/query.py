@@ -80,7 +80,7 @@ class QueryHandler:
 
         return True, conditional_tickers, [], then_results
 
-    def get_backtest_result(self, query: str, trade_handler: TradeHandler, window, stop_loss_percent) -> None:
+    def get_backtest_result(self, query: str, trade_handler: TradeHandler, window: int, stop_loss_percent: float):
         """ Create a separate copy of the query handler and data handler to perform backtest logic without affecting the main query handler state.
         Get backtest result for a Gherkin query without performing the backtest
         logic. This is useful for getting the calculated variables and tickers
@@ -129,11 +129,14 @@ class QueryHandler:
 
                     trade_handler.do_trade(
                         ticker=ticker, side=side, price=price, time=time, stop_per=stop_loss_percent)
+            return end_datetime
         except Exception as e:
             raise e
 
     def __sync_bt_data(self, query: str, window: int) -> tuple[set, str]:
         is_valid, step_data, errors = QueryHandler.parse_gherkin(query)
+        if not is_valid:
+            raise Exception(errors)
         intervals = set()
         for step in step_data:
             match = next(

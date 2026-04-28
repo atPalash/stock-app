@@ -13,6 +13,7 @@ import threading
 from pytick.bot.discordbot import BotConfig, DiscordBot
 from pytick.llm.prompt import generate_prompt
 from pytick.query import query
+from pytick.query.trade import TradeHandler
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.convo_store import ConvoStore
 from pytick.utility.utility import get_logger, read_config, read_file
@@ -125,6 +126,26 @@ async def parse_gherkin_query(request: Request):
     if not is_valid:
         return {"success": False, "errors": errors}
     return {"success": True, "tickers": step_data, "data": df.to_dict(orient='records')}
+
+@app.post("/backtest")
+async def backtest_gherkin_query(request: Request):
+    jsn = await request.json()
+    gherkin_text = jsn.get("gherkin", "")
+    window = min(jsn.get('window', 20), 1000)
+    stop_loss = jsn.get('stop_loss', 1)
+
+    if not gherkin_text:
+        return {"success": False, "errors": "No Gherkin text provided"}
+
+    trade_handler = TradeHandler()
+    for itr in range(window, 0, -1):
+        gherkin_handler.get_backtest_result(
+            query=gherkin_text, trade_handler=trade_handler, window=itr, stop_loss_percent=stop_loss)
+
+    return {
+        'open': trade_handler.open_df.to_dict(orient='records'), 
+        'close': trade_handler.close_df.to_dict(orient='records')
+    }
 
 # Health check endpoint for Docker Compose
 @app.get("/health")
