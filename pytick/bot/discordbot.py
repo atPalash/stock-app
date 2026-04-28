@@ -271,9 +271,10 @@ CRITICAL INSTRUCTIONS:
 
         # set up command groups
         self.admin_group = app_commands.Group(
-            name="admin", description="Admin related commands")
+            name="admin", description="Admin related commands",
+            default_permissions=discord.Permissions(administrator=True))
         self.admin_group.command(
-            name="join", description="Join bot service")(self.admin_join)
+            name="debug", description="Debug bot service")(self.admin_debug)
         self.admin_group.command(
             name="leave", description="Leave bot service")(self.admin_leave)
         self.admin_group.command(
@@ -474,7 +475,7 @@ CRITICAL INSTRUCTIONS:
             logger.warning(
                 f"Failed to retrieve help documentation for command {interaction.name}")
 
-    async def admin_join(self, interaction: discord.Interaction):
+    async def admin_debug(self, interaction: discord.Interaction, message: str):
         """
         Handles joining request from user to join server and get bot services. The
         Bot will send helper to the user via direct message
@@ -483,29 +484,14 @@ CRITICAL INSTRUCTIONS:
             Typically invoked in response to a Discord slash command
             when a user wants to join server
         """
-        await interaction.response.send_message("Sending you a direct message, bot conversation will take place in private messages.", ephemeral=True)
-        # attempt DM
+        await interaction.response.defer(ephemeral=False)
         try:
-            joining_message = self.config.joining_prompt or (
-                f"Hello! 👋 I'm your friendly bot, and I'm here to help with your queries.\n\n"
-            )
-            dm = await interaction.user.create_dm()
-            await dm.send(joining_message)
-        except Exception:
-            await interaction.edit_original_response(content=(
-                "I couldn't DM you. Please enable DMs from server members"
-            ))
+            await self.__send_followup_msg(interaction=interaction, content=message)
+        except Exception as e:
+            logger.warning(e)
             return
 
-        # store conversation state in Redis
-        self.convo_store.set_user(user_id=interaction.user.id,
-                                  user_name=interaction.user.name,
-                                  display_name=interaction.user.display_name,
-                                  chart="tradingview",
-                                  joined_at=datetime.now().strftime("%Y-%m-%d"),
-                                  origin_guild_id=interaction.guild_id,
-                                  origin_channel_id=interaction.channel_id)
-
+        
     async def admin_leave(self, interaction: discord.Interaction):
         """
         Handles leaving request from user to leave server and bot services. The
@@ -649,7 +635,7 @@ Or use: Feature → Scenario → Given/When/Then",
         await interaction.response.send_modal(modal)
 
     @app_commands.describe(window="Window size for backtesting (max 100)", stop_loss_percent="Percentage for setting stop loss")
-    async def query_bt(self, interaction: discord.Interaction, window: Range[int, 1, 100], stop_loss_percent: int):
+    async def query_bt(self, interaction: discord.Interaction, window: Range[int, 1, 100], stop_loss_percent: float):
         """
         Handles execution of backtesting actions for a query via a Discord interaction.
         This function presents the user with a modal for query submission within Discord.
@@ -828,7 +814,7 @@ Or use: Feature → Scenario → Given/When/Then",
             logger.warning(f"{e}")
             raise e
 
-    def __do_backtest(self, interaction: discord.Interaction, query: str, window: int, stop_loss_percent: int) -> RetVal:
+    def __do_backtest(self, interaction: discord.Interaction, query: str, window: int, stop_loss_percent: float) -> RetVal:
         try:
             trade_handler = TradeHandler()
 
