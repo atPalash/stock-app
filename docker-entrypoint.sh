@@ -5,7 +5,7 @@ set -euo pipefail
 if [ ! -d "$VENV_PATH" ]; then
   python3 -m venv "$VENV_PATH"
   "$VENV_PATH/bin/pip" install -r /home/palash/stock-app/requirements.txt 
-  "$VENV_PATH/bin/pip" install -e /home/palash/stock-app/app/pytick
+  "$VENV_PATH/bin/pip" install -e /home/palash/stock-app
 fi
 
 # Activate the venv for this process

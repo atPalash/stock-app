@@ -142,9 +142,24 @@ async def backtest_gherkin_query(request: Request):
         gherkin_handler.get_backtest_result(
             query=gherkin_text, trade_handler=trade_handler, window=itr, stop_loss_percent=stop_loss)
 
+    r_multiples = trade_handler.close_df['r_multi']
+
+    # 2. Calculate Fitness Metrics for the AI Agent
+    metrics = {
+        "total_trades": len(r_multiples),
+        "expectancy_r": r_multiples.mean() if not r_multiples.empty else 0,
+        "std_dev_r": r_multiples.std() if not r_multiples.empty else 0,
+        "max_r": r_multiples.max() if not r_multiples.empty else 0,
+        "min_r": r_multiples.min() if not r_multiples.empty else 0,
+        "win_rate": (r_multiples > 0).sum() / len(r_multiples) if len(r_multiples) > 0 else 0
+    }
+
     return {
-        'open': trade_handler.open_df.to_dict(orient='records'), 
-        'close': trade_handler.close_df.to_dict(orient='records')
+        "status": "success",
+        "metrics": metrics,
+        "data": {
+            "trades": trade_handler.close_df.to_dict(orient='records')
+        }
     }
 
 # Health check endpoint for Docker Compose
@@ -156,7 +171,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Run FastAPI app with custom port")
-    parser.add_argument('--port', type=int, default=8000,
+    parser.add_argument('--port', type=int, default=int(os.getenv("APP_PORT", 8000)),
                         help='Port to run the server on')
     args = parser.parse_args()
 

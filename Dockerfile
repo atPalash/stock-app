@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.1.1-cudnn-runtime-ubuntu24.04 AS base
+FROM ubuntu:24.04 AS base
 
 ARG USERNAME=palash
 ARG DEBIAN_FRONTEND=noninteractive
@@ -22,10 +22,10 @@ RUN apt update && apt install --no-install-recommends -y \
     python3-venv \
     openssh-client \
     tmux \
- && apt clean && rm -rf /var/lib/apt/lists/*
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
 RUN apt update && apt upgrade --no-install-recommends -y \
- && apt clean && rm -rf /var/lib/apt/lists/*
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
 RUN userdel -r ubuntu 2>/dev/null || true && \
     useradd -u 1000 -ms /bin/bash ${USERNAME} && \
@@ -35,9 +35,9 @@ RUN userdel -r ubuntu 2>/dev/null || true && \
 
 # Set up known_hosts for GitHub to avoid authenticity prompts
 RUN mkdir -p /home/${USERNAME}/.ssh \
- && ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> /home/${USERNAME}/.ssh/known_hosts \
- && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh
- 
+    && ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> /home/${USERNAME}/.ssh/known_hosts \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh
+
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod 0755 /usr/local/bin/docker-entrypoint.sh
 
@@ -52,5 +52,9 @@ WORKDIR /home/${USERNAME}/stock-app
 
 # Use entrypoint script from mounted volume
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-# CMD [ "python3", "app/main.py" ]
+
+FROM base AS dev
 CMD [ "bash" ]
+
+FROM base AS rel
+CMD [ "python3", "main.py" ]
