@@ -95,8 +95,11 @@ class QueryHandler:
 
             self.data_handler.trim_tables(
                 interval=interval, trim_rows=window)
-            end_datetime = self.data_handler.tables[interval]['SBIN'].iloc[-1]['datetime']
-
+            end_datetime = None
+            try:
+                end_datetime = self.data_handler.tables[interval]['SBIN'].iloc[-1]['datetime']
+            except Exception as e:
+                raise e
             for interval in translated_intervals:
                 for ticker in self.data_handler.tables[interval].keys():
                     df = self.data_handler.tables[interval][ticker]
@@ -326,11 +329,7 @@ class QueryHandler:
 
 if __name__ == "__main__":
     gherkin = """
-Feature: pytick llm
-Scenario: Multiple condition analysis with previous day close, VWAP, and EMA
-Given stocks from list BERGEPAINT
-When let notification = latest in 5 minute5 notification
-Then list movers = tickers with notification
+Feature: Nifty50 Parabolic Short Analysis with pytick LLM\n\nScenario: Qullamagie Parabolic Short Setup Analysis\n  Given stocks from index nifty50\n  When let close = latest in 1 samples of day close\n  And let sma10 = latest in 1 samples of day close sma 10\n  And let sma20 = latest in 1 samples of day close sma 20\n  And let atr14 = latest in 1 samples of day close atr 14\n  And let prev_close = oldest in 2 samples of day close\n  Then let extension = (close - sma20) / atr14\n  And let sell = [ticker for ticker in list(set(tickers with (extension > 3) & (close < prev_close) & (sma10 > sma20)))]
 """
     config = read_config(os.environ.get("CONFIG_FILE"))
     tickers = config.get('indexes', []).get('nifty50', [])

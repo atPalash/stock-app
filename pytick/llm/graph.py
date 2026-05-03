@@ -70,15 +70,15 @@ class Graph:
     def update_system_prompt(self, prompt_to_add: str):
         self.system_prompt += f"\n{prompt_to_add}"
 
-    def run(self, user_input: str) -> str:
+    def run(self, user_input: str, errors=[], retry_count = 0) -> str:
         """Run the chatbot with a sample message."""
         # Add the new user message to the existing conversation
         user_message = HumanMessage(content=user_input)
         llm_state = State(
             messages=[user_message],
             message_type=None,
-            errors=[],
-            retry_count=0,
+            errors=errors,
+            retry_count=retry_count,
             system_prompt=self.system_prompt,
             retry_prompt=self.retry_prompt
         )

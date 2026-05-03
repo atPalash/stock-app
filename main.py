@@ -4,11 +4,13 @@ import pandas
 import asyncio
 import redis
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import os
 import logging
 from fastapi import Request
 import threading
+import copy
+from func_timeout import func_timeout, FunctionTimedOut
 
 from pytick.bot.discordbot import BotConfig, DiscordBot
 from pytick.llm.prompt import generate_prompt
@@ -129,38 +131,98 @@ async def parse_gherkin_query(request: Request):
 
 @app.post("/backtest")
 async def backtest_gherkin_query(request: Request):
-    jsn = await request.json()
-    gherkin_text = jsn.get("gherkin", "")
-    window = min(jsn.get('window', 20), 1000)
-    stop_loss = jsn.get('stop_loss', 1)
+    try:
+        jsn = await request.json()
+        gherkin_text = jsn.get("gherkin", "")
+        start = jsn.get('start', 20)
+        stop = jsn.get('stop', 0)
+        stop_loss = jsn.get('stop_loss', 1)
+        commision = jsn.get('commision', 0.01)
 
-    if not gherkin_text:
-        return {"success": False, "errors": "No Gherkin text provided"}
+        if not gherkin_text:
+            return {"success": False, "errors": "No Gherkin text provided"}
 
-    trade_handler = TradeHandler()
-    for itr in range(window, 0, -1):
-        gherkin_handler.get_backtest_result(
-            query=gherkin_text, trade_handler=trade_handler, window=itr, stop_loss_percent=stop_loss)
+        trade_handler = TradeHandler()
+        errors = []
+        # Define the core logic as an internal async function
+        async def backtest_func():
+            for itr in range(start, stop, -1):
+                # 1. Check if the client cancelled the request
+                if await request.is_disconnected():
+                    print("!!! Client disconnected. Stopping server-side task. !!!")
+                    return None
+                
+                # 2. Run your backtest logic
+                # If get_backtest_result is a heavy CPU-bound (sync) function,
+                # wrap it in run_in_executor to avoid freezing the server.
+                try:
+                    bt_query_handler = copy.deepcopy(gherkin_handler)
+                    
+                    # Using run_in_executor allows the event loop to keep heartbeating
+                    # so 'is_disconnected()' actually stays responsive.
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(
+                        None, 
+                        bt_query_handler.get_backtest_result,
+                        gherkin_text, trade_handler, itr, stop_loss
+                    )
+                except Exception as e:
+                    errors.append(str(e))
+            
+            return {"status": "success"}
 
-    r_multiples = trade_handler.close_df['r_multi']
+        try:
+            # 3. Apply the timeout (e.g., 10 hours)
+            # This replaces func_timeout with an async-friendly version
+            timeout_seconds = 10 * 60 * 60
+            result = await asyncio.wait_for(backtest_func(), timeout=timeout_seconds)
+            
+            if result is None: # Handled disconnection
+                return {"detail": "Cancelled"}
+            # return result
 
-    # 2. Calculate Fitness Metrics for the AI Agent
-    metrics = {
-        "total_trades": len(r_multiples),
-        "expectancy_r": r_multiples.mean() if not r_multiples.empty else 0,
-        "std_dev_r": r_multiples.std() if not r_multiples.empty else 0,
-        "max_r": r_multiples.max() if not r_multiples.empty else 0,
-        "min_r": r_multiples.min() if not r_multiples.empty else 0,
-        "win_rate": (r_multiples > 0).sum() / len(r_multiples) if len(r_multiples) > 0 else 0
-    }
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=504, detail='Timeout')
 
-    return {
-        "status": "success",
-        "metrics": metrics,
-        "data": {
-            "trades": trade_handler.close_df.to_dict(orient='records')
+        r_multiples = trade_handler.close_df['rmulti'] - commision
+        
+        # 2. Calculate Fitness Metrics for the AI Agent
+        metrics = {
+            "total_trades": len(r_multiples),
+            "r": r_multiples,
+            "expectancy_r": r_multiples.mean() if not r_multiples.empty else 0,
+            "std_dev_r": r_multiples.std() if not r_multiples.empty else 0,
+            "max_r": r_multiples.max() if not r_multiples.empty else 0,
+            "min_r": r_multiples.min() if not r_multiples.empty else 0,
+            "win_rate": (r_multiples > 0).sum() / len(r_multiples) if len(r_multiples) > 0 else 0
         }
-    }
+        # SQN > 1.6: Average, 2.0: Good, 3.0: Excellent, 5.0+: Holy Grail
+        metrics["sqn"] = (numpy.sqrt(metrics["total_trades"]) * 
+                  (metrics["expectancy_r"] / (metrics["std_dev_r"] + 1e-6)))
+
+        return {
+            "status": "success",
+            "metrics": {k: round(v, 2) if isinstance(v, (int, float, numpy.number)) else v 
+                        for k, v in metrics.items()},
+            "data": {
+                "trades": trade_handler.close_df.to_dict(orient='records'),
+                "errors": errors
+            }
+        }
+    except FunctionTimedOut as e:
+        return {
+            "status": "timeout",
+            "data": {
+                "errors": e.args
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "failed",
+            "data": {
+                "errors": e.args
+            }
+        }
 
 # Health check endpoint for Docker Compose
 @app.get("/health")

@@ -27,9 +27,6 @@ from pytick.bot.utility import format_table
 from pytick.utility.convo_store import ConvoStore
 from pytick.query.trade import TradeHandler
 from pytick.dataframe.notification import NotificationHandler
-from pytick.llm.gherkin_agents.converter import converter_agent as gherkin_converter
-from pytick.llm.gherkin_agents.router import router as gherkin_router
-from pytick.llm.gherkin_agents.validator import validator_agent as gherkin_validator
 from pytick.llm.common_agents.converter import converter_agent as common_converter
 from pytick.llm.common_agents.validator import validator_agent as common_validator
 from pytick.llm.common_agents.router import router as common_router
