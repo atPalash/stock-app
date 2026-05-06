@@ -160,13 +160,14 @@ Feature: pytick llm
 Scenario: Qullamagie parabolic short setup analysis
 Given stocks from index nifty50
 When let close = latest in 1 samples of day close
-And let sma10 = latest in 1 samples of day close sma 10
-And let sma20 = latest in 1 samples of day close sma 20
-And let atr14 = latest in 1 samples of day close atr 14
 And let prev_close = oldest in 2 samples of day close
-Then let extension = (close -sma20) / atr14
-And list buy = tickers with (extension < -3) & (close > prev_close) & (sma10 < sma20)
-And list sell = tickers with (extension > 3) & (close < prev_close) & (sma10 > sma20)
+And let ema10 = latest in 1 samples of day close ema 10
+And let ema20 = latest in 1 samples of day close ema 20
+And let ema50 = latest in 1 samples of day close ema 50
+And let mth_change = change in 20 samples of day close
+And let three_mth_change = change in 60 samples of day close
+And let six_mth_change = change in 120 samples of day close
+Then list leaders = tickers with (close > ema10) & (ema10 > ema20) & (ema20 > ema50) & (close > prev_close) & ((mth_change > 0.05) | (three_mth_change > 0.1) | (six_mth_change > 0.15))
 """
 ]
     asyncio.run(main(queries=queries, start=500, stop=1))

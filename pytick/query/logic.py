@@ -137,7 +137,7 @@ def __eval_operator(operator, span: str, data: numpy.array, to_float: bool = Tru
         elif operator == "rate":
             result = round((data_for_span[-1] - data_for_span[0]) / span_window, 2)
         elif operator == "change":
-            result = round((data_for_span[-1] - data_for_span[0]) / data[0], 2)
+            result = round((data_for_span[-1] - data_for_span[0]) / data_for_span[0], 2)
         else:
             raise Exception(f"Unsupported operator: {operator}")
         if to_float:
