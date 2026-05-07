@@ -107,16 +107,16 @@ class Comparator:
     
     async def compare(self):
         ret = []
-        for query in self.config.queries:
-            payload = {
-                'gherkin': query,
-                'start': self.config.start,
-                'stop': self.config.stop,
-            }
-            # Assuming make_post is defined elsewhere in your script
-            result = await make_post('backtest', payload, 5*60*60)
-            result = json.loads(result.text)
-            ret.append({'query': query, 'metrics': result['metrics'] if result else None})
+        payload = {
+            'queries': self.config.queries,
+            'start': self.config.start,
+            'stop': self.config.stop,
+        }
+        # Assuming make_post is defined elsewhere in your script
+        result = await make_post('backtest', payload, 5*60*60)
+        result = json.loads(result.text)
+        for pt in result['data']['results']:
+            ret.append({'query': pt['query'], 'metrics': pt['metrics']})
         return ret  
 
 async def main(queries: list[str], start:int, stop:int):
@@ -131,33 +131,21 @@ async def main(queries: list[str], start:int, stop:int):
 
 if __name__ == "__main__":
     queries = [
-# """
-# Feature: pytick llm
-# Scenario: Minervini Trend Momentum with Buy and Sell Signals
-# Given stocks from index nifty50
-# When let close = latest in 1 samples of day close
-# And let sma50 = latest in 1 samples of day close sma 50
-# And let sma150 = latest in 1 samples of day close sma 100
-# And let sma200 = latest in 1 samples of day close sma 200
-# Then let buy = (close > sma50) & (sma50 > sma150) & (sma150 > sma200)
-# And let sell = (close < sma50)
-# """, 
 """
 Feature: pytick llm
-Scenario: EMA10 and EMA20 rate analysis over 10 samples with close proximity and 0.5*ATR10
+Scenario: KQ parabolic short setup analysis
 Given stocks from index nifty50
-When let ema10 = latest in 1 samples of day close ema 10
-And let ema20 = latest in 1 samples of day close ema 20
-And let ema10_rate = rate in 10 samples of day close ema 10
-And let ema20_rate = rate in 10 samples of day close ema 20
-And let close = latest in 1 samples of day close
-And let atr10 = latest in 1 samples of day close atr 10
-Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - ema20) < atr10)
-And list sell = tickers with (ema10_rate < 0) & (ema20_rate < 0) & (abs(close - ema20) < atr10)
-""",
+When let close = latest in 1 samples of day close
+And let sma10 = latest in 1 samples of day close sma 10
+And let sma20 = latest in 1 samples of day close sma 20
+And let atr14 = latest in 1 samples of day close atr 14
+And let prev_close = oldest in 2 samples of day close
+Then let extension = (close -sma20) / atr14
+And list sell = tickers with (extension > 3) & (close < prev_close) & (sma10 > sma20)
+""", 
 """
 Feature: pytick llm
-Scenario: Qullamagie parabolic short setup analysis
+Scenario: KQ Trend following breakout with moving average support using price change
 Given stocks from index nifty50
 When let close = latest in 1 samples of day close
 And let prev_close = oldest in 2 samples of day close
@@ -167,8 +155,8 @@ And let ema50 = latest in 1 samples of day close ema 50
 And let mth_change = change in 20 samples of day close
 And let three_mth_change = change in 60 samples of day close
 And let six_mth_change = change in 120 samples of day close
-Then list leaders = tickers with (close > ema10) & (ema10 > ema20) & (ema20 > ema50) & (close > prev_close) & ((mth_change > 0.05) | (three_mth_change > 0.1) | (six_mth_change > 0.15))
-"""
+Then list buy = tickers with (close > ema10) & (ema10 > ema20) & (ema20 > ema50) & (close > prev_close) & ((mth_change > 0.2)| (three_mth_change > 0.5) | (six_mth_change > 0.8))
+""",
 ]
-    asyncio.run(main(queries=queries, start=500, stop=1))
+    asyncio.run(main(queries=queries, start=1000, stop=1))
     

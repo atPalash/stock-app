@@ -18,6 +18,7 @@ class TradeHandler:
             stop = price * \
                 (1 - stop_per / 100) if side == 'buy' else price * \
                 (1 + stop_per / 100)
+            stop = round(stop, 2)
             return self.__open_trade(ticker, side, price, time, stop)
 
         # Update existing trade with new price and time, and adjust stop if price moving in favorable direction
@@ -32,21 +33,24 @@ class TradeHandler:
             if trade_side == 'buy':
                 if price > previous_price:
                     stop = price * (1 - stop_per / 100)
+                    stop = round(stop, 2)
                     self.open_df.at[idx, 'current_stop'] = max(
                         previous_stop, stop)
-                self.open_df.at[idx, 'profit'] = self.open_df.at[idx, 'current_stop'] - \
-                    self.open_df.at[idx, 'entry']
+                self.open_df.at[idx, 'profit'] = round(self.open_df.at[idx, 'current_stop'] - \
+                    self.open_df.at[idx, 'entry'], 2)
             elif trade_side == 'sell':
                 if price < previous_price:
                     stop = price * (1 + stop_per / 100)
+                    stop = round(stop, 2)
                     self.open_df.at[idx, 'current_stop'] = min(
                         previous_stop, stop)
                 self.open_df.at[idx,
-                                'profit'] = self.open_df.at[idx, 'entry'] - self.open_df.at[idx, 'current_stop']
+                                'profit'] = round(self.open_df.at[idx, 'entry'] - self.open_df.at[idx, 'current_stop'], 2)
 
-            self.open_df.at[idx, 'rmulti'] = self.open_df.at[idx, 'profit'] / \
+            rmulti = self.open_df.at[idx, 'profit'] / \
                 abs(self.open_df.at[idx, 'entry'] -
                     self.open_df.at[idx, 'entry_stop'])
+            self.open_df.at[idx, 'rmulti'] = round(rmulti, 2)
             current_stop = self.open_df.at[idx, 'current_stop']
             # Check if stop loss hit and close trade if needed
             if trade_side == 'buy' and price < current_stop:

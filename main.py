@@ -133,16 +133,16 @@ async def parse_gherkin_query(request: Request):
 async def backtest_gherkin_query(request: Request):
     try:
         jsn = await request.json()
-        gherkin_text = jsn.get("gherkin", "")
+        queries = jsn.get("queries", [])
         start = jsn.get('start', 20)
         stop = jsn.get('stop', 0)
         stop_loss = jsn.get('stop_loss', 1)
         commision = jsn.get('commision', 0.01)
 
-        if not gherkin_text:
-            return {"success": False, "errors": "No Gherkin text provided"}
+        if len(queries) == 0:
+            return {"success": False, "errors": "No queries provided"}
 
-        trade_handler = TradeHandler()
+        trade_handlers = [TradeHandler() for _ in queries]
         errors = []
         # Define the core logic as an internal async function
         async def backtest_func():
@@ -161,11 +161,14 @@ async def backtest_gherkin_query(request: Request):
                     # Using run_in_executor allows the event loop to keep heartbeating
                     # so 'is_disconnected()' actually stays responsive.
                     loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(
-                        None, 
-                        bt_query_handler.get_backtest_result,
-                        gherkin_text, trade_handler, itr, stop_loss
-                    )
+                    for i in range(len(queries)):
+                        query = queries[i]
+                        trade_handler = trade_handlers[i]
+                        await loop.run_in_executor(
+                            None, 
+                            bt_query_handler.get_backtest_result,
+                            query, trade_handler, itr, stop_loss
+                        )
                 except Exception as e:
                     errors.append(str(e))
             
@@ -184,28 +187,34 @@ async def backtest_gherkin_query(request: Request):
         except asyncio.TimeoutError:
             raise HTTPException(status_code=504, detail='Timeout')
 
-        r_multiples = trade_handler.close_df['rmulti'] - commision
-        
-        # 2. Calculate Fitness Metrics for the AI Agent
-        metrics = {
-            "total_trades": len(r_multiples),
-            "r": r_multiples,
-            "expectancy_r": r_multiples.mean() if not r_multiples.empty else 0,
-            "std_dev_r": r_multiples.std() if not r_multiples.empty else 0,
-            "max_r": r_multiples.max() if not r_multiples.empty else 0,
-            "min_r": r_multiples.min() if not r_multiples.empty else 0,
-            "win_rate": (r_multiples > 0).sum() / len(r_multiples) if len(r_multiples) > 0 else 0
-        }
-        # SQN > 1.6: Average, 2.0: Good, 3.0: Excellent, 5.0+: Holy Grail
-        metrics["sqn"] = (numpy.sqrt(metrics["total_trades"]) * 
-                  (metrics["expectancy_r"] / (metrics["std_dev_r"] + 1e-6)))
+        results = []
+        for i in range(len(queries)):
+            query = queries[i]
+            trade_handler = trade_handlers[i]
+            r_multiples = trade_handler.close_df['rmulti'] - commision
+            
+            # 2. Calculate Fitness Metrics for the AI Agent
+            metrics = {
+                "total_trades": len(r_multiples),
+                "r": r_multiples,
+                "expectancy_r": r_multiples.mean() if not r_multiples.empty else 0,
+                "std_dev_r": r_multiples.std() if not r_multiples.empty else 0,
+                "max_r": r_multiples.max() if not r_multiples.empty else 0,
+                "min_r": r_multiples.min() if not r_multiples.empty else 0,
+                "win_rate": (r_multiples > 0).sum() / len(r_multiples) if len(r_multiples) > 0 else 0
+            }
+            # SQN > 1.6: Average, 2.0: Good, 3.0: Excellent, 5.0+: Holy Grail
+            metrics["sqn"] = (numpy.sqrt(metrics["total_trades"]) * 
+                    (metrics["expectancy_r"] / (metrics["std_dev_r"] + 1e-6)))
+            metrics = {k: round(v, 2) if isinstance(v, (int, float, numpy.number)) else v for k, v in metrics.items()}
+            results.append({
+                "query": query, "metrics": metrics, "trades": trade_handler.close_df.to_dict(orient='records'),
+            })
 
         return {
             "status": "success",
-            "metrics": {k: round(v, 2) if isinstance(v, (int, float, numpy.number)) else v 
-                        for k, v in metrics.items()},
             "data": {
-                "trades": trade_handler.close_df.to_dict(orient='records'),
+                "results": results,
                 "errors": errors
             }
         }

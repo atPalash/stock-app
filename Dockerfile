@@ -38,8 +38,8 @@ RUN mkdir -p /home/${USERNAME}/.ssh \
     && ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> /home/${USERNAME}/.ssh/known_hosts \
     && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod 0755 /usr/local/bin/docker-entrypoint.sh
+COPY docker-entrypoint.sh /tmp/docker-entrypoint.sh
+RUN chmod 0755 /tmp/docker-entrypoint.sh
 
 USER ${USERNAME}
 # Create directory for SSH agent socket
@@ -51,7 +51,7 @@ ENV SSH_AUTH_SOCK=/home/${USERNAME}/.ssh-agent/agent.sock
 WORKDIR /home/${USERNAME}/stock-app
 
 # Use entrypoint script from mounted volume
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/tmp/docker-entrypoint.sh"]
 
 FROM base AS dev
 CMD [ "bash" ]
