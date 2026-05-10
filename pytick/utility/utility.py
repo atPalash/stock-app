@@ -1,5 +1,7 @@
 import sys
+import httpx
 from pydantic import BaseModel
+from tenacity import asyncio
 import yaml
 import logging
 import pandas as pd
@@ -101,3 +103,26 @@ class RetVal(BaseModel):
     message: str
     errors: list[str] = []
     data: dict = {}
+
+async def request_server(endpoint: str, data: dict, timeout=1*60*60, method='POST'):
+    async with httpx.AsyncClient() as client:
+        try:
+            # If this task is cancelled (e.g. by the UI), 
+            # httpx will drop the connection immediately.
+            base_url = "http://localhost:9000"
+            if method == 'POST':
+                r = await client.post(
+                    f"{base_url}/{endpoint}", 
+                    json=data, 
+                    timeout=timeout
+                )
+            elif method == 'GET':
+                r = await client.get(
+                    f"{base_url}/{endpoint}", 
+                    params=data, 
+                    timeout=timeout
+                )
+            return r
+        except asyncio.CancelledError:
+            print("Request was cancelled by the client-side logic.")
+            raise

@@ -1,5 +1,9 @@
+import argparse
 from datetime import datetime
+import io
 import os
+import discord
+import pandas
 import tabulate
 import yaml
 
@@ -41,3 +45,24 @@ def format_table(data: list[dict], headers: list[str]) -> str:
     message = (f"```prolog\n{ascii_table}\n```\n")
 
     return message
+
+class ArgumentParserError(Exception): pass
+class ThrowingArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ArgumentParserError(message)
+    
+
+async def send_csv(interaction: discord.Interaction, df: pandas.DataFrame, title: str):
+    with io.BytesIO() as binary_stream:
+        df = df.round(2)
+        df.to_csv(binary_stream, index=False,
+            encoding='utf-8', float_format='%.2f')
+        binary_stream.seek(0)
+        discord_file = discord.File(binary_stream, filename=f"{title}.csv")
+        await interaction.followup.send(f"**{title}**", file=discord_file)
+
+async def send_image(interaction: discord.Interaction, image: io.BytesIO, title: str):
+    image.seek(0)
+    discord_file = discord.File(image, filename=f"{title}.png")
+    await interaction.followup.send(f"**{title}**", file=discord_file)
+    image.close()

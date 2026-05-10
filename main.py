@@ -37,7 +37,7 @@ cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
 convo_store = ConvoStore(redis.from_url(
     os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True))
-data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
+data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators, interval_limits=app_config.get('interval_limits', {}))
 notification_handler = notification.NotificationHandler(
     tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
 gherkin_handler = query.QueryHandler(data_handler=data_handler,
@@ -72,7 +72,7 @@ bot_config = BotConfig(
     convo_store=convo_store,
     convo_ttl_seconds=int(os.getenv('CONVO_TTL_SECONDS', '900')),
     guild_id=int(os.getenv('DISCORD_GUILD_ID', '0')),
-    modal_timeout=120,
+    modal_timeout=300,
     llm_timeout=60,
     ollama_model='gemma3',
     openai_model='gpt-5.4',
@@ -279,6 +279,6 @@ if __name__ == "__main__":
         # ensure scheduler stops on shutdown
         try:
             scheduler.stop()
-            pass
+            # pass
         except Exception:
             logger.exception("Exception stopping scheduler")

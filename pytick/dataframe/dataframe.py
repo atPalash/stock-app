@@ -30,7 +30,7 @@ def download_stock_data(ticker: str, interval: str, tz: str) -> pd.DataFrame:
     ticker_symbol = f"{ticker}{'.NS' if tz == 'Asia/Kolkata' else ''}"
     data = yf.download(
         tickers=[ticker_symbol],
-        period="max",
+        period="10y",
         interval=interval,
         progress=False,
         group_by="ticker",
@@ -103,11 +103,12 @@ def get_nifty_tickers(filename: str) -> list:
 
 
 class DataFrameHandler:
-    def __init__(self, tz: str, indicators: dict, test_data_path: str = None):
+    def __init__(self, tz: str, indicators: dict, test_data_path: str = None, interval_limits: dict = None):
         self.tables = {}
         self.tz = tz
         self.indicators = indicators
         self.test_data_path = test_data_path
+        self.interval_limits = interval_limits 
 
     def get_tables(self, tickers: list, interval: str) -> dict:
         """Get the OHLC tables for the specified tickers and interval.
@@ -159,7 +160,7 @@ class DataFrameHandler:
                 # Download data from Yahoo Finance
                 ohlc = yf.download(
                     tickers=tickers_yf,
-                    period="max",
+                    period=self.interval_limits.get(interval, "1mo"),
                     interval=interval,
                     progress=False,
                     group_by="ticker",
@@ -177,7 +178,7 @@ class DataFrameHandler:
                 df = df.dropna(
                     subset=['Open', 'High', 'Low', 'Close', 'Volume'], how='all')
                 if df.empty:
-                    logger.warning(f"No data found for ticker: {ticker}")
+                    logger.warning(f"No data found for ticker: {ticker} interval: {interval}")
                 clean_ohlc[ticker] = df
 
             # Create a pool of processes (one for each CPU core)
@@ -209,7 +210,7 @@ class DataFrameHandler:
                     df = df.rename(columns={'date': 'datetime'})
                 result[ticker] = df
                 if df is None or df.empty:
-                    logger.warning(f"No data found for ticker: {ticker}")
+                    logger.warning(f"No data found for ticker: {ticker} interval: {interval}")
 
             self.tables[interval] = result
             ret['success'] = True

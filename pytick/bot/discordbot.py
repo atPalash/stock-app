@@ -6,8 +6,10 @@ import functools
 import inspect
 import json
 import logging
+import shlex
 from urllib.parse import quote_plus
 from unittest.mock import MagicMock, Mock
+import concurrent
 from numpy.strings import title
 
 import io
@@ -23,9 +25,10 @@ from pygooglenews import GoogleNews
 import redis
 from func_timeout import func_timeout, FunctionTimedOut
 from ddgs import DDGS
-from pytick.bot.utility import format_table
+from pytick.bot.utility import ThrowingArgumentParser, format_table, send_csv, send_image
 from pytick.utility.convo_store import ConvoStore
 from pytick.query.trade import TradeHandler
+from pytick.query.comparator import run
 from pytick.dataframe.notification import NotificationHandler
 from pytick.llm.common_agents.converter import converter_agent as common_converter
 from pytick.llm.common_agents.validator import validator_agent as common_validator
@@ -41,7 +44,7 @@ from pytick.llm.multi_graph import MultiGraph
 from pytick.query.query import QueryHandler
 from pytick.scheduler.scheduler import Scheduler
 from discord.app_commands import Range
-from pytick.utility.utility import RetVal, clean_gherkin, get_logger
+from pytick.utility.utility import RetVal, clean_gherkin, get_logger, request_server
 
 logger = get_logger(__file__, logging.DEBUG)
 
@@ -91,6 +94,7 @@ class TextModal(discord.ui.Modal):
         send_msg_callback: Callable[[discord.Interaction, str, discord.Embed, bool], None],
         timeout: int,
         ephemeral: bool = False,
+        debug: bool = False
     ):
         super().__init__(title=title, timeout=timeout)
 
@@ -110,7 +114,7 @@ class TextModal(discord.ui.Modal):
         self._ephemeral = ephemeral
         self._interaction = interaction
         self._submitted = False
-
+        self._debug = debug     
     async def on_submit(self, interaction: discord.Interaction):
         try:
             self._submitted = True
@@ -121,13 +125,15 @@ class TextModal(discord.ui.Modal):
                     await self._send_msg_callback(interaction, content=result.message)
                     return
 
-                result = self._llm_router_callback(
-                    interaction.user.id, self.input.value)
-                gherkin = result.data.get('gherkin', '')
+                gherkin = self.input.value
+                if not self._debug:
+                    result = self._llm_router_callback(
+                        interaction.user.id, self.input.value)
+                    gherkin = result.data.get('gherkin', '')
 
-                if not result.status or gherkin == '':
-                    await self._send_msg_callback(interaction, content=result.message)
-                    return
+                    if not result.status or gherkin == '':
+                        await self._send_msg_callback(interaction, content=result.message)
+                        return
 
                 loop = asyncio.get_running_loop()
                 result = await loop.run_in_executor(
@@ -151,32 +157,10 @@ class TextModal(discord.ui.Modal):
                         content = gherkin if count == 0 else ""
                         count += 1
                         await self._send_msg_callback(interaction, content=content, embed=embed)
-                elif len(open_df) > 0 or len(close_df):
-                    async def send_table_func(df: pandas.DataFrame, title):
-                        columns = list(df.columns)
-                        trades = df.to_dict(orient='records')
-                        if len(trades) > 0:
-                            # Split the list into chunks of 10
-                            chunk_size = 5
-                            chunks = [trades[i:i + chunk_size]
-                                      for i in range(0, len(trades), chunk_size)]
-                            for chunk in chunks:
-                                table = format_table(chunk, columns)
-                                await self._send_msg_callback(interaction, content=f"{title}:\n{table}")
-
-                    async def send_csv_func(df: pandas.DataFrame, title):
-                        with io.BytesIO() as binary_stream:
-                            df = df.round(2)
-                            df.to_csv(binary_stream, index=False,
-                                      encoding='utf-8', float_format='%.2f')
-                            binary_stream.seek(0)
-                            discord_file = discord.File(
-                                binary_stream, filename=f"{title}.csv")
-                            await interaction.followup.send(f"**{title}**", file=discord_file)
-
+                elif len(open_df) > 0 or len(close_df) > 0:
                     await self._send_msg_callback(interaction, content=gherkin)
-                    await send_csv_func(open_df, 'Open trades')
-                    await send_csv_func(close_df, 'Closed trades')
+                    await send_csv(interaction, open_df, 'Open trades')
+                    await send_csv(interaction, close_df, 'Closed trades')
                     await self._send_msg_callback(interaction, content=result.message)
                 else:
                     await self._send_msg_callback(interaction, content=result.message)
@@ -472,22 +456,29 @@ CRITICAL INSTRUCTIONS:
             logger.warning(
                 f"Failed to retrieve help documentation for command {interaction.name}")
 
-    async def admin_debug(self, interaction: discord.Interaction, message: str):
+    async def admin_debug(self, interaction: discord.Interaction):
         """
-        Handles joining request from user to join server and get bot services. The
-        Bot will send helper to the user via direct message
+        Handles debug request from admin
 
         Usage:
             Typically invoked in response to a Discord slash command
             when a user wants to join server
         """
-        await interaction.response.defer(ephemeral=False)
-        try:
-            await self.__send_followup_msg(interaction=interaction, content=message)
-        except Exception as e:
-            logger.warning(e)
-            return
+        def callback(message, interaction) -> RetVal:
+            return self.__do_debug(interaction=interaction, message=message, timeout=self.modal_timeout)
 
+        modal = TextModal(title="🤖 Debug", label="Debug",
+                          placeholder="🤖 AI auto-fixes queries (10/day) ✨\n \
+Or use: Feature → Scenario → Given/When/Then",
+                          interaction=interaction,
+                          timeout=self.modal_timeout,
+                          validate_user_callback=self.__validate_user,
+                          llm_router_callback=self.__llm_router,
+                          execute_callback=callback,
+                          send_msg_callback=self.__send_followup_msg,
+                          ephemeral=False,
+                          debug=True)
+        await interaction.response.send_modal(modal)
         
     async def admin_leave(self, interaction: discord.Interaction):
         """
@@ -810,6 +801,53 @@ Or use: Feature → Scenario → Given/When/Then",
             # msg = f"Exception during execution: {e}"
             logger.warning(f"{e}")
             raise e
+    
+    def __do_debug(self, interaction: discord.Interaction, message: str, timeout: int) -> RetVal:
+        # await interaction.response.defer(ephemeral=False)
+        parser = ThrowingArgumentParser(add_help=False)
+        parser.add_argument('--command', type=str, default='health', help='return as string after parsing', choices=['health', 'backtest', 'df'])
+        parser.add_argument('--queries', type=str, nargs='+', default='queries', help='The list of query to process')
+        parser.add_argument('--window', type=int, default=10, help='The window for the operation')
+        parser.add_argument('--stop_loss', type=float, default=1.0, help='The stop loss percentage for the operation')
+        parser.add_argument('--start', type=int, default=10, help='The stop loss percentage for the operation')
+        parser.add_argument('--stop', type=int, default=0, help='The stop loss percentage for the operation')
+        parser.add_argument('--commission', type=float, default=0.01, help='The stop loss percentage for the operation')
+        parser.add_argument('--timeout', type=int, default=1*60*60, help='The timeout for the operation')
+        parser.add_argument('--endpoint', type=str, default="", help='custom message for the operation')
+        
+        async def debug_logic():
+            args = parser.parse_args(shlex.split(message))
+        
+            async def handle_backtest(interaction, args):
+                # args.start and args.stop must be defined in your parser
+                result = await run(queries=args.queries, start=args.start, stop=args.stop, commission=args.commission)
+                for d in result['data']:
+                    title = f"{d['query'].strip().splitlines()[1].split(':')[1]}:{d['metrics']['sqn']}"
+                    trades = pandas.DataFrame(d['trades'])
+                    await send_csv(interaction=interaction, df=trades, title=title)
+                image_buffer = result['image']
+                await send_image(interaction=interaction, image=image_buffer, title=f"Query comparison")
+                return RetVal(status=True, message="Query comparison completed")
+            
+            async def debug_func() -> RetVal:
+                if args.command == 'health':
+                    return await request_server('health', {}, timeout=args.timeout, method='GET')
+                elif args.command == 'backtest':
+                    return await handle_backtest(interaction, args)
+                elif args.command == 'df':
+                    return await request_server(f'df/{args.endpoint}', {}, timeout=args.timeout, method='GET')
+                return RetVal(status=False, message="Invalid command")
+            return await asyncio.wait_for(debug_func(), timeout=float(timeout))
+        
+        loop = interaction.client.loop
+        future = asyncio.run_coroutine_threadsafe(debug_logic(), loop)
+        try:
+            # This blocks the WORKER thread, but NOT the Discord bot
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            return RetVal(status=False, message="Worker thread timed out")
+        except Exception as e:
+            return RetVal(status=False, message=f"Error: {str(e)}")
 
     def __do_backtest(self, interaction: discord.Interaction, query: str, window: int, stop_loss_percent: float) -> RetVal:
         try:
