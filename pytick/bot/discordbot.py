@@ -1,11 +1,12 @@
+import argparse
 from collections.abc import Callable
 import asyncio
-import copy
 from datetime import datetime, tzinfo
 import functools
 import inspect
 import json
 import logging
+import os
 import shlex
 from urllib.parse import quote_plus
 from unittest.mock import MagicMock, Mock
@@ -28,7 +29,7 @@ from ddgs import DDGS
 from pytick.bot.utility import ThrowingArgumentParser, format_table, send_csv, send_image
 from pytick.utility.convo_store import ConvoStore
 from pytick.query.trade import TradeHandler
-from pytick.query.comparator import run
+from pytick.query.comparator import run as comparator_run
 from pytick.dataframe.notification import NotificationHandler
 from pytick.llm.common_agents.converter import converter_agent as common_converter
 from pytick.llm.common_agents.validator import validator_agent as common_validator
@@ -134,22 +135,16 @@ class TextModal(discord.ui.Modal):
                     if not result.status or gherkin == '':
                         await self._send_msg_callback(interaction, content=result.message)
                         return
-
-                loop = asyncio.get_running_loop()
-                result = await loop.run_in_executor(
-                    None, 
-                    self._execute_callback, 
-                    gherkin, 
-                    interaction
-                )
+                    
+                result = self._execute_callback(gherkin, interaction)
+                if inspect.iscoroutine(result):
+                    result = await result
 
                 if not result.status:
                     logger.warning(f"Failure: {gherkin}")
                     await self._send_msg_callback(interaction, content=f"{result.errors}")
                     return
 
-                open_df = result.data.get('open', pandas.DataFrame())
-                close_df = result.data.get('close', pandas.DataFrame())
                 embeds = result.data.get("embeds", [])
                 if len(embeds) > 0:
                     count = 0
@@ -157,11 +152,6 @@ class TextModal(discord.ui.Modal):
                         content = gherkin if count == 0 else ""
                         count += 1
                         await self._send_msg_callback(interaction, content=content, embed=embed)
-                elif len(open_df) > 0 or len(close_df) > 0:
-                    await self._send_msg_callback(interaction, content=gherkin)
-                    await send_csv(interaction, open_df, 'Open trades')
-                    await send_csv(interaction, close_df, 'Closed trades')
-                    await self._send_msg_callback(interaction, content=result.message)
                 else:
                     await self._send_msg_callback(interaction, content=result.message)
 
@@ -464,8 +454,8 @@ CRITICAL INSTRUCTIONS:
             Typically invoked in response to a Discord slash command
             when a user wants to join server
         """
-        def callback(message, interaction) -> RetVal:
-            return self.__do_debug(interaction=interaction, message=message, timeout=self.modal_timeout)
+        async def callback(message, interaction) -> RetVal:
+            return await self.__do_debug(interaction=interaction, message=message, timeout=10*60*60)
 
         modal = TextModal(title="🤖 Debug", label="Debug",
                           placeholder="🤖 AI auto-fixes queries (10/day) ✨\n \
@@ -646,8 +636,8 @@ Or use: Feature → Scenario → Given/When/Then",
             Typically invoked in response to a Discord slash command
             when a user wants to subscribe to query results.
         """
-        def callback(code, interaction) -> RetVal:
-            return self.__do_backtest(interaction=interaction, query=code,
+        async def callback(code, interaction) -> RetVal:
+            return await self.__do_backtest(interaction=interaction, query=code,
                                       window=window, stop_loss_percent=stop_loss_percent)
 
         modal = TextModal(title="🤖 Set backtest on query", label="Query",
@@ -802,74 +792,75 @@ Or use: Feature → Scenario → Given/When/Then",
             logger.warning(f"{e}")
             raise e
     
-    def __do_debug(self, interaction: discord.Interaction, message: str, timeout: int) -> RetVal:
-        # await interaction.response.defer(ephemeral=False)
-        parser = ThrowingArgumentParser(add_help=False)
-        parser.add_argument('--command', type=str, default='health', help='return as string after parsing', choices=['health', 'backtest', 'df'])
-        parser.add_argument('--queries', type=str, nargs='+', default='queries', help='The list of query to process')
-        parser.add_argument('--window', type=int, default=10, help='The window for the operation')
-        parser.add_argument('--stop_loss', type=float, default=1.0, help='The stop loss percentage for the operation')
-        parser.add_argument('--start', type=int, default=10, help='The stop loss percentage for the operation')
-        parser.add_argument('--stop', type=int, default=0, help='The stop loss percentage for the operation')
-        parser.add_argument('--commission', type=float, default=0.01, help='The stop loss percentage for the operation')
-        parser.add_argument('--timeout', type=int, default=1*60*60, help='The timeout for the operation')
-        parser.add_argument('--endpoint', type=str, default="", help='custom message for the operation')
-        
-        async def debug_logic():
-            args = parser.parse_args(shlex.split(message))
-        
-            async def handle_backtest(interaction, args):
-                # args.start and args.stop must be defined in your parser
-                result = await run(queries=args.queries, start=args.start, stop=args.stop, commission=args.commission)
-                for d in result['data']:
-                    title = f"{d['query'].strip().splitlines()[1].split(':')[1]}:{d['metrics']['sqn']}"
-                    trades = pandas.DataFrame(d['trades'])
-                    await send_csv(interaction=interaction, df=trades, title=title)
-                image_buffer = result['image']
-                await send_image(interaction=interaction, image=image_buffer, title=f"Query comparison")
-                return RetVal(status=True, message="Query comparison completed")
-            
-            async def debug_func() -> RetVal:
-                if args.command == 'health':
-                    return await request_server('health', {}, timeout=args.timeout, method='GET')
-                elif args.command == 'backtest':
-                    return await handle_backtest(interaction, args)
-                elif args.command == 'df':
-                    return await request_server(f'df/{args.endpoint}', {}, timeout=args.timeout, method='GET')
-                return RetVal(status=False, message="Invalid command")
-            return await asyncio.wait_for(debug_func(), timeout=float(timeout))
-        
-        loop = interaction.client.loop
-        future = asyncio.run_coroutine_threadsafe(debug_logic(), loop)
+    async def __do_debug(self, interaction: discord.Interaction, message: str, timeout: int) -> RetVal:
         try:
-            # This blocks the WORKER thread, but NOT the Discord bot
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            return RetVal(status=False, message="Worker thread timed out")
+            parser = ThrowingArgumentParser(add_help=False)
+            parser.add_argument('--command', type=str, default='health', help='return as string after parsing', choices=['health', 'backtest', 'df'])
+            parser.add_argument('--queries', type=str, nargs='+', default='queries', help='The list of query to process')
+            parser.add_argument('--window', type=int, default=10, help='The window for the operation')
+            parser.add_argument('--stop_loss', type=float, default=1.0, help='The stop loss percentage for the operation')
+            parser.add_argument('--start', type=int, default=10, help='The stop loss percentage for the operation')
+            parser.add_argument('--stop', type=int, default=0, help='The stop loss percentage for the operation')
+            parser.add_argument('--commission', type=float, default=0.01, help='The stop loss percentage for the operation')
+            parser.add_argument('--timeout', type=int, default=1*60*60, help='The timeout for the operation')
+            parser.add_argument('--endpoint', type=str, default="", help='custom message for the operation')
+            
+            args = parser.parse_args(shlex.split(message))
+            if args.command == 'health':
+                return await request_server(int(os.getenv('APP_PORT', '8000')), 'health', {}, timeout=args.timeout, method='GET')
+            elif args.command == 'backtest':
+                return await self.__handle_backtest(interaction, timeout, message, args)
+            elif args.command == 'df':
+                return await request_server(int(os.getenv('APP_PORT', '8000')), f'df/{args.endpoint}', {}, timeout=args.timeout, method='GET')
+            return RetVal(status=False, message="Invalid command")
+        except asyncio.TimeoutError:
+            logger.warning(f"Debug timeout: {message}")
+            return RetVal(status=False, message=f"⏰ Cannot complete debug for {message} within {timeout}s", errors=["Timeout"])
         except Exception as e:
             return RetVal(status=False, message=f"Error: {str(e)}")
 
-    def __do_backtest(self, interaction: discord.Interaction, query: str, window: int, stop_loss_percent: float) -> RetVal:
+    async def __handle_backtest(self, interaction, timeout, message, args):
+        async def disconnected():
+            return False
+        
+        result = await comparator_run(
+            disconnected=disconnected,
+            query_handler=self.config.query_handler,
+            queries=args.queries,
+            start=args.start,
+            stop=args.stop,
+            stop_loss=args.stop_loss,
+            commission=args.commission,
+            timeout=timeout
+        )
+        
+        # Send results
+        for d in result['data']:
+            title = f"{d['query'].strip().splitlines()[1].split(':')[1]}:{d['metrics']['sqn']}"
+            trades = pandas.DataFrame(d['trades'])
+            await send_csv(interaction=interaction, df=trades, title=title)
+            open = pandas.DataFrame(d['open_trades'])
+            await send_csv(interaction=interaction, df=open, title=f"{title} - Open Trades")
+        image_buffer = result['image']
+        await send_image(interaction=interaction, image=image_buffer, title=f"Query comparison")
+        return RetVal(status=True, message=message)
+            
+            
+    async def __do_backtest(self, interaction: discord.Interaction, query: str, window: int, stop_loss_percent: float) -> RetVal:
         try:
-            trade_handler = TradeHandler()
-
-            def backtest_func():
-                for itr in range(window, 0, -1):
-                    bt_query_handler = copy.deepcopy(self.config.query_handler)
-                    bt_query_handler.get_backtest_result(query=query, trade_handler=trade_handler,
-                                                         window=itr, stop_loss_percent=stop_loss_percent)
-            func_timeout(
-                self.modal_timeout,
-                backtest_func,
+            args = argparse.Namespace(
+                queries=[query], 
+                start=window, 
+                stop=0, 
+                stop_loss=stop_loss_percent, 
+                commission=0.01,
+                timeout=self.modal_timeout
             )
-            open_trades_count = len(trade_handler.open_df)
-            closed_trades_count = len(trade_handler.close_df)
-            total_rr = round(trade_handler.close_df['rmulti'].sum(
-            ) + trade_handler.open_df['rmulti'].sum())
-            return RetVal(status=True, data={"open": trade_handler.open_df, "close": trade_handler.close_df},
-                          message=f"Trade summary: {open_trades_count} open and {closed_trades_count} closed trades with net risk ratio {total_rr}")
-
-        except FunctionTimedOut:
+            return await asyncio.wait_for(
+                self.__handle_backtest(interaction, self.modal_timeout, query, args),
+                timeout=float(self.modal_timeout)
+            )
+        except asyncio.TimeoutError:
             logger.warning(f"Backtest timeout: {query}")
             return RetVal(status=False, message=f"⏰ Cannot complete backtest for {input} within {self.llm_timeout}s", errors=["Timeout"])
         except Exception as e:

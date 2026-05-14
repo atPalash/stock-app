@@ -21,6 +21,7 @@ from pytick.utility.convo_store import ConvoStore
 from pytick.utility.utility import get_logger, read_config, read_file
 import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
+from pytick.query.comparator import run as comparator_run
 
 app = FastAPI()
 
@@ -129,109 +130,15 @@ async def parse_gherkin_query(request: Request):
         return {"success": False, "errors": errors}
     return {"success": True, "tickers": step_data, "data": df.to_dict(orient='records')}
 
-@app.post("/backtest")
-async def backtest_gherkin_query(request: Request):
+@app.post("/compare")
+async def compare_strategies(request: Request):
     try:
         jsn = await request.json()
-        queries = jsn.get("queries", [])
-        start = jsn.get('start', 20)
-        stop = jsn.get('stop', 0)
-        stop_loss = jsn.get('stop_loss', 1)
-        commision = jsn.get('commision', 0.01)
-
-        if len(queries) == 0:
-            return {"success": False, "errors": "No queries provided"}
-
-        trade_handlers = [TradeHandler() for _ in queries]
-        errors = []
-        # Define the core logic as an internal async function
-        async def backtest_func():
-            for itr in range(start, stop, -1):
-                # 1. Check if the client cancelled the request
-                if await request.is_disconnected():
-                    print("!!! Client disconnected. Stopping server-side task. !!!")
-                    return None
-                
-                # 2. Run your backtest logic
-                # If get_backtest_result is a heavy CPU-bound (sync) function,
-                # wrap it in run_in_executor to avoid freezing the server.
-                try:
-                    bt_query_handler = copy.deepcopy(gherkin_handler)
-                    
-                    # Using run_in_executor allows the event loop to keep heartbeating
-                    # so 'is_disconnected()' actually stays responsive.
-                    loop = asyncio.get_event_loop()
-                    for i in range(len(queries)):
-                        query = queries[i]
-                        trade_handler = trade_handlers[i]
-                        await loop.run_in_executor(
-                            None, 
-                            bt_query_handler.get_backtest_result,
-                            query, trade_handler, itr, stop_loss
-                        )
-                except Exception as e:
-                    errors.append(str(e))
-            
-            return {"status": "success"}
-
-        try:
-            # 3. Apply the timeout (e.g., 10 hours)
-            # This replaces func_timeout with an async-friendly version
-            timeout_seconds = 10 * 60 * 60
-            result = await asyncio.wait_for(backtest_func(), timeout=timeout_seconds)
-            
-            if result is None: # Handled disconnection
-                return {"detail": "Cancelled"}
-            # return result
-
-        except asyncio.TimeoutError:
-            raise HTTPException(status_code=504, detail='Timeout')
-
-        results = []
-        for i in range(len(queries)):
-            query = queries[i]
-            trade_handler = trade_handlers[i]
-            r_multiples = trade_handler.close_df['rmulti'] - commision
-            
-            # 2. Calculate Fitness Metrics for the AI Agent
-            metrics = {
-                "total_trades": len(r_multiples),
-                "r": r_multiples,
-                "expectancy_r": r_multiples.mean() if not r_multiples.empty else 0,
-                "std_dev_r": r_multiples.std() if not r_multiples.empty else 0,
-                "max_r": r_multiples.max() if not r_multiples.empty else 0,
-                "min_r": r_multiples.min() if not r_multiples.empty else 0,
-                "win_rate": (r_multiples > 0).sum() / len(r_multiples) if len(r_multiples) > 0 else 0
-            }
-            # SQN > 1.6: Average, 2.0: Good, 3.0: Excellent, 5.0+: Holy Grail
-            metrics["sqn"] = (numpy.sqrt(metrics["total_trades"]) * 
-                    (metrics["expectancy_r"] / (metrics["std_dev_r"] + 1e-6)))
-            metrics = {k: round(v, 2) if isinstance(v, (int, float, numpy.number)) else v for k, v in metrics.items()}
-            results.append({
-                "query": query, "metrics": metrics, "trades": trade_handler.close_df.to_dict(orient='records'),
-            })
-
-        return {
-            "status": "success",
-            "data": {
-                "results": results,
-                "errors": errors
-            }
-        }
-    except FunctionTimedOut as e:
-        return {
-            "status": "timeout",
-            "data": {
-                "errors": e.args
-            }
-        }
+        result = await asyncio.wait_for(comparator_run(disconnected=request.is_disconnected, query_handler=gherkin_handler, **jsn), timeout=jsn.get('timeout', 10*60*60))
+        result['image'].close()  # Close the image buffer after use
+        return {"success": True, "data": result['data']}
     except Exception as e:
-        return {
-            "status": "failed",
-            "data": {
-                "errors": e.args
-            }
-        }
+        return {"success": False, "errors": e.args}
 
 # Health check endpoint for Docker Compose
 @app.get("/health")

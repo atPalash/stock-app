@@ -1,3 +1,4 @@
+import os
 import sys
 import httpx
 from pydantic import BaseModel
@@ -104,12 +105,12 @@ class RetVal(BaseModel):
     errors: list[str] = []
     data: dict = {}
 
-async def request_server(endpoint: str, data: dict, timeout=1*60*60, method='POST'):
+async def request_server(port, endpoint: str, data: dict, timeout=1*60*60, method='POST'):
     async with httpx.AsyncClient() as client:
         try:
             # If this task is cancelled (e.g. by the UI), 
             # httpx will drop the connection immediately.
-            base_url = "http://localhost:9000"
+            base_url = f"http://localhost:{port}"
             if method == 'POST':
                 r = await client.post(
                     f"{base_url}/{endpoint}", 

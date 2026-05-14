@@ -1,5 +1,8 @@
 import asyncio
+from collections.abc import Callable
+import copy
 import json
+from fastapi import Request
 from pydantic import BaseModel
 import pandas as pd
 import numpy as np
@@ -7,100 +10,144 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 
-from pytick.utility.utility import request_server
+from pytick.query.query import QueryHandler
+from pytick.query.trade import TradeHandler
 
-def plot_strategy_comparison(strategy_data):
-    plt.style.use('seaborn-v0_8-muted')
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
-    
-    leaderboard = []
-
-    for strategy in strategy_data:
-        name = strategy['query'].strip().split('\n')[1].split(':')[1]
-        results = pd.Series(strategy['metrics'])
-        # Calculate Cumulative Returns
-        cumulative_r = np.cumsum(list(results['r'].values()))
-        
-        # Calculate Metrics
-        expectancy = results['expectancy_r']
-        std_dev = results['std_dev_r']
-        sqn = results['sqn']
-        
-        leaderboard.append({
-            "Name": name,
-            "Expectancy": expectancy,
-            "SQN": sqn,
-            "Total Trades": len(results)
-        })
-
-        # Plot 1: Cumulative Equity Curve
-        ax1.plot(cumulative_r, label=f"{name} (SQN: {sqn:.2f})", linewidth=2)
-
-    # Formatting Top Plot
-    ax1.set_title("Strategy Comparison: Cumulative R-Return", fontsize=14, fontweight='bold')
-    ax1.set_ylabel("Total R-Multiple Earned")
-    ax1.set_xlabel("Number of Trades")
-    ax1.legend(loc='upper left')
-    ax1.grid(True, alpha=0.3)
-
-    # Plot 2: Distribution Comparison (Violin Plot)
-    # This shows the 'density' of wins vs losses
-    df_list = []
-    for s in strategy_data:
-        # 1. Get the cumulative list
-        name = s['query'].strip().split('\n')[1].split(':')[1]
-        temp_df = pd.DataFrame({'R': list(s['metrics']['r'].values()), 'Strategy': name})
-        df_list.append(temp_df)
-    
-    combined_df = pd.concat(df_list)
-    sns.violinplot(data=combined_df, x='Strategy', y='R', ax=ax2, inner="quart")
-    
-    ax2.set_title("Return Distribution (Risk Profile)", fontsize=14, fontweight='bold')
-    ax2.axhline(0, color='black', linestyle='--', alpha=0.5)
-    
-    plt.tight_layout()
-    # filename = "strategy_comparison.png"
-    # plt.savefig(filename, dpi=300, bbox_inches='tight')
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight')
-    buffer.seek(0)
-    # 2. Optional: Close the plot to free up memory
-    plt.close()
-    return buffer
-    
 class Config(BaseModel):
     queries:list[str]
-    start: int
-    stop: int
+    start: int = 10
+    stop: int = 0
+    stop_loss: float = 1
     commission: float = 0.01
+    timeout: int = 10*60*60
     
 class Comparator:
-    def __init__(self, config):
+    def __init__(self, config: Config, disconnected: Callable[[], bool], query_handler:QueryHandler):
+        self.disconnected = disconnected
         self.config = config
         self.result = {} 
+        self.query_handler = query_handler
     
-    async def compare(self):
-        ret = []
-        payload = {
-            'queries': self.config.queries,
-            'start': self.config.start,
-            'stop': self.config.stop,
-            'commission': self.config.commission
-        }
-        # Assuming request_server is defined elsewhere in your script
-        result = await request_server('backtest', payload, 5*60*60)
-        result = json.loads(result.text)
+    async def compare(self) -> dict:
+        trades, errors = await self.__do_comparison(self.disconnected, self.query_handler, self.config.queries, self.config.start, self.config.stop, self.config.stop_loss, self.config.commission) 
         data = []
-        for pt in result['data']['results']:
-            data.append({'query': pt['query'], 'metrics': pt['metrics'], 'trades': pt['trades']})
-            # df = pd.DataFrame(pt['trades'])
-            # df.to_csv(f"{pt['query'].strip().splitlines()[1].split(':')[1]} trades.csv", index=False)
-        img_buffer = plot_strategy_comparison(data)
+        for pt in trades:
+            data.append({'query': pt['query'], 'metrics': pt['metrics'], 'trades': pt['trades'], 'open_trades': pt['open_trades']})
+        img_buffer = self.__do_plot(data)
         return {'data': data, 'image': img_buffer}
+    
+    async def __do_comparison(self, disconnected: Callable[[], bool], query_handler, queries, start, stop, stop_loss, commision) -> list[dict]:
+        trade_handlers = [TradeHandler() for _ in queries]
+        errors = []
+        
+        for itr in range(start, stop, -1):
+            # 1. Check if the client cancelled the request
+            if await disconnected():
+                errors.append("Disconnected by client during processing.")
+                return [], errors
+            
+            try:
+                # Use asyncio.to_thread() to run CPU-intensive backtest in thread pool
+                # This allows the event loop to stay responsive and process other requests
+                for i in range(len(queries)):
+                    bt_query_handler = copy.deepcopy(query_handler)
+                    await asyncio.to_thread(
+                        bt_query_handler.get_backtest_result,
+                        queries[i],
+                        trade_handlers[i],
+                        itr,
+                        stop_loss
+                    )
+                    # Yield control to the event loop between queries
+                    await asyncio.sleep(0)
+            except Exception as e:
+                errors.append(str(e))
+        
+        results = []
+        for i in range(len(queries)):
+            query = queries[i]
+            trade_handler = trade_handlers[i]
+            r_multiples = trade_handler.close_df['rmulti'] - commision
+            
+            # 2. Calculate Fitness Metrics for the AI Agent
+            metrics = {
+                "total_trades": len(r_multiples),
+                "r": r_multiples,
+                "expectancy_r": r_multiples.mean() if not r_multiples.empty else 0,
+                "std_dev_r": r_multiples.std() if not r_multiples.empty else 0,
+                "max_r": r_multiples.max() if not r_multiples.empty else 0,
+                "min_r": r_multiples.min() if not r_multiples.empty else 0,
+                "win_rate": (r_multiples > 0).sum() / len(r_multiples) if len(r_multiples) > 0 else 0
+            }
+            # SQN > 1.6: Average, 2.0: Good, 3.0: Excellent, 5.0+: Holy Grail
+            metrics["sqn"] = (np.sqrt(metrics["total_trades"]) * 
+                    (metrics["expectancy_r"] / (metrics["std_dev_r"] + 1e-6)))
+            metrics = {k: round(v, 2) if isinstance(v, (int, float, np.number)) else v for k, v in metrics.items()}
+            results.append({
+                "query": query, "metrics": metrics, "trades": trade_handler.close_df.to_dict(orient='records'),
+                "open_trades": trade_handler.open_df.to_dict(orient='records')
+            })
+        return results, errors
 
-async def run(queries: list[str], start:int, stop:int, commission: float=0.01) -> dict:
-    config = Config(queries=queries, start=start, stop=stop, commission=commission)
-    comparator = Comparator(config=config)
+
+    def __do_plot(self, strategy_data):
+        plt.style.use('seaborn-v0_8-muted')
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+        
+        for strategy in strategy_data:
+            name = strategy['query'].strip().split('\n')[1].split(':')[1]
+            results = pd.Series(strategy['metrics'])
+            # Calculate Cumulative Returns
+            cumulative_r = np.cumsum(list(results['r']))
+            
+            # Calculate Metrics
+            expectancy = results['expectancy_r']
+            std_dev = results['std_dev_r']
+            sqn = results['sqn']
+            
+            # Plot 1: Cumulative Equity Curve
+            ax1.plot(cumulative_r, label=f"{name} (SQN: {sqn:.2f})", linewidth=2)
+
+        # Formatting Top Plot
+        ax1.set_title("Strategy Comparison: Cumulative R-Return", fontsize=14, fontweight='bold')
+        ax1.set_ylabel("Total R-Multiple Earned")
+        ax1.set_xlabel("Number of Trades")
+        ax1.legend(loc='upper left')
+        ax1.grid(True, alpha=0.3)
+
+        # Plot 2: Distribution Comparison (Violin Plot)
+        # This shows the 'density' of wins vs losses
+        df_list = []
+        for s in strategy_data:
+            # 1. Get the cumulative list
+            name = s['query'].strip().split('\n')[1].split(':')[1]
+            temp_df = pd.DataFrame({'R': list(s['metrics']['r']), 'Strategy': name})
+            df_list.append(temp_df)
+        
+        combined_df = pd.concat(df_list)
+
+        sns.boxplot(data=combined_df, x='Strategy', y='R', ax=ax2, showfliers=False, palette="Set2")
+        sns.swarmplot(data=combined_df, x='Strategy', y='R', ax=ax2, color=".25", size=5, alpha=0.8)
+
+        ax2.set_title("Return Distribution (Risk Profile)", fontsize=14, fontweight='bold')
+        ax2.axhline(0, color='black', linestyle='--', alpha=0.5)
+        
+        plt.tight_layout()
+        # filename = "strategy_comparison.png"
+        # plt.savefig(filename, dpi=300, bbox_inches='tight')
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=300, bbox_inches='tight')
+        buffer.seek(0)
+        # 2. Optional: Close the plot to free up memory
+        plt.close()
+        return buffer
+
+
+async def run(disconnected: Callable[[], bool], query_handler: QueryHandler, **kwargs) -> dict:
+    config = Config(**kwargs)
+    if len(config.queries) == 0:
+        raise ValueError("No queries provided for comparison.")
+    comparator = Comparator(config=config, disconnected=disconnected, query_handler=query_handler)
     results = await comparator.compare()
     return results
 
@@ -133,5 +180,5 @@ And let six_mth_change = change in 120 samples of day close
 Then list buy = tickers with (close > ema10) & (ema10 > ema20) & (ema20 > ema50) & (close > prev_close) & ((mth_change > 0.3)| (three_mth_change > 0.5) | (six_mth_change > 0.7))
 """,
 ]
-    asyncio.run(run(queries=queries, start=10, stop=1, commission=0.01))
+    asyncio.run(run(queries=queries, start=10, stop=1, commission=0.01, timeout=10*60*60))
     
