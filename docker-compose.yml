@@ -18,6 +18,11 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  
+        max-file: "3"
     user: palash
     image: stockappdev:latest
     container_name: stockappdev

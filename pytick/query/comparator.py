@@ -93,9 +93,17 @@ class Comparator:
     def __do_plot(self, strategy_data):
         plt.style.use('seaborn-v0_8-muted')
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+
+        strategy_names = [s['query'].strip().split('\n')[1].split(':')[1] for s in strategy_data]
+    
+        # Create a color palette and map it to strategy names
+        # This ensures "Strategy A" is the same color in both ax1 and ax2
+        colors = sns.color_palette("Set2", len(strategy_names))
+        # color_map = dict(zip(strategy_names, colors))
         
         for strategy in strategy_data:
-            name = strategy['query'].strip().split('\n')[1].split(':')[1]
+            index = strategy_data.index(strategy)
+            name = strategy_names[index]
             results = pd.Series(strategy['metrics'])
             # Calculate Cumulative Returns
             cumulative_r = np.cumsum(list(results['r']))
@@ -106,7 +114,7 @@ class Comparator:
             sqn = results['sqn']
             
             # Plot 1: Cumulative Equity Curve
-            ax1.plot(cumulative_r, label=f"{name} (SQN: {sqn:.2f})", linewidth=2)
+            ax1.plot(cumulative_r, label=f"{name}", linewidth=2, color=colors[index])
 
         # Formatting Top Plot
         ax1.set_title("Strategy Comparison: Cumulative R-Return", fontsize=14, fontweight='bold')
@@ -120,15 +128,15 @@ class Comparator:
         df_list = []
         for s in strategy_data:
             # 1. Get the cumulative list
-            name = s['query'].strip().split('\n')[1].split(':')[1]
+            name = strategy_names[strategy_data.index(s)]
             temp_df = pd.DataFrame({'R': list(s['metrics']['r']), 'Strategy': name})
             df_list.append(temp_df)
         
         combined_df = pd.concat(df_list)
 
-        sns.boxplot(data=combined_df, x='Strategy', y='R', ax=ax2, showfliers=False, palette="Set2")
-        sns.swarmplot(data=combined_df, x='Strategy', y='R', ax=ax2, color=".25", size=5, alpha=0.8)
-
+        sns.boxplot(data=combined_df, x='Strategy', y='R', ax=ax2, showfliers=False, palette=colors, hue='Strategy', legend=False)
+        sns.stripplot(data=combined_df, x='Strategy', y='R', ax=ax2, alpha=0.5, palette=colors, hue='Strategy', legend=False)
+        
         ax2.set_title("Return Distribution (Risk Profile)", fontsize=14, fontweight='bold')
         ax2.axhline(0, color='black', linestyle='--', alpha=0.5)
         
