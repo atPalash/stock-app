@@ -8,7 +8,13 @@ import yfinance as yf
 import pandas_ta as ta
 
 # from main import mp_process_ticker
-from pytick.utility.utility import get_logger, normalize_index_to_tz, read_config
+from pytick.utility.utility import get_logger, normalize_index_to_tz, read_config, request_server
+
+# Set multiprocessing start method once at module level
+try:
+    multiprocessing.set_start_method('spawn', force=True)
+except RuntimeError:
+    pass  # Already set
 
 load_dotenv()
 logger = get_logger(__file__, logging.DEBUG)
@@ -158,9 +164,10 @@ class DataFrameHandler:
                     ohlc[ticker] = df
             else:
                 # Download data from Yahoo Finance
+                period = self.interval_limits.get(interval, "1mo")
                 ohlc = yf.download(
                     tickers=tickers_yf,
-                    period=self.interval_limits.get(interval, "1mo"),
+                    period=period,
                     interval=interval,
                     progress=False,
                     group_by="ticker",
@@ -173,18 +180,20 @@ class DataFrameHandler:
                     timeout=100,
                 )
             clean_ohlc = {}
+            debug_tickers = ['SBIN.NS', 'TCS.NS', 'ENRIN.NS']  # Add more tickers here if needed
             for ticker in tickers_yf:
                 df = ohlc[ticker]  # .xs(ticker, axis=1, level=0)
+                if ticker in debug_tickers:
+                    logger.debug(f"YF {ticker} interval={interval}: rows={len(df)}, last 5 dates={df.index[-5:].tolist()}")
+
                 df = df.dropna(
                     subset=['Open', 'High', 'Low', 'Close', 'Volume'], how='all')
                 if df.empty:
                     logger.warning(f"No data found for ticker: {ticker} interval: {interval}")
                 clean_ohlc[ticker] = df
-
-            # Create a pool of processes (one for each CPU core)
-            multiprocessing.set_start_method('spawn', force=True)
-            num_processes = min(multiprocessing.cpu_count(), len(tickers))
+                
             # Prepare the parameters for each process
+            num_processes = min(multiprocessing.cpu_count(), len(tickers))
             process_args = [
                 (ticker, clean_ohlc[ticker], self.indicators)
                 for ticker in tickers_yf
@@ -211,6 +220,8 @@ class DataFrameHandler:
                 result[ticker] = df
                 if df is None or df.empty:
                     logger.warning(f"No data found for ticker: {ticker} interval: {interval}")
+                if ticker in debug_tickers:
+                    logger.debug(f"Indicators {ticker} interval={interval}: rows={len(df)}, last 5 dates={df.datetime[-5:].tolist()}")
 
             self.tables[interval] = result
             ret['success'] = True
@@ -250,5 +261,17 @@ if __name__ == "__main__":
     # config_path = "config_debug.yaml"
     # indicators = read_config(config_path).get('indicators', {})
     # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
-    print(get_nifty_tickers('ind_nifty100list.csv'))
+    # print(get_nifty_tickers('ind_nifty100list.csv'))
+    import asyncio
+    import json
+    async def main():
+        # Your async logic goes here
+        try:
+            response = await request_server(8000, 'df/SBIN/1mo', {}, timeout=30, method='GET')
+            print(json.loads(response.text)['data'][-5:])  # Print the last 5 records
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    # Use asyncio.run to start the event loop and execute the main function
+    asyncio.run(main())
     # download_stock_data("TMPV", "1d", "Asia/Kolkata")

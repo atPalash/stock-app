@@ -26,12 +26,12 @@ interval_limits:
   # "1m": "7d"
   # "2m": "60d"
   "5m": "1mo"
-  "15m": "1mo"
-  "30m": "1mo"
-  "1h": "2y"
-  "1d": "10y"
+  "15m": "3mo"
+  "30m": "6mo"
+  "1h": "1y"
+  "1d": "5y"
   "1wk": "10y"
-  "1mo": "10y"
+  "1mo": "max"
 cron_schedules:
   # "1m": { "minute": "*/1", "second": "0", "day_of_week": "mon-fri" } # runs at 0 seconds of every minute
   # "2m": { "minute": "*/2", "hour": 9-16, "second": "5", "day_of_week": "mon-fri" } # runs at 5 seconds of every 2nd minute

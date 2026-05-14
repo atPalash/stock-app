@@ -22,6 +22,7 @@ RUN apt update && apt install --no-install-recommends -y \
     python3-venv \
     openssh-client \
     tmux \
+    jq \
     && apt clean && rm -rf /var/lib/apt/lists/*
 
 RUN apt update && apt upgrade --no-install-recommends -y \
