@@ -807,11 +807,15 @@ Or use: Feature → Scenario → Given/When/Then",
             
             args = parser.parse_args(shlex.split(message))
             if args.command == 'health':
-                return await request_server(int(os.getenv('APP_PORT', '8000')), 'health', {}, timeout=args.timeout, method='GET')
+                response = await request_server(int(os.getenv('APP_PORT', '8000')), 'health', {}, timeout=args.timeout, method='GET')
+                return RetVal(status=response.status_code == 200, message=message)
             elif args.command == 'backtest':
                 return await self.__handle_backtest(interaction, timeout, message, args)
             elif args.command == 'df':
-                return await request_server(int(os.getenv('APP_PORT', '8000')), f'df/{args.endpoint}', {}, timeout=args.timeout, method='GET')
+                response = await request_server(int(os.getenv('APP_PORT', '8000')), f'df/{args.endpoint}', {}, timeout=args.timeout, method='GET')
+                df = pandas.DataFrame(response.json()['data']).tail(10)
+                await send_csv(interaction=interaction, df=df, title=args.endpoint)
+                return RetVal(status=response.status_code == 200, message=message)
             return RetVal(status=False, message="Invalid command")
         except asyncio.TimeoutError:
             logger.warning(f"Debug timeout: {message}")
