@@ -102,7 +102,7 @@ def calculate_notification(
                 return True, is_notification_in_range, errors
         return True, False, errors
     except Exception as e:
-        errors.append(f"Exception calculating variable {kwargs['id']}: {e}, check supported ohlc settings")
+        errors.append(f"Exception calculating variable {kwargs['id']}: {e}")
         return False, False, errors
 
 def calculate_conditions(when_results: pandas.DataFrame, **kwargs) -> tuple:
@@ -137,7 +137,7 @@ def __eval_operator(operator, span: str, data: numpy.array, to_float: bool = Tru
         elif operator == "rate":
             result = round((data_for_span[-1] - data_for_span[0]) / span_window, 2)
         elif operator == "change":
-            result = round((data_for_span[-1] - data_for_span[0]) / data[0], 2)
+            result = round((data_for_span[-1] - data_for_span[0]) / data_for_span[0], 2)
         else:
             raise Exception(f"Unsupported operator: {operator}")
         if to_float:

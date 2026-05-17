@@ -1,12 +1,10 @@
-# using ubuntu LTS version
-FROM python:3.12.3 as base
+FROM ubuntu:24.04 AS base
 
-ARG USERNAME="palash"
-
-# avoid stuck build due to user prompt
+ARG USERNAME=palash
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install --no-install-recommends -y \
+# 2. Packages
+RUN apt update && apt install --no-install-recommends -y \
     git \
     ssh \
     sudo \
@@ -17,19 +15,47 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     ca-certificates \
     openssl \
     libcurl4 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    iputils-ping \
+    ninja-build \
+    less \
+    python3-pip \
+    python3-venv \
+    openssh-client \
+    tmux \
+    jq \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
-# Create the user with a home directory
-RUN useradd -m -s /bin/bash ${USERNAME} && \
-    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN apt update && apt upgrade --no-install-recommends -y \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /home/${USERNAME}/app
-COPY .ssh /home/${USERNAME}/.ssh
-COPY Dockerfile /home/${USERNAME}/app
+RUN userdel -r ubuntu 2>/dev/null || true && \
+    useradd -u 1000 -ms /bin/bash ${USERNAME} && \
+    usermod -aG sudo ${USERNAME} && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
+    chmod 0440 /etc/sudoers.d/${USERNAME}
 
-# Change ownership of the entire home directory to the user
-RUN chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
+# Set up known_hosts for GitHub to avoid authenticity prompts
+RUN mkdir -p /home/${USERNAME}/.ssh \
+    && ssh-keyscan -t rsa,ecdsa,ed25519 github.com >> /home/${USERNAME}/.ssh/known_hosts \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh
+
+COPY docker-entrypoint.sh /tmp/docker-entrypoint.sh
+RUN chmod 0755 /tmp/docker-entrypoint.sh
 
 USER ${USERNAME}
-# podman build -t db-server:latest .
-# podman run -dit --name db-server --network=host db-server:latest
+# Create directory for SSH agent socket
+RUN mkdir -p /home/${USERNAME}/.ssh-agent && chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.ssh-agent
+
+# Set default SSH_AUTH_SOCK path (can be overridden by docker-compose)
+ENV SSH_AUTH_SOCK=/home/${USERNAME}/.ssh-agent/agent.sock
+
+WORKDIR /home/${USERNAME}/stock-app
+
+# Use entrypoint script from mounted volume
+ENTRYPOINT ["/tmp/docker-entrypoint.sh"]
+
+FROM base AS dev
+CMD [ "bash" ]
+
+FROM base AS rel
+CMD [ "python3", "main.py" ]

@@ -1,6 +1,9 @@
-# Pytick - AI-Powered Stock Analysis & Discord Bot
+# TODO
+1. Use podman compose to initialize and run pytick
 
-Pytick is a comprehensive stock market analysis platform that combines real-time market data, technical indicators, and AI-powered natural language processing to provide intelligent trading insights through Discord.
+# chattick - AI-Powered Stock Analysis & Discord Bot
+
+chattick is a comprehensive stock market analysis platform that combines real-time market data, technical indicators, and AI-powered natural language processing to provide intelligent trading insights through Discord.
 
 ## Features
 

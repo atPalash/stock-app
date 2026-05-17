@@ -1,3 +1,4 @@
+from copy import copy
 import logging
 import os
 import re
@@ -10,24 +11,27 @@ import pandas
 from pytick.dataframe.dataframe import DataFrameHandler
 from pytick.dataframe.notification import NotificationHandler
 from pytick.query.steps import StepData
-from pytick.utility.utility import get_logger, read_config
+from pytick.query.trade import TradeHandler
+from pytick.utility.utility import RetVal, get_logger, read_config
 
 logger = get_logger(__file__, logging.DEBUG)
 
+
 class QueryHandler:
-    def __init__(self, data_handler: DataFrameHandler, notification_handler:NotificationHandler, interval_translation: dict, interval_seconds: dict):
+    def __init__(self, data_handler: DataFrameHandler, notification_handler: NotificationHandler, interval_translation: dict, interval_seconds: dict):
         self.data_handler = data_handler
         self.notification_handler = notification_handler
         self.interval_translation = interval_translation
         self.interval_seconds = interval_seconds
 
     @staticmethod
-    def parse_gherkin(gherkin_str:str)-> tuple[bool, dict, list]:
+    def parse_gherkin(gherkin_str: str) -> tuple[bool, dict, list[str]]:
         """
         Validates that the Gherkin string contains only Given, When, Then steps in correct order.
         Returns (True, []) if valid, (False, [error messages]) otherwise.
         """
-        lines = [line.strip() for line in gherkin_str.strip().splitlines() if line.strip()]
+        lines = [line.strip()
+                 for line in gherkin_str.strip().splitlines() if line.strip()]
         errors = []
         if not QueryHandler.__validate_step_order(lines, errors):
             return False, {}, errors
@@ -35,31 +39,34 @@ class QueryHandler:
         if not success:
             return False, {}, errors
         return True, step_data, errors
-    
-    def get_gherkin_result(self, gherkin_str:str, bt_config: dict=None) -> tuple[bool, dict, list]:
+
+    def get_gherkin_result(self, gherkin_str: str) -> tuple[bool, dict, list, pandas.DataFrame]:
         """ Compute Gherkin result depending on the string, also perform backtest
         queries.
         """
         is_valid, step_data, errors = QueryHandler.parse_gherkin(gherkin_str)
         if not is_valid:
             return False, {}, errors, {}
-        
-        given_steps = [step for step in step_data if step.get('step') == 'Given']
+
+        given_steps = [
+            step for step in step_data if step.get('step') == 'Given']
         when_steps = [step for step in step_data if step.get('step') == 'When']
         then_steps = [step for step in step_data if step.get('step') == 'Then']
 
         # Process Given steps to get tickers
         success, tickers, g_errors = self.__process_given_steps(given_steps)
         if not success:
-            return False, {}, g_errors, {}
+            return False, {}, g_errors, pandas.DataFrame()
         # Process When steps to calculate variables
-        success, when_results, w_errors = self.__process_when_steps(when_steps, tickers, bt_config)
+        success, when_results, w_errors = self.__process_when_steps(
+            when_steps, tickers)
         if not success:
-            return False, {}, w_errors, {}
+            return False, {}, w_errors, pandas.DataFrame()
         # Process Then steps to get final results
-        success, then_results, t_errors = self.__process_then_steps(then_steps, when_results)
+        success, then_results, t_errors = self.__process_then_steps(
+            then_steps, when_results)
         if not success:
-            return False, {}, t_errors, {}
+            return False, {}, t_errors, pandas.DataFrame()
 
         conditional_tickers = []
         for step in then_steps:
@@ -67,30 +74,83 @@ class QueryHandler:
             if 'list' in step.get('statement'):
                 id = values[0]
                 # Get tickers where the condition is True
-                true_tickers = then_results[then_results[id] == True]['ticker'].tolist()
+                true_tickers = then_results[then_results[id]
+                                            == True]['ticker'].tolist()
                 conditional_tickers.append({id: true_tickers})
 
-        if bt_config is not None:
-            valid, result, errors = self.__process_backtest(then_results, bt_config)
-            if not valid:
-                return False, {}, errors, {}
-            percent_correct = (result['score'] == 1).sum() / max(1, (result['score'] !=0).sum()) * 100
-            percent_false = (result['score'] == -1).sum() / max(1, (result['score'] !=0).sum()) * 100
-            return True, (percent_correct, percent_false), [], result
         return True, conditional_tickers, [], then_results
 
-    def get_clip_time(self, bt_config: dict) -> str:
-        """ Get clipped time from defualt ticker
+    def get_backtest_result(self, query: str, trade_handler: TradeHandler, window: int, stop_loss_percent: float) -> None:
+        """ Create a separate copy of the query handler and data handler to perform backtest logic without affecting the main query handler state.
+        Get backtest result for a Gherkin query without performing the backtest
+        logic. This is useful for getting the calculated variables and tickers
+        before the backtest step.
         """
-        interval = bt_config.get('interval', None)
-        clip = bt_config.get('clip', 0) 
-        ticker = bt_config.get('default_ticker', None)
-        if interval is None or clip <=0 or ticker is None:
-            raise ValueError("Base interval or clip or ticker is missing from clipping.")
-        bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
-                                                  interval=interval).get('data', {}).get(ticker, None)
-            
-        return bt_interval_df.iloc[:-clip]['datetime'].iat[-1]
+        try:
+            query_intervals, base_interval = self.__sync_bt_data(
+                query=query, window=window)
+            interval = self.interval_translation[base_interval]
+            translated_intervals = [self.interval_translation[i]
+                                    for i in query_intervals]
+
+            self.data_handler.trim_tables(
+                interval=interval, trim_rows=window)
+            end_datetime = None
+            try:
+                end_datetime = self.data_handler.tables[interval]['SBIN'].iloc[-1]['datetime']
+            except Exception as e:
+                raise e
+            for interval in translated_intervals:
+                for ticker in self.data_handler.tables[interval].keys():
+                    df = self.data_handler.tables[interval][ticker]
+                    clipped_df = df[df['datetime'] <= end_datetime]
+                    self.data_handler.tables[interval][ticker] = clipped_df
+            success, results, errors, df = self.get_gherkin_result(
+                gherkin_str=query)
+            if not success:
+                msg = f"Exception during query backtest: {errors}"
+                logger.warning(msg)
+                raise Exception(errors)
+
+            for ticker in df['ticker'].tolist():
+                if ticker in self.data_handler.tables[interval]:
+                    ticker_df = self.data_handler.tables[interval][ticker]
+                    if ticker_df.empty:
+                        continue
+                    price = ticker_df.iloc[-1]['close']
+                    time = ticker_df.iloc[-1]['datetime']
+                    side = ""
+                    for res in results:
+                        for key, tickers in res.items():
+                            if ticker in tickers:
+                                if key in ['buy']:
+                                    side = 'buy'
+                                    break
+                                elif key in ['sell']:
+                                    side = 'sell'
+                                    break
+
+                    trade_handler.do_trade(
+                        ticker=ticker, side=side, price=price, time=time, stop_per=stop_loss_percent)
+        except Exception as e:
+            raise e
+
+    def __sync_bt_data(self, query: str, window: int) -> tuple[set, str]:
+        is_valid, step_data, errors = QueryHandler.parse_gherkin(query)
+        if not is_valid:
+            raise Exception(errors)
+        intervals = set()
+        for step in step_data:
+            match = next(
+                (i for i in StepData.interval if i in step['statement']), None)
+            if match:
+                intervals.add(match)
+
+        base_interval = StepData.interval[-1]
+        for interval in intervals:
+            if self.interval_seconds[interval] < self.interval_seconds[base_interval]:
+                base_interval = interval
+        return intervals, base_interval
 
     @staticmethod
     def __validate_step_order(lines, errors):
@@ -127,10 +187,10 @@ class QueryHandler:
         return True
 
     @staticmethod
-    def __fetch_step_data(lines:list)-> tuple[bool, list]:
+    def __fetch_step_data(lines: list) -> tuple[bool, list]:
         errors = []
         step_data = StepData()
-        step_patterns =  {
+        step_patterns = {
             'Given': step_data.given_steps(),
             'When': step_data.when_steps(),
             'Then': step_data.then_steps()
@@ -146,7 +206,8 @@ class QueryHandler:
             step_split = line.split(' ')
             current_step = current_step if step_split[0] in conjunctions else step_split[0]
             if current_step not in step_patterns.keys():
-                errors.append(f"Line does not start with a valid step keyword: {line}")
+                errors.append(
+                    f"Line does not start with a valid step keyword: {line}")
                 return False, match_values, errors
             line_step = ' '.join(step_split[1:])
             for regex, step_data in step_patterns[current_step].items():
@@ -156,19 +217,31 @@ class QueryHandler:
                     matches = []
                     for i in range(1, len(match_obj.groups()) + 1):
                         value = match_obj.group(i)
-                        allowed_values = step_data.variables.get(variable_indexes[i-1], None)
-                        if allowed_values and '<' not in allowed_values[0] and '>' not in allowed_values[0]:
-                            if value not in allowed_values:
-                                errors.append(f"Invalid value '{value}' for variable '{variable_indexes[i-1]}' in line: '{line_unfiltered}'. Allowed values: {allowed_values}")
+                        allowed_values = step_data.variables.get(
+                            variable_indexes[i-1], None)
+                        if regex == '^stocks from list (.+)$':
+                            tickers = value.replace(' ', '').split(',')
+                            if not all(i in allowed_values for i in tickers):
+                                errors.append(
+                                    f"Invalid value '{value}' for variable '{variable_indexes[i-1]}' in line: '{line_unfiltered}'. Allowed values: {allowed_values}")
                                 return False, match_values, errors
-                        matches.append({'index': variable_indexes[i-1], 'value': value})
-                    match_values.append({'statement': line_unfiltered, 'regex': regex, 'values': matches, 'step': current_step, 'logic': step_data.logic})
+                        else:
+                            if allowed_values and '<' not in allowed_values[0] and '>' not in allowed_values[0]:
+                                if value not in allowed_values:
+                                    errors.append(
+                                        f"Invalid value '{value}' for variable '{variable_indexes[i-1]}' in line: '{line_unfiltered}'. Allowed values: {allowed_values}")
+                                    return False, match_values, errors
+                        matches.append(
+                            {'index': variable_indexes[i-1], 'value': value})
+                    match_values.append({'statement': line_unfiltered, 'regex': regex,
+                                        'values': matches, 'step': current_step, 'logic': step_data.logic})
                     matched = True
             if not matched:
-                errors.append(f"Regex match for \"{line}\" not found in {list(step_patterns[current_step].keys())}")
+                errors.append(
+                    f"Regex match for \"{line}\" not found in {list(step_patterns[current_step].keys())}")
         return len(errors) == 0, match_values, errors
 
-    def __process_given_steps(self, given_steps:list)-> tuple[bool, list, list]:
+    def __process_given_steps(self, given_steps: list) -> tuple[bool, list, list]:
         tickers = []
         for step in given_steps:
             values = [v['value'] for v in step.get('values', [])]
@@ -181,7 +254,7 @@ class QueryHandler:
             return False, {}, errors
         return True, tickers, errors
 
-    def __process_when_steps(self, when_steps:list, given_result:list, bt_config:dict = None) -> tuple[bool, pandas.DataFrame, list]:
+    def __process_when_steps(self, when_steps: list, given_result: list) -> tuple[bool, pandas.DataFrame, list]:
         result = pandas.DataFrame(columns=['ticker'])
         ret_errors = []
         for step in when_steps:
@@ -190,141 +263,86 @@ class QueryHandler:
             kwargs = {}
             if logic_name == 'calculate_indicators':
                 id, operator, query_span, interval, ohlc_source, indicator, window = values
-                kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'ohlc_source': ohlc_source, 'indicator': indicator, 'window': window}
+                kwargs = {'id': id, 'operator': operator, 'query_span': query_span,
+                          'ohlc_source': ohlc_source, 'indicator': indicator, 'window': window}
             elif logic_name == 'calculate_ohlc':
                 id, operator, query_span, interval, ohlc_source = values
-                kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'ohlc_source': ohlc_source}
+                kwargs = {'id': id, 'operator': operator,
+                          'query_span': query_span, 'ohlc_source': ohlc_source}
             elif logic_name == 'calculate_notification':
                 id, operator, query_span, interval, _ = values
-                kwargs = {'id': id, 'operator': operator, 'query_span': query_span, 'source': None, 'duration': self.interval_seconds.get(interval, 0)}
+                kwargs = {'id': id, 'operator': operator, 'query_span': query_span,
+                          'source': None, 'duration': self.interval_seconds.get(interval, 0)}
             else:
-                logger.warning(f"Unknown logic function {logic_name} in When step.")
+                logger.warning(
+                    f"Unknown logic function {logic_name} in When step.")
                 return False, None, [f"Unknown logic function {logic_name} in When step."]
-            
+
             # Add column if it doesn't exist
             if id not in result.columns:
                 result[id] = numpy.nan if logic_name != 'calculate_notification' else None
 
-            notifications = self.notification_handler.get_corporate_actions_dfs(tickers=given_result)
+            notifications = self.notification_handler.get_corporate_actions_dfs(
+                tickers=given_result)
             for ticker in given_result:
                 # Add row for ticker if it doesn't exist
                 if ticker not in result['ticker'].values:
                     new_row = {'ticker': ticker}
-                    result = pandas.concat([result, pandas.DataFrame([new_row])], ignore_index=True)
-                full_df = self.data_handler.get_tables(tickers=[ticker], 
-                                                  interval=self.interval_translation[interval]).get('data', {}).get(ticker, None)
-                
+                    result = pandas.concat(
+                        [result, pandas.DataFrame([new_row])], ignore_index=True)
+                full_df = self.data_handler.get_tables(tickers=[ticker],
+                                                       interval=self.interval_translation[interval]).get('data', {}).get(ticker, None)
+
                 df = full_df
-                if bt_config is not None:
-                    # Start backtest from trading of the base interval given by user
-                    df = self.__clip_backtest_data(df, ticker, interval, bt_config)
                 if df is None or df.empty:
-                    logger.warning(f"No data found for ticker {ticker} with interval {interval}")
+                    # logger.warning(
+                    #     f"No data found for ticker {ticker} with interval {interval}")
                     continue
                 if logic_name == 'calculate_notification':
-                    kwargs['source'] = notifications.get(ticker, None) 
-                
+                    kwargs['source'] = notifications.get(ticker, None)
+
                 success, val, errors = step.get('logic')(df, **kwargs)
                 result.loc[result['ticker'] == ticker, id] = val
                 if not success:
-                    logger.warning(f"Exception calculating variables: {errors}")
-                    return False, None, errors
-                if success and len(errors) > 0: # some ticker may have issues
+                    logger.warning(
+                        f"Exception calculating variables: {errors} {ticker}")
+                    ret_errors.append(errors)
+                    # return False, None, errors
+                if success and len(errors) > 0:  # some ticker may have issues
                     logger.warning(f"Calculating variables {ticker}: {errors}")
                     ret_errors.append(errors)
         return True, result, ret_errors
 
-    def __process_then_steps(self, then_steps:list, when_results:pandas.DataFrame) -> tuple[bool, pandas.DataFrame, list]:
+    def __process_then_steps(self, then_steps: list, when_results: pandas.DataFrame) -> tuple[bool, pandas.DataFrame, list]:
         result = when_results
         for step in then_steps:
             values = [v['value'] for v in step.get('values', [])]
             id, condition = values
             kwargs = {'id': id, 'condition': condition}
-            success, result, errors = step.get('logic')(result,**kwargs)
+            success, result, errors = step.get('logic')(result, **kwargs)
             if not success:
                 logger.warning(f"Exception calculating Then step: {errors}")
                 return False, {}, errors
 
         return True, result, errors
 
-    def __process_backtest(self, then_results:pandas.DataFrame, bt_config: dict) -> tuple[bool, dict, list]:
-        interval = bt_config.get('interval', None)
-        if interval is None:
-            return False, {}, ["Backtest interval not specified in bt_config."]
-        
-        columns = then_results.columns.tolist()
-        if not any(c in columns for c in ['bull', 'bear']):
-            return False, {}, ["Backtest can only be performed on 'bull' and 'bear' conditions."]
-        
-        errors = []
-        then_results['close_start'] = 0.0
-        then_results['close_reference'] = 0.0
-        then_results['score'] = 0
-        for ticker in list(then_results['ticker']):
-            try:
-                full_df = self.data_handler.get_tables(tickers=[ticker], 
-                                                    interval=interval).get('data', {}).get(ticker, None)
-                clipped_df = full_df.iloc[:-bt_config.get('clip', 0)]
-                reference_index = bt_config.get('clip', 0) - bt_config.get('forward', 0)
-                reference_df = full_df
-                if reference_index > 1:
-                    reference_df = full_df.iloc[:-reference_index]
-                
-                result_is_bull = then_results.loc[then_results['ticker'] == ticker, 'bull'].values[0]
-                result_is_bear = then_results.loc[then_results['ticker'] == ticker, 'bear'].values[0]
-                clipped_close = clipped_df['close'].iat[-1]
-                reference_close  = reference_df['close'].iat[-1]
-                is_bull = reference_close > clipped_close
-                is_bear = not is_bull
-                then_results.loc[then_results['ticker'] == ticker, 'close_start'] = clipped_close
-                then_results.loc[then_results['ticker'] == ticker, 'close_reference'] = reference_close
-                if result_is_bull == result_is_bear:
-                    continue
-                score = 1 if (is_bull and result_is_bull) or (is_bear and result_is_bear) else -1
-                then_results.loc[then_results['ticker'] == ticker, 'score'] = score          
-            except Exception as e:
-                errors.append(f"BT Exception {ticker}: {e}")
-                continue
-        if len(errors) > 0:
-            return False, None, errors
-        return True, then_results, errors
-    
-    def __clip_backtest_data(self, df: pandas.DataFrame, ticker, interval:str, bt_config: dict) -> pandas.DataFrame:
-        ret = df
-        bt_interval = bt_config.get('interval', None)
-        clip = bt_config.get('clip', 0) 
-        if bt_interval is None or clip <=0:
-            raise ValueError("Base interval or clip is missing from clipping.")
-           
-        if self.interval_translation[interval] != bt_interval:
-            bt_interval_df = self.data_handler.get_tables(tickers=[ticker], 
-                                                  interval=bt_interval).get('data', {}).get(ticker, None)
-            bt_interval_df = bt_interval_df.iloc[:-clip]
-            last_bt_datetime = bt_interval_df['datetime'].iat[-1]
-            ret = df[df['datetime'] <= last_bt_datetime]
-        else:
-            ret = df.iloc[:-clip]
-        return ret
-    
+
 if __name__ == "__main__":
     gherkin = """
-Feature: pytick llm
-Scenario: Multiple condition analysis with previous day close, VWAP, and EMA
-Given stocks from list BERGEPAINT
-When let notification = latest in 5 minute5 notification
-Then list movers = tickers with notification
+Feature: Nifty50 Parabolic Short Analysis with pytick LLM\n\nScenario: Qullamagie Parabolic Short Setup Analysis\n  Given stocks from index nifty50\n  When let close = latest in 1 samples of day close\n  And let sma10 = latest in 1 samples of day close sma 10\n  And let sma20 = latest in 1 samples of day close sma 20\n  And let atr14 = latest in 1 samples of day close atr 14\n  And let prev_close = oldest in 2 samples of day close\n  Then let extension = (close - sma20) / atr14\n  And let sell = [ticker for ticker in list(set(tickers with (extension > 3) & (close < prev_close) & (sma10 > sma20)))]
 """
     config = read_config(os.environ.get("CONFIG_FILE"))
     tickers = config.get('indexes', []).get('nifty50', [])
     indicators = config.get('indicators', {})
     tz = config.get('tz', 'Asia/Kolkata')
     data_handler = DataFrameHandler(tz=tz, indicators=indicators)
-    notification_handler = NotificationHandler(tz=tz, max_rows=1000, app_data_path=config.get('app_data_path', ''))
+    notification_handler = NotificationHandler(
+        tz=tz, max_rows=1000, app_data_path=config.get('app_data_path', ''))
     data_handler.set_tables(tickers=tickers, interval='5m')
     notification_handler.set_corporate_actions(tickers=tickers)
-    query_handler = QueryHandler(data_handler, notification_handler=notification_handler, 
-                                 interval_translation={v: k for k, v in config.get('interval_translation', {}).items()},
+    query_handler = QueryHandler(data_handler, notification_handler=notification_handler,
+                                 interval_translation={v: k for k, v in config.get(
+                                     'interval_translation', {}).items()},
                                  interval_seconds=config.get('interval_seconds', {}))
     # print(query_handler.get_gherkin_result(gherkin, bt_config={'clip': 20, 'forward': 10, 'interval': '5m'}))
     print(query_handler.get_gherkin_result(gherkin))
-    

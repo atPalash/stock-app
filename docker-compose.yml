@@ -1,0 +1,69 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - ./redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    network_mode: host
+
+  stockappdev: &common-config
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"  
+        max-file: "3"
+    user: palash
+    image: stockappdev:latest
+    container_name: stockappdev
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    depends_on:
+      redis:
+        condition: service_healthy
+    network_mode: host
+    userns_mode: keep-id      
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/health > /dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    environment:
+      - SSH_AUTH_SOCK=/home/palash/.ssh-agent/agent.sock
+      - VENV_PATH=/home/palash/.venv
+      - APP_PORT=9000
+    volumes:
+      - ${SSH_AUTH_SOCK}:/home/palash/.ssh-agent/agent.sock
+      - ./:/home/palash/stock-app
+      
+  # 2. Create the "Release" version by referencing the anchor (*common-config)
+  stockapprel:
+    <<: *common-config  
+    container_name: stockapprel
+    image: stockapprel:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: rel      # Override ONLY the target
+    environment:
+      - SSH_AUTH_SOCK=/home/palash/.ssh-agent/agent.sock
+      - VENV_PATH=/home/palash/.venv
+      - APP_PORT=8000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health > /dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s

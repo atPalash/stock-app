@@ -1,65 +1,99 @@
-#! venv/bin/python3
 from dotenv import load_dotenv
 import numpy
 import pandas
+import asyncio
+import redis
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import os
 import logging
 from fastapi import Request
 import threading
+import copy
+from func_timeout import func_timeout, FunctionTimedOut
 
 from pytick.bot.discordbot import BotConfig, DiscordBot
+from pytick.llm.prompt import generate_prompt
 from pytick.query import query
+from pytick.query.trade import TradeHandler
 from pytick.scheduler.scheduler import Scheduler
-from pytick.utility.utility import get_logger, read_config, save_config
+from pytick.utility.convo_store import ConvoStore
+from pytick.utility.utility import get_logger, read_config, read_file
 import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
+from pytick.query.comparator import run as comparator_run
 
 app = FastAPI()
+
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
-users_config_path = os.environ.get("USERS_DIR")
 app_config = read_config(file_path=config)
-tickers = app_config.get('indexes', []).get('nifty50', [])
+tickers = list(set(app_config.get('indexes', {}).get('nifty50', []))
+               | set(app_config.get('indexes', {}).get('nifty100', [])))
 indicators = app_config.get('indicators', {})
 cron_schedules = app_config.get('cron_schedules', {})
 cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
-data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators)
-notification_handler = notification.NotificationHandler(tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
-gherkin_handler = query.QueryHandler(data_handler=data_handler, 
-                                    notification_handler=notification_handler,
-                                    interval_translation={v: k for k, v in app_config.get('interval_translation', {}).items()},
-                                    interval_seconds=app_config.get('interval_seconds', {}))
+convo_store = ConvoStore(redis.from_url(
+    os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True))
+data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators, interval_limits=app_config.get('interval_limits', {}))
+notification_handler = notification.NotificationHandler(
+    tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
+gherkin_handler = query.QueryHandler(data_handler=data_handler,
+                                     notification_handler=notification_handler,
+                                     interval_translation={v: k for k, v in app_config.get(
+                                         'interval_translation', {}).items()},
+                                     interval_seconds=app_config.get('interval_seconds', {}))
+generate_prompt(config=app_config,
+                output_init_prompt=os.path.join(app_config.get(
+                    'app_data_path', ''), "llm_prompt_init.prompt.md"),
+                output_retry_prompt=os.path.join(app_config.get(
+                    'app_data_path', ''), "llm_prompt_retry.prompt.md"),
+                output_getting_started=os.path.join(app_config.get(
+                    'app_data_path', ''), "getting_started.md"),
+                )
 
-def save_users(file_path,data, key:str=None):
-    save_config(key=key, data=data, path=file_path)
 bot_config = BotConfig(
-    token=os.getenv('DISCORD_BOT_TOKEN'), 
-    command_prefix='/', 
-    query_handler=gherkin_handler, 
+    token=os.getenv('DISCORD_BOT_TOKEN', ''),
+    command_prefix='/',
+    query_handler=gherkin_handler,
     notification_handler=notification_handler,
-    llm_convert_msg=app_config.get('discord_llm_msg', ''), 
+    llm_convert_msg=app_config.get('discord_llm_msg', ''),
     tz=tz,
-    schedules=cron_schedules, 
-    users_config_path=users_config_path, 
-    update_users_callback=save_users,
-    zerodha_df=pandas.read_csv(app_config.get("zerodha_instrument_tokens_path", "")),
+    schedules=cron_schedules,
+    zerodha_df=pandas.read_csv(app_config.get(
+        "zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
     zerodha_url=app_config.get('zerodha_url', ''),
     link_type=app_config.get('link_type', 'zerodha'),
     backtest_iterations=app_config.get('backtest_iterations', 10),
-    default_ticker=app_config.get('default_ticker', 'SBIN')
+    default_ticker=app_config.get('default_ticker', 'SBIN'),
+    convo_store=convo_store,
+    convo_ttl_seconds=int(os.getenv('CONVO_TTL_SECONDS', '900')),
+    guild_id=int(os.getenv('DISCORD_GUILD_ID', '0')),
+    modal_timeout=300,
+    llm_timeout=60,
+    ollama_model='gemma3',
+    openai_model='gpt-5.4',
+    llm_prompt=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "llm_prompt_init.prompt.md")),
+    retry_prompt=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "llm_prompt_retry.prompt.md")),
+    joining_prompt=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "getting_started.md")),
+    disclaimer=read_file(file_path=os.path.join(app_config.get(
+        'app_data_path', ''), "disclaimer.md"))
 )
 discord_bot = DiscordBot(config=bot_config)
+
 
 @app.get("/")
 async def read_root():
     return {"info": "This is a FastAPI application which fetches data from "
-    "yahoo finance computes indicator values and replies to client query in discord."}
+            "yahoo finance computes indicator values and replies to client query in discord."}
+
 
 @app.get("/df/{ticker}/{interval}")
 async def to_dataframe(ticker: str, interval: str):
@@ -68,29 +102,21 @@ async def to_dataframe(ticker: str, interval: str):
         df = result['data'][ticker]
         df = df.replace({numpy.nan: None})
         return {"success": True, "ticker": ticker, "interval": interval,
-            "data": df.to_dict(orient='records')}
+                "data": df.to_dict(orient='records')}
     else:
         return {"success": False, "message": f"No data found for ticker {ticker} at interval {interval}"}
 
+
 @app.get("/notification/{ticker}")
-async def notification(ticker: str):
+async def get_notification(ticker: str):
     result = notification_handler.get_corporate_actions(tickers=[ticker])
     if result['success'] and ticker in result['data']:
         df = result['data'][ticker]
         return {"success": True, "ticker": ticker,
-            "data": df.to_dict(orient='records')}
+                "data": df.to_dict(orient='records')}
     else:
         return {"success": False, "message": f"No data found for ticker {ticker} notifications"}
 
-@app.get("/notification/{ticker}/{after}")
-async def notification(ticker: str, after: str):
-    result = notification_handler.get_corporate_actions_after(tickers=[ticker], after=pandas.to_datetime(after))
-    if result[ticker] is not None:
-        df = result[ticker]
-        return {"success": True, "ticker": ticker,
-            "data": df.to_dict(orient='records')}
-    else:
-        return {"success": False, "message": f"No data found for ticker {ticker} notifications"}
 
 @app.post("/gherkin")
 async def parse_gherkin_query(request: Request):
@@ -98,15 +124,33 @@ async def parse_gherkin_query(request: Request):
     gherkin_text = jsn.get("gherkin", "")
     if not gherkin_text:
         return {"success": False, "errors": "No Gherkin text provided"}
-    is_valid, step_data, errors, df = gherkin_handler.get_gherkin_result(gherkin_str=gherkin_text)
+    is_valid, step_data, errors, df = gherkin_handler.get_gherkin_result(
+        gherkin_str=gherkin_text)
     if not is_valid:
         return {"success": False, "errors": errors}
     return {"success": True, "tickers": step_data, "data": df.to_dict(orient='records')}
 
+@app.post("/compare")
+async def compare_strategies(request: Request):
+    try:
+        jsn = await request.json()
+        result = await asyncio.wait_for(comparator_run(disconnected=request.is_disconnected, query_handler=gherkin_handler, **jsn), timeout=jsn.get('timeout', 10*60*60))
+        result['image'].close()  # Close the image buffer after use
+        return {"success": True, "data": result['data']}
+    except Exception as e:
+        return {"success": False, "errors": e.args}
+
+# Health check endpoint for Docker Compose
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run FastAPI app with custom port")
-    parser.add_argument('--port', type=int, default=8000, help='Port to run the server on')
+    parser = argparse.ArgumentParser(
+        description="Run FastAPI app with custom port")
+    parser.add_argument('--port', type=int, default=int(os.getenv("APP_PORT", 8000)),
+                        help='Port to run the server on')
     args = parser.parse_args()
 
     # start scheduler
@@ -125,21 +169,23 @@ if __name__ == "__main__":
                                params=cron_notification, job_id="corp_actions_job")
 
     # Start Discord bot in a background thread so it doesn't block the main thread/uvicorn
-    def _run_discord():
+    def _start_discord():
         try:
-            discord_bot.run()
+            asyncio.run(discord_bot.run_async())
         except Exception:
             logger.exception("Discord bot stopped with an exception")
 
-    discord_thread = threading.Thread(target=_run_discord, name="discord-bot-thread", daemon=True)
+    discord_thread = threading.Thread(
+        target=_start_discord, name="discord-bot-thread", daemon=True)
     discord_thread.start()
 
     # Run the FastAPI app using uvicorn. When uvicorn exits, we'll stop the scheduler.
     try:
-        uvicorn.run(app, host="localhost", port=args.port)
+        uvicorn.run(app, host="localhost", port=args.port, access_log=False)
     finally:
         # ensure scheduler stops on shutdown
         try:
             scheduler.stop()
+            # pass
         except Exception:
             logger.exception("Exception stopping scheduler")

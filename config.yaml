@@ -2,8 +2,8 @@
 tz: Asia/Kolkata
 discord_llm_msg: "🤖 converting query. Please wait..."
 interval_translation:
-  "1m": "minute"
-  "2m": "minute2"
+  # "1m": "minute"
+  # "2m": "minute2"
   "5m": "minute5"
   "15m": "minute15"
   "30m": "minute30"
@@ -13,8 +13,8 @@ interval_translation:
   "1wk": "week"
   "1mo": "month"
 interval_seconds:
-  "minute": 60
-  "minute2": 120
+  # "minute": 60
+  # "minute2": 120
   "minute5": 300
   "minute15": 900
   "minute30": 1800
@@ -22,6 +22,16 @@ interval_seconds:
   "day": 86400
   "week": 604800
   "month": 2592000
+interval_limits:
+  # "1m": "7d"
+  # "2m": "60d"
+  "5m": "1mo"
+  "15m": "1mo"
+  "30m": "6mo"
+  "1h": "1y"
+  "1d": "5y"
+  "1wk": "10y"
+  "1mo": "max"
 cron_schedules:
   # "1m": { "minute": "*/1", "second": "0", "day_of_week": "mon-fri" } # runs at 0 seconds of every minute
   # "2m": { "minute": "*/2", "hour": 9-16, "second": "5", "day_of_week": "mon-fri" } # runs at 5 seconds of every 2nd minute
@@ -61,12 +71,18 @@ cron_schedules:
       "second": "35",
       "day_of_week": "mon-fri",
     } # runs on Friday at 16:07
+  "1mo": {
+      "minute": "0",
+      "hour": "9-16",
+      "second": "40",
+      "day_of_week": "mon-fri",
+    } # runs on Friday at 16:07
 cron_notification: { "minute": "*/4", "second": "5", "day_of_week": "mon-fri" } # runs every 4th minute
 cron_news_alerts: { "minute": "*/17", "second": "5", "day_of_week": "mon-fri" } # runs every 17th minute, just some timer to distribute load
 backtest_iterations: 10
-app_data_path: "/home/palash/app/appdata"
-pytick_test_path: "/home/palash/app/pytick/test"
-zerodha_instrument_tokens_path: "/home/palash/app/appdata/instruments.csv"
+app_data_path: "/home/palash/stock-app/appdata"
+pytick_test_path: "/home/palash/stock-app/pytick/test"
+zerodha_instrument_tokens_path: "/home/palash/stock-app/appdata/instruments.csv"
 trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
 zerodha_url: "https://kite.zerodha.com/markets/chart/web/tvc/NSE/"
 link_type: zerodha
@@ -86,7 +102,11 @@ indicators:
   rvol:
     periods: [10, 20]
     sources: ["Volume"]
+  rsi:
+    periods: [14]
+    sources: ["Close"]
 default_ticker: SBIN
+discord_invites: "https://discord.gg/WeS5TPV6yt"
 indexes:
   nifty50:
     [
@@ -140,4 +160,107 @@ indexes:
       "TRENT",
       "ULTRACEMCO",
       "WIPRO",
+    ]
+  nifty100:
+    [
+      "ABB",
+      "ADANIENSOL",
+      "ADANIENT",
+      "ADANIGREEN",
+      "ADANIPORTS",
+      "ADANIPOWER",
+      "AMBUJACEM",
+      "APOLLOHOSP",
+      "ASIANPAINT",
+      "DMART",
+      "AXISBANK",
+      "BAJAJ-AUTO",
+      "BAJFINANCE",
+      "BAJAJFINSV",
+      "BAJAJHLDNG",
+      "BAJAJHFL",
+      "BANKBARODA",
+      "BEL",
+      "BPCL",
+      "BHARTIARTL",
+      "BOSCHLTD",
+      "BRITANNIA",
+      "CGPOWER",
+      "CANBK",
+      "CHOLAFIN",
+      "CIPLA",
+      "COALINDIA",
+      "DLF",
+      "DIVISLAB",
+      "DRREDDY",
+      "EICHERMOT",
+      "ETERNAL",
+      "GAIL",
+      "GODREJCP",
+      "GRASIM",
+      "HCLTECH",
+      "HDFCBANK",
+      "HDFCLIFE",
+      "HAVELLS",
+      "HINDALCO",
+      "HAL",
+      "HINDUNILVR",
+      "HINDZINC",
+      "HYUNDAI",
+      "ICICIBANK",
+      "ICICIGI",
+      "ITC",
+      "INDHOTEL",
+      "IOC",
+      "IRFC",
+      "NAUKRI",
+      "INFY",
+      "INDIGO",
+      "JSWENERGY",
+      "JSWSTEEL",
+      "JINDALSTEL",
+      "JIOFIN",
+      "KOTAKBANK",
+      "LTM",
+      "LT",
+      "LICI",
+      "LODHA",
+      "M&M",
+      "MARUTI",
+      "MAXHEALTH",
+      "MAZDOCK",
+      "NTPC",
+      "NESTLEIND",
+      "ONGC",
+      "PIDILITIND",
+      "PFC",
+      "POWERGRID",
+      "PNB",
+      "RECLTD",
+      "RELIANCE",
+      "SBILIFE",
+      "MOTHERSON",
+      "SHREECEM",
+      "SHRIRAMFIN",
+      "ENRIN",
+      "SIEMENS",
+      "SOLARINDS",
+      "SBIN",
+      "SUNPHARMA",
+      "TVSMOTOR",
+      "TCS",
+      "TATACONSUM",
+      "TMPV",
+      "TATAPOWER",
+      "TATASTEEL",
+      "TECHM",
+      "TITAN",
+      "TORNTPHARM",
+      "TRENT",
+      "ULTRACEMCO",
+      "UNITDSPR",
+      "VBL",
+      "VEDL",
+      "WIPRO",
+      "ZYDUSLIFE",
     ]
