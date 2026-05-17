@@ -40,7 +40,7 @@ class Comparator:
         trade_handlers = [TradeHandler() for _ in queries]
         errors = []
         
-        for itr in range(start, stop, -1):
+        for itr in range(start, stop - 1, -1):
             # 1. Check if the client cancelled the request
             if await disconnected():
                 errors.append("Disconnected by client during processing.")
@@ -153,8 +153,8 @@ class Comparator:
 
 async def run(disconnected: Callable[[], bool], query_handler: QueryHandler, **kwargs) -> dict:
     config = Config(**kwargs)
-    if len(config.queries) == 0:
-        raise ValueError("No queries provided for comparison.")
+    if len(config.queries) == 0 or config.stop < 0:
+        raise ValueError(f"Check comparison parameters {config}")
     comparator = Comparator(config=config, disconnected=disconnected, query_handler=query_handler)
     results = await comparator.compare()
     return results

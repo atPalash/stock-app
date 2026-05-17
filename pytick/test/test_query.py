@@ -1,7 +1,9 @@
+import asyncio
 import copy
 
 import pandas
 
+from pytick.query.comparator import run
 from pytick.query.query import QueryHandler
 from pytick.test.utility import DummyQueryHandler
 from pytick.query.trade import TradeHandler
@@ -177,5 +179,22 @@ Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - 
     print(trade_handler.close_df)
 
 
+def test_query_comparator():
+    queries = [
+    """
+    Feature: pytick llm
+    Scenario: KQ parabolic short setup analysis
+    Given stocks from index nifty50
+    When let close = latest in 1 samples of day close
+    And let sma10 = latest in 1 samples of day close sma 10
+    Then list sell = tickers with (close < sma10)
+    """, 
+    ]
+    query_handler = DummyQueryHandler().getQueryHandler()
+    async def disconnected():
+        return False
+    asyncio.run(run(disconnected= disconnected, query_handler=query_handler, queries=queries, start=2, stop=0, commission=0.01, timeout=10*60*60))
+    
+
 if __name__ == "__main__":
-    test_ticker_list()
+    test_query_comparator()
