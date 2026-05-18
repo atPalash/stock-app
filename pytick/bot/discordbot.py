@@ -823,9 +823,14 @@ Or use: Feature → Scenario → Given/When/Then",
         except Exception as e:
             return RetVal(status=False, message=f"Error: {str(e)}")
 
-    async def __handle_backtest(self, interaction, timeout, message, args):
+    async def __handle_backtest(self, interaction, timeout, message, args) -> RetVal:
         async def disconnected():
             return False
+        
+        for query in args.queries:
+            if "buy" not in query.strip() and "sell" not in query.strip():
+                error = f"For backtest, query must contain either 'buy' or 'sell': {query}"
+                return RetVal(status=False, message=error, errors=[error])
         
         result = await comparator_run(
             disconnected=disconnected,
