@@ -107,6 +107,7 @@ indicators:
     sources: ["Close"]
 default_ticker: SBIN
 discord_invites: "https://discord.gg/WeS5TPV6yt"
+admin_ids: [686175319383736344]
 indexes:
   nifty50:
     [

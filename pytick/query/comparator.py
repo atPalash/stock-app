@@ -19,7 +19,6 @@ class Config(BaseModel):
     stop: int = 0
     stop_loss: float = 1
     commission: float = 0.01
-    timeout: int = 10*60*60
     
 class Comparator:
     def __init__(self, config: Config, disconnected: Callable[[], bool], query_handler:QueryHandler):
@@ -188,5 +187,5 @@ And let six_mth_change = change in 120 samples of day close
 Then list buy = tickers with (close > ema10) & (ema10 > ema20) & (ema20 > ema50) & (close > prev_close) & ((mth_change > 0.3)| (three_mth_change > 0.5) | (six_mth_change > 0.7))
 """,
 ]
-    asyncio.run(run(queries=queries, start=10, stop=1, commission=0.01, timeout=10*60*60))
+    asyncio.run(run(queries=queries, start=10, stop=1, commission=0.01))
     

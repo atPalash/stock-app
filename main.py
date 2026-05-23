@@ -84,7 +84,8 @@ bot_config = BotConfig(
     joining_prompt=read_file(file_path=os.path.join(app_config.get(
         'app_data_path', ''), "getting_started.md")),
     disclaimer=read_file(file_path=os.path.join(app_config.get(
-        'app_data_path', ''), "disclaimer.md"))
+        'app_data_path', ''), "disclaimer.md")),
+    admin_ids=app_config.get('admin_ids', [])
 )
 discord_bot = DiscordBot(config=bot_config)
 

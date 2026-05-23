@@ -77,6 +77,7 @@ class BotConfig:
     retry_prompt: str
     joining_prompt: str
     disclaimer: str
+    admin_ids: list[int]
 
 
 INVISIBLE = "\u200b"
@@ -152,7 +153,7 @@ class TextModal(discord.ui.Modal):
                         content = gherkin if count == 0 else ""
                         count += 1
                         await self._send_msg_callback(interaction, content=content, embed=embed)
-                else:
+                elif result.message:
                     await self._send_msg_callback(interaction, content=result.message)
 
             except Exception as e:
@@ -637,9 +638,8 @@ Or use: Feature → Scenario → Given/When/Then",
             when a user wants to subscribe to query results.
         """
         async def callback(code, interaction) -> RetVal:
-            return await self.__do_backtest(interaction=interaction, query=code,
-                                      window=window, stop_loss_percent=stop_loss_percent)
-
+            return await self.__do_backtest(message=code, interaction=interaction, queries=[code], start=window, stop=0, stop_loss_percent=stop_loss_percent, commission=0.01, timeout=self.modal_timeout)
+            
         modal = TextModal(title="🤖 Set backtest on query", label="Query",
                           placeholder="🤖 AI auto-fixes queries (10/day) ✨\n \
 Or use: Feature → Scenario → Given/When/Then",
@@ -794,10 +794,12 @@ Or use: Feature → Scenario → Given/When/Then",
     
     async def __do_debug(self, interaction: discord.Interaction, message: str, timeout: int) -> RetVal:
         try:
+            if interaction.user.id not in self.config.admin_ids:
+                return RetVal(status=False, message="You don't have access to use this command")
+            
             parser = ThrowingArgumentParser(add_help=False)
             parser.add_argument('--command', type=str, default='health', help='return as string after parsing', choices=['health', 'backtest', 'df'])
             parser.add_argument('--queries', type=str, nargs='+', default='queries', help='The list of query to process')
-            parser.add_argument('--window', type=int, default=10, help='The window for the operation')
             parser.add_argument('--stop_loss', type=float, default=1.0, help='The stop loss percentage for the operation')
             parser.add_argument('--start', type=int, default=10, help='The stop loss percentage for the operation')
             parser.add_argument('--stop', type=int, default=0, help='The stop loss percentage for the operation')
@@ -810,7 +812,7 @@ Or use: Feature → Scenario → Given/When/Then",
                 response = await request_server(int(os.getenv('APP_PORT', '8000')), 'health', {}, timeout=args.timeout, method='GET')
                 return RetVal(status=response.status_code == 200, message=message)
             elif args.command == 'backtest':
-                return await self.__handle_backtest(interaction, timeout, message, args)
+                return await self.__do_backtest(message=message, interaction=interaction, queries=args.queries, start=args.start, stop=args.stop, stop_loss_percent=args.stop_loss, commission=args.commission, timeout=args.timeout)
             elif args.command == 'df':
                 response = await request_server(int(os.getenv('APP_PORT', '8000')), f'df/{args.endpoint}', {}, timeout=args.timeout, method='GET')
                 df = pandas.DataFrame(response.json()['data']).tail(10)
@@ -823,58 +825,49 @@ Or use: Feature → Scenario → Given/When/Then",
         except Exception as e:
             return RetVal(status=False, message=f"Error: {str(e)}")
 
-    async def __handle_backtest(self, interaction, timeout, message, args) -> RetVal:
+    async def __handle_backtest(self, message: str, interaction: discord.Interaction, queries: list[str], start: int, stop: int, stop_loss_percent: float, commission: float) -> None:
         async def disconnected():
             return False
-        
-        for query in args.queries:
-            if "buy" not in query.strip() and "sell" not in query.strip():
-                error = f"For backtest, query must contain either 'buy' or 'sell': {query}"
-                return RetVal(status=False, message=error, errors=[error])
         
         result = await comparator_run(
             disconnected=disconnected,
             query_handler=self.config.query_handler,
-            queries=args.queries,
-            start=args.start,
-            stop=args.stop,
-            stop_loss=args.stop_loss,
-            commission=args.commission,
-            timeout=timeout
+            queries=queries,
+            start=start,
+            stop=stop,
+            stop_loss=stop_loss_percent,
+            commission=commission
         )
         
+        await self.__send_discord_msg(interaction=interaction, content=message)
         # Send results
         for d in result['data']:
             title = f"{d['query'].strip().splitlines()[1].split(':')[1]}:{d['metrics']['sqn']}"
             trades = pandas.DataFrame(d['trades'])
             await send_csv(interaction=interaction, df=trades, title=title)
-            open = pandas.DataFrame(d['open_trades'])
-            await send_csv(interaction=interaction, df=open, title=f"{title} - Open Trades")
+            open_df = pandas.DataFrame(d['open_trades'])
+            await send_csv(interaction=interaction, df=open_df, title=f"{title} - Open Trades")
         image_buffer = result['image']
         await send_image(interaction=interaction, image=image_buffer, title=f"Query comparison")
-        return RetVal(status=True, message=message)
             
-            
-    async def __do_backtest(self, interaction: discord.Interaction, query: str, window: int, stop_loss_percent: float) -> RetVal:
+    async def __do_backtest(self, message: str, interaction: discord.Interaction, queries: list[str], start: int, stop: int, stop_loss_percent: float, commission: float, timeout: int) -> RetVal:
         try:
-            args = argparse.Namespace(
-                queries=[query], 
-                start=window, 
-                stop=0, 
-                stop_loss=stop_loss_percent, 
-                commission=0.01,
-                timeout=self.modal_timeout
+            for query in queries:
+                if "buy" not in query.strip() and "sell" not in query.strip():
+                    error = f"For backtest, query must contain either 'buy' or 'sell': {query}"
+                    return RetVal(status=False, message=error, errors=[error])
+        
+            await asyncio.wait_for(
+                self.__handle_backtest(message=message, interaction=interaction, queries=queries, start=start, stop=stop, stop_loss_percent=stop_loss_percent, commission=commission),
+                timeout=float(timeout)
             )
-            return await asyncio.wait_for(
-                self.__handle_backtest(interaction, self.modal_timeout, query, args),
-                timeout=float(self.modal_timeout)
-            )
+            return RetVal(status=True, message="")
         except asyncio.TimeoutError:
-            logger.warning(f"Backtest timeout: {query}")
-            return RetVal(status=False, message=f"⏰ Cannot complete backtest for {input} within {self.llm_timeout}s", errors=["Timeout"])
+            logger.warning(f"Backtest timeout: {queries}")
+            return RetVal(status=False, message=f"⏰ Cannot complete backtest within {timeout}s", errors=["Timeout"])
         except Exception as e:
             logger.warning(f"{e}")
-            raise e
+            return RetVal(status=False, message=f"Error: {str(e)}", errors=[str(e)])
 
     def __create_ticker_list(self, results: dict, user_config: dict, new_tickers: dict, previous_results: list) -> list[str]:
         parts = []
