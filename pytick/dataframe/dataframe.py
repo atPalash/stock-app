@@ -245,15 +245,15 @@ class DataFrameHandler:
             logger.warning(f"Interval {interval} not found in tables")
             return self
 
-        if trim_rows <= 0:
+        if trim_rows < 0:
             logger.warning(f"trim_rows must be positive, got {trim_rows}")
             return self
 
-        self.tables[interval] = {
-            ticker: df.iloc[:-trim_rows]
-            for ticker, df in self.tables[interval].items()
-            # if ticker in tickers
-        }
+        if trim_rows > 0:
+            self.tables[interval] = {
+                ticker: df.iloc[:-trim_rows]
+                for ticker, df in self.tables[interval].items()
+            }
         return self
 
 
