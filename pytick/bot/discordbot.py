@@ -798,7 +798,7 @@ Or use: Feature → Scenario → Given/When/Then",
                 return RetVal(status=False, message="You don't have access to use this command")
             
             parser = ThrowingArgumentParser(add_help=False)
-            parser.add_argument('--command', type=str, default='health', help='return as string after parsing', choices=['health', 'backtest', 'df'])
+            parser.add_argument('--command', type=str, default='health', help='return as string after parsing', choices=['health', 'backtest', 'df', 'gherkin'])
             parser.add_argument('--queries', type=str, nargs='+', default='queries', help='The list of query to process')
             parser.add_argument('--stop_loss', type=float, default=1.0, help='The stop loss percentage for the operation')
             parser.add_argument('--start', type=int, default=10, help='The stop loss percentage for the operation')
@@ -818,6 +818,15 @@ Or use: Feature → Scenario → Given/When/Then",
                 df = pandas.DataFrame(response.json()['data']).tail(10)
                 await send_csv(interaction=interaction, df=df, title=args.endpoint)
                 return RetVal(status=response.status_code == 200, message=message)
+            elif args.command == 'gherkin':
+                if len(args.queries) < 1:
+                    return RetVal(status=False, message="Query is required for gherkin command")
+                for query in args.queries:
+                    title = query.splitlines()[1].split(":", 1)[1].strip() if query else "Results"
+                    response = await request_server(int(os.getenv('APP_PORT', '8000')), 'gherkin', {'gherkin': query}, timeout=args.timeout, method='POST')
+                    df = pandas.DataFrame(response.json()['data'])
+                    await send_csv(interaction=interaction, df=df, title=title)
+                return RetVal(status=True, message=message)
             return RetVal(status=False, message="Invalid command")
         except asyncio.TimeoutError:
             logger.warning(f"Debug timeout: {message}")
