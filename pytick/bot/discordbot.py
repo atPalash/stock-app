@@ -573,7 +573,7 @@ Or use: Feature → Scenario → Given/When/Then",
                 await self.__send_followup_msg(interaction=interaction, content='No query subscribed', ephemeral=False)
                 return
             for query, data in subscriptions.items():
-                sub_data = json.load(data)
+                sub_data = json.loads(data)
                 interval = sub_data.get("interval", "")
                 await self.__send_followup_msg(interaction=interaction, content=f'Query interval: {interval}\n', ephemeral=False)
                 await self.__send_followup_msg(interaction=interaction, content=f'{query}\n', ephemeral=False)
