@@ -21,7 +21,7 @@ services:
     logging:
       driver: "json-file"
       options:
-        max-size: "10m"  
+        max-size: "10m"
         max-file: "3"
     user: palash
     image: stockappdev:latest
@@ -33,9 +33,13 @@ services:
       redis:
         condition: service_healthy
     network_mode: host
-    userns_mode: keep-id      
+    userns_mode: keep-id
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/health > /dev/null 2>&1 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:9000/health > /dev/null 2>&1 || exit 1",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -47,22 +51,55 @@ services:
     volumes:
       - ${SSH_AUTH_SOCK}:/home/palash/.ssh-agent/agent.sock
       - ./:/home/palash/stock-app
-      
+
   # 2. Create the "Release" version by referencing the anchor (*common-config)
   stockapprel:
-    <<: *common-config  
+    <<: *common-config
     container_name: stockapprel
     image: stockapprel:latest
     build:
       context: .
       dockerfile: Dockerfile
-      target: rel      # Override ONLY the target
+      target: rel # Override ONLY the target
     environment:
       - SSH_AUTH_SOCK=/home/palash/.ssh-agent/agent.sock
       - VENV_PATH=/home/palash/.venv
       - APP_PORT=8000
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health > /dev/null 2>&1 || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/health > /dev/null 2>&1 || exit 1",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  stockappsp100:
+    <<: *common-config
+    container_name: stockappsp100
+    image: stockappsp100:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: sp100 # Override ONLY the target
+      args:
+        - USERNAME=${USER}
+        - USERID=${UID}
+        - GROUPID=${GID}
+    environment:
+      - SSH_AUTH_SOCK=/home/palash/.ssh-agent/agent.sock
+      - VENV_PATH=/home/palash/.venv
+      - APP_PORT=7000
+    volumes:
+      - ${SSH_AUTH_SOCK}:/home/palash/.ssh-agent/agent.sock
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:7000/health > /dev/null 2>&1 || exit 1",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5

@@ -2,6 +2,12 @@ FROM ubuntu:24.04 AS base
 
 ARG USERNAME=palash
 ARG DEBIAN_FRONTEND=noninteractive
+ARG USERID=1000
+ARG GROUPID=1000
+
+ENV USERNAME=${USERNAME}
+ENV USERID=${USERID}
+ENV GROUPID=${GROUPID}
 
 # 2. Packages
 RUN apt update && apt install --no-install-recommends -y \
@@ -53,9 +59,14 @@ WORKDIR /home/${USERNAME}/stock-app
 
 # Use entrypoint script from mounted volume
 ENTRYPOINT ["/tmp/docker-entrypoint.sh"]
+RUN echo ${USERNAME} ${USERID} ${GROUPID}
 
 FROM base AS dev
 CMD [ "bash" ]
 
 FROM base AS rel
 CMD [ "python3", "main.py" ]
+
+FROM base AS sp100
+COPY --chown=${USERID}:${GROUPID} . /home/${USERNAME}/stock-app
+CMD [ "bash" ]

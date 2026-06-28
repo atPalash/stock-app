@@ -107,6 +107,35 @@ def get_nifty_tickers(filename: str) -> list:
     tickers = pd.read_csv(tickers_csv)
     return tickers['Symbol'].tolist()
 
+def get_sp100_tickers(filename: str) -> list:
+    tickers_csv = f"{app_config.get('app_data_path')}/{filename}"
+    tickers = pd.read_csv(tickers_csv)
+    return tickers['Symbol'].tolist()
+
+def get_sp100_tickers_exchange(tickers: list) -> dict:
+    exchange_map = {
+        "AAPL": "NASDAQ", "ABBV": "NYSE", "ABT": "NYSE", "ACN": "NYSE", "ADBE": "NASDAQ",
+        "AMAT": "NASDAQ", "AMD": "NASDAQ", "AMGN": "NASDAQ", "AMT": "NYSE", "AMZN": "NASDAQ",
+        "AVGO": "NASDAQ", "AXP": "NYSE", "BA": "NYSE", "BAC": "NYSE", "BKNG": "NASDAQ",
+        "BLK": "NYSE", "BMY": "NYSE", "BNY": "NYSE", "BRK.B": "NYSE", "C": "NYSE",
+        "CAT": "NYSE", "CL": "NYSE", "CMCSA": "NASDAQ", "COF": "NYSE", "COP": "NYSE",
+        "COST": "NASDAQ", "CRM": "NYSE", "CSCO": "NASDAQ", "CVS": "NYSE", "CVX": "NYSE",
+        "DE": "NYSE", "DHR": "NYSE", "DIS": "NYSE", "DUK": "NYSE", "EMR": "NYSE",
+        "FDX": "NYSE", "GD": "NYSE", "GE": "NYSE", "GEV": "NYSE", "GILD": "NASDAQ",
+        "GM": "NYSE", "GOOG": "NASDAQ", "GOOGL": "NASDAQ", "GS": "NYSE", "HD": "NYSE",
+        "HON": "NYSE", "IBM": "NYSE", "INTC": "NASDAQ", "INTU": "NASDAQ", "ISRG": "NASDAQ",
+        "JNJ": "NYSE", "JPM": "NYSE", "KO": "NYSE", "LIN": "NYSE", "LLY": "NYSE",
+        "LMT": "NYSE", "LOW": "NYSE", "LRCX": "NASDAQ", "MA": "NYSE", "MCD": "NYSE",
+        "MDLZ": "NASDAQ", "MDT": "NYSE", "META": "NASDAQ", "MMM": "NYSE", "MO": "NYSE",
+        "MRK": "NYSE", "MS": "NYSE", "MSFT": "NASDAQ", "MU": "NASDAQ", "NEE": "NYSE",
+        "NFLX": "NASDAQ", "NKE": "NYSE", "NOW": "NYSE", "NVDA": "NASDAQ", "ORCL": "NYSE",
+        "PEP": "NASDAQ", "PFE": "NYSE", "PG": "NYSE", "PLTR": "NYSE", "PM": "NYSE",
+        "QCOM": "NASDAQ", "RTX": "NYSE", "SBUX": "NASDAQ", "SCHW": "NYSE", "SO": "NYSE",
+        "SPG": "NYSE", "T": "NYSE", "TMO": "NYSE", "TMUS": "NASDAQ", "TSLA": "NASDAQ",
+        "TXN": "NASDAQ", "UBER": "NYSE", "UNH": "NYSE", "UNP": "NYSE", "UPS": "NYSE",
+        "USB": "NYSE", "V": "NYSE", "VZ": "NYSE", "WFC": "NYSE", "WMT": "NYSE", "XOM": "NYSE"
+    }
+    return exchange_map
 
 class DataFrameHandler:
     def __init__(self, tz: str, indicators: dict, test_data_path: str = None, interval_limits: dict = None):
@@ -180,7 +209,7 @@ class DataFrameHandler:
                     timeout=100,
                 )
             clean_ohlc = {}
-            debug_tickers = ['SBIN.NS', 'TCS.NS', 'ENRIN.NS']  # Add more tickers here if needed
+            debug_tickers = ['AAPL']  # Add more tickers here if needed
             for ticker in tickers_yf:
                 df = ohlc[ticker]  # .xs(ticker, axis=1, level=0)
                 if ticker in debug_tickers:
@@ -259,19 +288,31 @@ class DataFrameHandler:
 
 if __name__ == "__main__":
     # config_path = "config_debug.yaml"
-    # indicators = read_config(config_path).get('indicators', {})
-    # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
-    # print(get_nifty_tickers('ind_nifty100list.csv'))
-    import asyncio
-    import json
-    async def main():
-        # Your async logic goes here
-        try:
-            response = await request_server(8000, 'df/SBIN/1mo', {}, timeout=30, method='GET')
-            print(json.loads(response.text)['data'][-5:])  # Print the last 5 records
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    logger = get_logger(__file__, logging.DEBUG)
+    load_dotenv()
+    app_config = read_config(file_path=config)
+    tickers = list(app_config.get('indexes', {}).get('sp100', []))    
+    indicators = app_config.get('indicators', {})
+    cron_schedules = app_config.get('cron_schedules', {})
+    cron_notification = app_config.get('cron_notification', {})
+    tz = app_config.get('tz', 'Asia/Kolkata')
+    handler = DataFrameHandler(tz=tz,
+                           indicators=indicators,
+                           test_data_path=app_config.get('test_data_path', None),
+                           interval_limits=app_config.get('interval_limits', {}))
+    check = handler.set_tables(tickers[0:5], "1d")
+    print(get_sp100_tickers('sp-100-index.csv'))
+
+    # import asyncio
+    # import json
+    # async def main():
+    #     # Your async logic goes here
+    #     try:
+    #         response = await request_server(8000, 'df/SBIN/1mo', {}, timeout=30, method='GET')
+    #         print(json.loads(response.text)['data'][-5:])  # Print the last 5 records
+    #     except Exception as e:
+    #         print(f"An error occurred: {e}")
 
     # Use asyncio.run to start the event loop and execute the main function
-    asyncio.run(main())
+    # asyncio.run(main())
     # download_stock_data("TMPV", "1d", "Asia/Kolkata")

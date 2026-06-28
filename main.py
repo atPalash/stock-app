@@ -30,8 +30,7 @@ load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
 app_config = read_config(file_path=config)
-tickers = list(set(app_config.get('indexes', {}).get('nifty50', []))
-               | set(app_config.get('indexes', {}).get('nifty100', [])))
+tickers = list(set(app_config.get('indexes', {}).get('sp100', [])))
 indicators = app_config.get('indicators', {})
 cron_schedules = app_config.get('cron_schedules', {})
 cron_notification = app_config.get('cron_notification', {})
@@ -85,7 +84,8 @@ bot_config = BotConfig(
         'app_data_path', ''), "getting_started.md")),
     disclaimer=read_file(file_path=os.path.join(app_config.get(
         'app_data_path', ''), "disclaimer.md")),
-    admin_ids=app_config.get('admin_ids', [])
+    admin_ids=app_config.get('admin_ids', []),
+    ticker_exchange_map=dataframe.get_sp100_tickers_exchange(tickers=tickers)
 )
 discord_bot = DiscordBot(config=bot_config)
 

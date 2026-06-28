@@ -12,7 +12,7 @@ load_dotenv()
 
 config = os.environ.get("CONFIG_FILE")
 indexes = list(read_config(config).get('indexes', []).keys())
-tickers = read_config(config).get('indexes', {}).get('nifty100', [])
+tickers = read_config(config).get('indexes', {}).get('sp100', [])
 indicators = read_config(config).get('indicators', {})
 tz = read_config(config).get('tz', 'Asia/Kolkata')
 logger = get_logger(__name__, logging.DEBUG)

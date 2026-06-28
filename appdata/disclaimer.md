@@ -1,1 +1,1 @@
-⚖️ Technical research only. Not SEBI-registered advice. Trading involves risk.
+⚖️ Technical research only. Trading involves risk.

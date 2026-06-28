@@ -78,6 +78,7 @@ class BotConfig:
     joining_prompt: str
     disclaimer: str
     admin_ids: list[int]
+    ticker_exchange_map: dict[str, str]
 
 
 INVISIBLE = "\u200b"
@@ -891,21 +892,14 @@ Or use: Feature → Scenario → Given/When/Then",
                     try:
                         # default to tradingview chart
                         chart_link = f"[{t}]({self.config.trading_view_url}{t})"
-                        if chart_type == "zerodha":
-                            token = self.config.zerodha_df.query(
-                                f"tradingsymbol == '{t}' and exchange == 'NSE'")['instrument_token'].iloc[0]
-                            chart_link = f"[{t}]({self.config.zerodha_url}{t}/{token})"
-                        if chart_type == "tradingview" and any(c in t for c in ['-', '&']):
-                            edited_t = t.replace(
-                                '-', '_').replace('&', '_')
-                            chart_link = f"[{t}]({self.config.trading_view_url}{edited_t})"
+                        exchange = self.config.ticker_exchange_map.get(t, 'NASDAQ')
                         ticker_action = corporate_actions.get(t, None)
                         corporate_action_link = ""
                         if ticker_action is not None and not ticker_action.empty:
                             recent_action = ticker_action.tail(
                                 1)['file'].values[0]
                             corporate_action_link = f"[action]({recent_action})"
-                        news_link = f"[news](https://www.google.com/finance/quote/{t}:NSE)"
+                        news_link = f"[news](https://www.google.com/finance/quote/{t}:{exchange})"
                         changed = ""
                         if len(new_tickers) > 0 and len(previous_results) > 0:
                             changed = "🟢" if t in new_tickers[i][qid] and len(
