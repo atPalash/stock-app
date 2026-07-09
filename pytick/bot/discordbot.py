@@ -449,11 +449,29 @@ CRITICAL INSTRUCTIONS:
 
     async def admin_debug(self, interaction: discord.Interaction):
         """
-        Handles debug request from admin
+        Handles debug requests from admin users via Discord slash command.
+        
+        This method provides administrative debugging capabilities for bot maintenance
+        and troubleshooting. It presents a modal dialog where admins can execute
+        various debug commands with arguments.
 
-        Usage:
-            Typically invoked in response to a Discord slash command
-            when a user wants to join server
+        Available Commands:
+            - health: Check server health status
+            - backtest: Run backtesting on specified queries
+            - df: Retrieve DataFrame data from server endpoints
+            - gherkin: Process gherkin queries and return results as CSV
+
+        Command Arguments:
+            --command: Debug command to execute (default: 'health')
+            --queries: List of queries to process (for backtest/gherkin)
+            --stop_loss: Stop loss percentage for backtesting (default: 1.0)
+            --start: Start window for backtesting (default: 10)
+            --stop: Stop window for backtesting (default: 0)
+            --commission: Commission rate for backtesting (default: 0.01)
+            --timeout: Operation timeout in seconds (default: 3600)
+            --endpoint: Custom endpoint for df command
+
+        Only users in config.admin_ids can use this command
         """
         async def callback(message, interaction) -> RetVal:
             return await self.__do_debug(interaction=interaction, message=message, timeout=10*60*60)
