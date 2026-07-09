@@ -38,16 +38,16 @@ class DummyNotificationHandler:
 
 
 class DummyQueryHandler:
-    def __init__(self):
-        self.tickers = ["TCS", "BEL", "SBIN", "TMPV"]
+    def __init__(self, tickers, suffix, prefix):
+        self.tickers = tickers
         self.indicators = app_config.get('indicators', {})
         self.cron_schedules = app_config.get('cron_schedules', {})
         self.cron_notification = app_config.get('cron_notification', {})
         self.tz = app_config.get('tz', 'Asia/Kolkata')
         self.data_handler = DataFrameHandler(
             tz=self.tz, indicators=self.indicators, test_data_path=f"{app_config.get('pytick_test_path', '')}/data")
-        self.data_handler.set_tables(self.tickers, "1d")
-        self.data_handler.set_tables(self.tickers, "5m")
+        self.data_handler.set_tables(self.tickers, "1d", suffix=suffix, prefix='')
+        self.data_handler.set_tables(self.tickers, "5m", suffix=suffix, prefix='')
         self.notification_handler = DummyNotificationHandler(tz=self.tz)
         self.gherkin_handler = QueryHandler(data_handler=self.data_handler,
                                             notification_handler=self.notification_handler,

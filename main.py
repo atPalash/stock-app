@@ -32,10 +32,12 @@ config = os.environ.get("CONFIG_FILE")
 app_config = read_config(file_path=config)
 tickers = list(set(app_config.get('indexes', {}).get('nifty50', []))
                | set(app_config.get('indexes', {}).get('nifty100', [])))
+indices = app_config.get('indices', {})
 indicators = app_config.get('indicators', {})
 cron_schedules = app_config.get('cron_schedules', {})
 cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
+ 
 convo_store = ConvoStore(redis.from_url(
     os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True))
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators, interval_limits=app_config.get('interval_limits', {}))
@@ -158,12 +160,25 @@ if __name__ == "__main__":
     scheduler = Scheduler(tz)
     scheduler.start()
 
-    # Schedule ohlc fetching jobs
-    for interval, params in cron_schedules.items():
-        data_handler.set_tables(tickers=tickers, interval=interval)
-        scheduler.add_periodic_job(func=lambda tickers=tickers,
-                                   interval=interval: data_handler.set_tables(tickers=tickers, interval=interval),
-                                   params=params, job_id=f"yf_job_{interval}")
+    def _setup_data_handler(tickers: list, suffix: str, prefix: str):
+        # Schedule ohlc fetching jobs
+        for interval, params in cron_schedules.items():
+            data_handler.set_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix)
+            scheduler.add_periodic_job(func=lambda tickers=tickers,
+                                    interval=interval: data_handler.set_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix),
+                                    params=params, job_id=f"yf_job_{interval}")
+    
+    def _add_to_data_handler(tickers: list, suffix: str, prefix: str):
+        # Schedule ohlc fetching jobs
+        for interval, params in cron_schedules.items():
+            data_handler.add_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix)
+            scheduler.add_periodic_job(func=lambda tickers=tickers,
+                                    interval=interval: data_handler.add_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix),
+                                    params=params, job_id=f"yf_job_{interval}")
+            
+    _setup_data_handler(tickers=tickers, suffix='.NS', prefix='')
+    _add_to_data_handler(tickers=indices, suffix='', prefix='^')
+    
     # Schedule corporate actions fetching job in 5 minutes interval
     notification_handler.set_corporate_actions(tickers=tickers)
     scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),

@@ -265,3 +265,6 @@ indexes:
       "WIPRO",
       "ZYDUSLIFE",
     ]
+indices:
+  - "INDIAVIX"
+  - "NSEI"

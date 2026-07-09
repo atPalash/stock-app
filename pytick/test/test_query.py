@@ -119,7 +119,7 @@ When let ema10 = latest in 20 samples of minute5 close ema 10
 Then list bull = tickers with (close > ema10) & rsi > 30 & rsi < 70 
 * list bear = tickers with (close < ema10) & rsi > 70 & rsi < 30
 """
-    handler = DummyQueryHandler().getQueryHandler()
+    handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='.NS', prefix='').getQueryHandler()
     result = handler.get_gherkin_result(gherkin_str=gherkin)[1]
     bull = result[0]
     bear = result[1]
@@ -137,7 +137,7 @@ def test_ticker_list():
     gherkin = """
 Feature: pytick llm
 Scenario: EMA10 and EMA20 rate analysis over 10 samples with close proximity and 0.5*ATR10
-Given stocks from list BEL, INFY, TMPV, SBIN
+Given stocks from list BEL, TCS, TMPV, SBIN
 When let ema10 = latest in 1 samples of day close ema 10
 * let ema20 = latest in 1 samples of day close ema 20
 * let ema10_rate = rate in 10 samples of day close ema 10
@@ -146,7 +146,7 @@ When let ema10 = latest in 1 samples of day close ema 10
 * let atr10 = latest in 1 samples of day close atr 10
 Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - ema10) < 0.25 * atr10)
 """
-    handler = DummyQueryHandler().getQueryHandler()
+    handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='.NS', prefix='').getQueryHandler()
     result = handler.get_gherkin_result(gherkin_str=gherkin)[1]
     bull = result[0]
     expected_bull = {'buy': ['BEL']}
@@ -169,7 +169,7 @@ Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - 
 * list sell = tickers with (ema10_rate < 0) & (ema20_rate < 0) & (abs(close - ema10) < 0.5 * atr10)
 """
     trade_handler = TradeHandler()
-    query_handler = DummyQueryHandler().getQueryHandler()
+    query_handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='.NS', prefix='').getQueryHandler()
     for itr in range(10, 0, -1):
         handler = copy.deepcopy(query_handler)
         handler.get_backtest_result(
@@ -190,11 +190,46 @@ def test_query_comparator():
     Then list sell = tickers with (close < sma10)
     """, 
     ]
-    query_handler = DummyQueryHandler().getQueryHandler()
+    query_handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='.NS', prefix='').getQueryHandler()
     async def disconnected():
         return False
     asyncio.run(run(disconnected= disconnected, query_handler=query_handler, queries=queries, start=2, stop=0, commission=0.01, timeout=10*60*60))
     
+def test_query_with_indices():
+    gherkin = """
+Feature: pytick llm
+Scenario: EMA10 and EMA20 rate analysis over 10 samples with close proximity and 0.5*ATR10
+Given stocks from list INDIAVIX, NSEI
+When let ema10 = latest in 1 samples of day close ema 10
+* let ema20 = latest in 1 samples of day close ema 20
+* let ema10_rate = rate in 10 samples of day close ema 10
+* let ema20_rate = rate in 10 samples of day close ema 20
+* let close = latest in 1 samples of day close
+* let atr10 = latest in 1 samples of day close atr 10
+Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - ema10) < 0.25 * atr10)
+"""
+    handler = DummyQueryHandler(tickers=['INDIAVIX', 'NSEI'], suffix='', prefix='^').getQueryHandler()
+    result = handler.get_gherkin_result(gherkin_str=gherkin)[1]
+    bull = result[0]
+    expected_bull = {'buy': ['NSEI']}
+    assert isinstance(bull, dict), "Bull result should be a dict"
+    assert bull == expected_bull, f"Expected bull result {expected_bull} but got {bull}"
+
+def test_sudden_volatility_rise():
+    gherkin = """
+Feature: pytick llm
+Scenario: Minute5 price rise greater than 2 percent analysis
+Given stocks from list INDIAVIX
+When let close = latest in 1 samples of minute5 close
+And let prev_close = oldest in 60 samples of minute5 close
+Then list spike = tickers with (close - prev_close) / prev_close > 0.02
+"""
+    handler = DummyQueryHandler(tickers=['INDIAVIX', 'NSEI'], suffix='', prefix='^').getQueryHandler()
+    result = handler.get_gherkin_result(gherkin_str=gherkin)[1][0]
+    expected_spike = {'spike': ['INDIAVIX']}
+    assert isinstance(result, dict), "Spike result should be a dict"
+    assert result == expected_spike, f"Expected spike result {expected_spike} but got {result}"
+    
 
 if __name__ == "__main__":
-    test_query_comparator()
+    test_sudden_volatility_rise()

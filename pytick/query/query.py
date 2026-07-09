@@ -338,7 +338,7 @@ Feature: Nifty50 Parabolic Short Analysis with pytick LLM\n\nScenario: Qullamagi
     data_handler = DataFrameHandler(tz=tz, indicators=indicators)
     notification_handler = NotificationHandler(
         tz=tz, max_rows=1000, app_data_path=config.get('app_data_path', ''))
-    data_handler.set_tables(tickers=tickers, interval='5m')
+    data_handler.set_tables(tickers=tickers, interval='5m', suffix='.NS', prefix='')
     notification_handler.set_corporate_actions(tickers=tickers)
     query_handler = QueryHandler(data_handler, notification_handler=notification_handler,
                                  interval_translation={v: k for k, v in config.get(

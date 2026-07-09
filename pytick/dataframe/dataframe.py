@@ -22,21 +22,22 @@ config = os.environ.get("CONFIG_FILE")
 app_config = read_config(file_path=config)
 
 
-def download_stock_data(ticker: str, interval: str, tz: str) -> pd.DataFrame:
+def download_stock_data(ticker: str, interval: str, tz: str, suffix: str="") -> pd.DataFrame:
     """Download stock data from Yahoo Finance.
 
     Args:
         ticker (str): ticker symbol.
         interval (str): interval for the data. e.g., '1d', '1h'.
         tz (str): timezone, e.g., 'Asia/Kolkata'.
+        suffix (str): suffix for the ticker symbol.
 
     Returns:
         pd.DataFrame: Stock data for the specified ticker and interval.
     """
-    ticker_symbol = f"{ticker}{'.NS' if tz == 'Asia/Kolkata' else ''}"
+    ticker_symbol = f"{ticker}{suffix}"
     data = yf.download(
         tickers=[ticker_symbol],
-        period="10y",
+        period="1mo",
         interval=interval,
         progress=False,
         group_by="ticker",
@@ -138,8 +139,15 @@ class DataFrameHandler:
             logger.warning(
                 f"Exception retrieving DataFrame for interval {interval}: {e}")
         return ret
+    
+    def set_tables(self, tickers: list, interval: str, suffix: str = '', prefix: str = '') -> dict:
+        self.tables[interval] = self.__make_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix)['data']
 
-    def set_tables(self, tickers: list, interval: str) -> dict:
+    def add_tables(self, tickers: list, interval: str, suffix: str = '', prefix: str = '') -> dict:
+        new_data = self.__make_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix)['data']
+        self.tables[interval].update(new_data)
+        
+    def __make_tables(self, tickers: list, interval: str, suffix: str = '', prefix: str = '') -> dict:
         """Set the OHLC tables for the specified tickers and interval. sets the
         self.tables[interval] with a dict of {ticker: DataFrame}.
 
@@ -150,7 +158,7 @@ class DataFrameHandler:
         ret = {'success': False, 'data': None}
         try:
             tickers_yf = [
-                f"{ticker}{'.NS' if self.tz == 'Asia/Kolkata' else ''}" for ticker in tickers]
+                f"{prefix}{ticker}{suffix}" for ticker in tickers]
             if self.test_data_path is not None:
                 # Load test data from CSV files
                 ohlc = {}
@@ -208,7 +216,12 @@ class DataFrameHandler:
                 logger.warning(f"Exception during multiprocessing: {e}")
                 return ret
             for point in results:
-                ticker = point['ticker'].split('.')[0]
+                if suffix and point['ticker'].endswith(suffix):
+                    ticker = point['ticker'][:-len(suffix)]
+                elif prefix and point['ticker'].startswith(prefix):
+                    ticker = point['ticker'][len(prefix):]
+                else:
+                    ticker = point['ticker']
                 df = point['df']
                 # Convert columns to lowercase for consistency
                 # df = df.replace({np.nan: None})
@@ -223,7 +236,7 @@ class DataFrameHandler:
                 if ticker in debug_tickers:
                     logger.debug(f"Indicators {ticker} interval={interval}: rows={len(df)}, last 5 dates={df.datetime[-5:].tolist()}")
 
-            self.tables[interval] = result
+            ret['data'] = result
             ret['success'] = True
         except Exception as e:
             logger.warning(
@@ -262,16 +275,16 @@ if __name__ == "__main__":
     # indicators = read_config(config_path).get('indicators', {})
     # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
     # print(get_nifty_tickers('ind_nifty100list.csv'))
-    import asyncio
-    import json
-    async def main():
-        # Your async logic goes here
-        try:
-            response = await request_server(8000, 'df/SBIN/1mo', {}, timeout=30, method='GET')
-            print(json.loads(response.text)['data'][-5:])  # Print the last 5 records
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    # import asyncio
+    # import json
+    # async def main():
+    #     # Your async logic goes here
+    #     try:
+    #         response = await request_server(8000, 'df/SBIN/1mo', {}, timeout=30, method='GET')
+    #         print(json.loads(response.text)['data'][-5:])  # Print the last 5 records
+    #     except Exception as e:
+    #         print(f"An error occurred: {e}")
 
-    # Use asyncio.run to start the event loop and execute the main function
-    asyncio.run(main())
-    # download_stock_data("TMPV", "1d", "Asia/Kolkata")
+    # # Use asyncio.run to start the event loop and execute the main function
+    # asyncio.run(main())
+    download_stock_data("^NSEI", "5m", "Asia/Kolkata")

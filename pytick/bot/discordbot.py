@@ -153,7 +153,7 @@ class TextModal(discord.ui.Modal):
                         content = gherkin if count == 0 else ""
                         count += 1
                         await self._send_msg_callback(interaction, content=content, embed=embed)
-                elif result.message:
+                elif result.message :
                     await self._send_msg_callback(interaction, content=result.message)
 
             except Exception as e:

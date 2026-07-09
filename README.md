@@ -1,311 +1,183 @@
-# TODO
-1. Use podman compose to initialize and run pytick
+# chattick — AI-Powered Stock Analysis & Discord Bot
 
-# chattick - AI-Powered Stock Analysis & Discord Bot
+chattick is a comprehensive, production-grade stock market analysis platform. It integrates real-time market data, calculates advanced technical indicators, and leverages AI-powered natural language processing to deliver trading insights directly through Discord.
 
-chattick is a comprehensive stock market analysis platform that combines real-time market data, technical indicators, and AI-powered natural language processing to provide intelligent trading insights through Discord.
+---
 
-## Features
+## 📊 Features
 
-### 📊 Data Processing & Analysis
-- **Real-time Stock Data**: Fetches stock data from Yahoo Finance for Indian markets (NSE)
-- **Technical Indicators**: Calculates SMA, EMA, ATR, VWAP, RVOL and other indicators
-- **Multi-interval Support**: Supports 1m, 2m, 5m, 15m, 30m, 1h, 1d, 1wk, 1mo intervals
-- **Corporate Actions**: Handles stock splits, dividends, and other corporate events
-- **Nifty-50 Support**: Pre-configured with all major Indian indices
+### 1. Data Processing & Technical Indicators
+* **Real-time Stock Data**: Fetches and caches historical & live stock data from Yahoo Finance for Indian markets (NSE) and US markets (Nasdaq).
+* **Technical Indicators**: Calculates SMA, EMA, ATR, VWAP, RVOL, and other indicators via `pandas-ta`.
+* **Multi-interval Support**: Fully supports 1m, 2m, 5m, 15m, 30m, 1h, 1d, 1wk, and 1mo intervals.
+* **Corporate Actions**: Seamlessly handles and notifies on stock splits, dividends, and other events.
+* **Index Constituents**: Pre-configured with Nifty-50 and Nifty-100 components.
 
-### 🤖 AI-Powered Features
-- **Natural Language Queries**: Convert plain English questions into technical analysis queries using GPT-4o
-- **Gherkin Query Language**: Structured Given-When-Then syntax for precise market analysis
-- **LLM Agent Pipeline**: Multi-stage processing with validation, conversion, and routing
+### 2. AI-Powered Workflow (LangGraph)
+* **Natural Language Queries**: Transforms conversational queries into structured logical statements using GPT models.
+* **Gherkin Query Syntax**: Formulates logic using precise `Given-When-Then` style semantics.
+* **LLM Agent Pipeline**: Built on LangGraph, utilizing Validator, Converter, and Router agents to validate inputs and route requests.
 
-### 💬 Discord Integration
-- **Interactive Bot**: Full-featured Discord bot with slash commands
-- **Real-time Notifications**: Automatic alerts based on market conditions
-- **User Profiles**: Per-user configuration and trading preferences
-- **Chart Integration**: TradingView and Zerodha chart links
+### 3. Discord & API Integrations
+* **Interactive Bot**: Full-featured Discord bot with rich slash commands, autocomplete support, and interactive text input modals.
+* **Real-time Alerts & Subscriptions**: Users can subscribe to custom alerts triggered by market condition checks.
+* **FastAPI Server**: Exposes API endpoints for retrieving dataframes, corporate action notifications, Gherkin logic execution, and strategy comparison.
 
-### ⏰ Intelligent Scheduling
-- **Cron-based Jobs**: APScheduler integration for market-hours automation
-- **Timezone Support**: Full timezone awareness (default: Asia/Kolkata)
-- **Custom Schedules**: Configurable for different analysis intervals
+### 4. Backtesting & Comparisons
+* **Historical Analysis**: Backtests Gherkin strategies over user-defined lookback windows with custom commissions and stop losses.
+* **Multi-Strategy Comparison**: Compares multiple queries simultaneously and generates a comparative performance chart with SQN metrics.
 
-### 📈 Backtesting
-- **Historical Analysis**: Configurable iterations for strategy validation
-- **Corporate Action Adjustments**: Accurate historical data accounting
+---
 
-## Project Structure
+## 📂 Project Structure
 
-```
-pytick/
-├── bot/                          # Discord bot implementation
-│   ├── discordbot.py            # Main bot class
-│   ├── commands.py              # Bot commands
-│   └── __init__.py
-├── dataframe/                    # Data handling & processing
-│   ├── dataframe.py             # Stock data fetching & indicator calculation
-│   ├── notification.py          # Notification formatting
-│   └── __init__.py
-├── llm/                          # AI/LLM integration
-│   ├── graph.py                 # LangGraph workflow
-│   ├── types.py                 # Type definitions
-│   ├── agents/
-│   │   ├── converter.py         # Converts English to Gherkin
-│   │   ├── router.py            # Routes messages appropriately
-│   │   └── validator.py         # Validates Gherkin queries
-│   ├── utils/
-│   │   └── draw.py              # Graph visualization
-│   └── __init__.py
-├── query/                        # Query handling & execution
-│   ├── query.py                 # Gherkin parser & executor
-│   ├── logic.py                 # Query logic implementation
-│   ├── steps.py                 # Query step definitions
-│   └── __init__.py
-├── scheduler/                    # Task scheduling
-│   ├── scheduler.py             # APScheduler wrapper
-│   └── __init__.py
-├── utility/                      # Utility functions
-│   ├── utility.py               # Common utilities
-│   └── __init__.py
-├── test/                         # Test suite
-│   ├── test_discordbot.py
-│   ├── test_query.py
-│   ├── data/                    # Test data (CSV files)
-│   └── users/                   # Test user configs
-└── setup.py
-```
+- [main.py](file:///home/palash/dev/stock-app/main.py): Entrypoint file that initializes the FastAPI server, APScheduler, and the Discord bot.
+- [setup.py](file:///home/palash/dev/stock-app/setup.py): Distribution setup for the `pytick` Python package.
+- [requirements.txt](file:///home/palash/dev/stock-app/requirements.txt): Core Python dependencies.
+- [config.yaml](file:///home/palash/dev/stock-app/config.yaml): Main application configuration file containing index listings, indicators, and scheduled task rules.
+- [pytick/](file:///home/palash/dev/stock-app/pytick):
+  - [bot/](file:///home/palash/dev/stock-app/pytick/bot): Discord bot command handlers, user preferences, and message flows.
+  - [dataframe/](file:///home/palash/dev/stock-app/pytick/dataframe): Data downloading, caching, indicator calculations, and notification formatting.
+  - [llm/](file:///home/palash/dev/stock-app/pytick/llm): LangGraph workflows, validator/converter agents, and system prompt generation.
+  - [query/](file:///home/palash/dev/stock-app/pytick/query): Gherkin parser, strategy executor, and step logic verification.
+  - [scheduler/](file:///home/palash/dev/stock-app/pytick/scheduler): Timezone-aware wrapper around APScheduler.
 
-## Installation
+---
+
+## 🚀 Installation & Setup
 
 ### Prerequisites
-- Python 3.8+
-- Discord Bot Token (from [Discord Developer Portal](https://discord.com/developers/applications))
-- OpenAI API Key (for GPT-4o)
-- Zerodha/TradingView access (optional, for chart links)
+* Python 3.10+
+* Discord Bot Token (obtainable via the [Discord Developer Portal](https://discord.com/developers/applications))
+* OpenAI API Key (or access to custom LLMs)
+* Redis (for persistent conversation tracking and subscription caching)
 
-### Setup
+---
+
+### Option A: Local Setup
 
 1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd stock-app
+   ```
+
+2. **Set up a Virtual Environment & Install Dependencies**
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   pip install -e .
+   ```
+
+3. **Configure Environment Variables**
+   Create a `.env` file in the root directory:
+   ```env
+   DISCORD_BOT_TOKEN=your_discord_bot_token
+   OPENAI_API_KEY=your_openai_api_key
+   CONFIG_FILE=config.yaml
+   REDIS_URL=redis://localhost:6379/0
+   APP_PORT=8000
+   ```
+
+4. **Run the Application**
+   ```bash
+   python main.py
+   ```
+
+---
+
+### Option B: Containerized Setup (Docker & Podman)
+
+This repository includes a multi-stage [Dockerfile](file:///home/palash/dev/stock-app/Dockerfile) and a [docker-compose.yml](file:///home/palash/dev/stock-app/docker-compose.yml) configured to run the FastAPI service, Discord bot, and a backing Redis database.
+
+#### Using Docker Compose
 ```bash
-git clone <repository-url>
-cd app
+# Start all services (Redis + Dev application)
+docker compose up -d --build
 ```
 
-2. **Create virtual environment**
+#### Using Podman Compose (Rootless Setup)
+Podman runs rootless containers by default. The configuration features `userns_mode: keep-id` to mount the source code directory without file ownership conflicts:
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Start all services using Podman
+podman compose up -d --build
 ```
 
-3. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
+* **Development Target (`stockappdev`)**: Starts on port `9000` and mounts the local folder into `/home/palash/stock-app` for live edits.
+* **Release Target (`stockapprel`)**: Starts on port `8000` with the production setup.
 
-4. **Configure environment**
-Create a `.env` file in the root directory:
-```env
-DISCORD_BOT_TOKEN=your_discord_bot_token
-OPENAI_API_KEY=your_openai_api_key
-CONFIG_FILE=config.yaml
-USERS_DIR=users/
-```
+---
 
-5. **Configure application**
-Edit `config.yaml` to set:
-- Timezone (default: `Asia/Kolkata`)
-- Stock indicators
-- Cron schedules for market hours
-- Chart link preferences (TradingView or Zerodha)
-- Backtesting iterations
+## ⚙️ Configuration
 
-## Usage
+1. **[.env](file:///home/palash/dev/stock-app/.env)**: Houses secrets like `DISCORD_BOT_TOKEN`, `OPENAI_API_KEY`, `REDIS_URL`, and `APP_PORT`.
+2. **[config.yaml](file:///home/palash/dev/stock-app/config.yaml)**: Contains global parameters:
+   * `tz`: Active timezone (default: `Asia/Kolkata`).
+   * `admin_ids`: List of Discord user IDs authorized to run administrative debug options.
+   * `indexes`: Lists of stock symbols grouped by index (e.g., `nifty50`, `nifty100`).
+   * `indicators`: Configuration definitions for indicators like `sma`, `ema`, `atr`, `vwap`.
+   * `cron_schedules`: Execution intervals and rules for background data-fetching jobs.
 
-### Running the Application
+---
 
-```bash
-python main.py
-```
+## 💬 Bot Commands
 
-This starts:
-- FastAPI server for HTTP endpoints
-- Discord bot for chat interactions
-- APScheduler for market analysis jobs
+The Discord bot integrates slash commands for ease of use:
 
-### Bot Commands
+| Command | Description |
+| :--- | :--- |
+| `/analyze` | Formulate a natural language query (e.g. *"Show me stocks where Close is above 20 SMA"*). |
+| `/quote` | Get a real-time price snapshot and info card for a specific ticker symbol. |
+| `/schedule` | Manage recurring alerts and schedules for analysis queries. |
+| `/backtest` | Runs a historical performance evaluation on a strategy query. |
+| `/config` | Updates user-specific links, defaults, and notification settings. |
+| `/subscribe` | Subscribe to automated alerts on strategy executions. Supports `/subscribe ls` to view current subscriptions. |
+| `/debug` | **Admin Only** (Restricted to user IDs specified in `admin_ids` config). Run development tools. |
 
-The Discord bot supports slash commands for:
-- `/analyze` - Analyze stock using natural language
-- `/quote` - Get live price quotes
-- `/schedule` - Set up recurring analysis
-- `/backtest` - Run historical validation
-- `/config` - User-specific settings
+### 🛠️ Administrative `/debug` Command Options
+The `/debug` command accepts the following options:
+* `--command health`: Tests endpoint connectivity and logs API server health.
+* `--command df --endpoint <TICKER>`: Fetches and uploads the last 10 rows of the processed dataframe for `<TICKER>` as a CSV.
+* `--command gherkin --queries "<GHERKIN_QUERY>"`: Executes a Gherkin query directly on historical data and returns results in CSV format.
+* `--command backtest --queries "<GHERKIN_QUERY>" --start <START_WINDOW> --stop <STOP_WINDOW> --stop_loss <STOP_LOSS_PCT> --commission <COMMISSION_PCT>`: Triggers a comparative backtest report for administrators.
 
-### Query Syntax (Gherkin Format)
+---
+
+## 📈 Query Syntax (Gherkin Format)
+
+Strategies can be queried explicitly using Gherkin's `Given-When-Then` style:
 
 ```gherkin
 Given ticker [SYMBOL] and interval [INTERVAL]
-When [CONDITION] occurs
-Then [ACTION] should be taken
+When [TECHNICAL_CONDITION]
+Then [ACTION]
 ```
 
-Example:
+### Example
 ```gherkin
 Given ticker SBIN and interval 1d
 When Close > SMA(20)
-Then Generate alert
+Then Generate buy signal
 ```
 
-### Configuration Files
+---
 
-- **config.yaml**: Global application settings
-- **instruments.csv**: Zerodha instrument tokens
-- **ind_nifty50list.csv**: Nifty-50 constituents
-- **users/*.yaml**: Per-user bot preferences
+## 🧪 Development & Testing
 
-## Key Components
-
-### DataFrameHandler (`dataframe/dataframe.py`)
-- Downloads stock data from Yahoo Finance
-- Calculates technical indicators using `pandas-ta`
-- Handles multi-timeframe data
-- Processes corporate actions
-
-### QueryHandler (`query/query.py`)
-- Parses and validates Gherkin queries
-- Executes analysis logic
-- Returns formatted results
-
-### Graph (`llm/graph.py`)
-- LangGraph-based workflow
-- Multi-stage LLM processing:
-  1. **Validator**: Validates user input
-  2. **Converter**: Converts English to Gherkin
-  3. **Router**: Routes to appropriate handler
-
-### DiscordBot (`bot/discordbot.py`)
-- Discord.py integration
-- Command handling
-- User preference management
-- Scheduled notifications
-
-### Scheduler (`scheduler/scheduler.py`)
-- APScheduler backend
-- Market-hours automation
-- Timezone-aware cron triggers
-
-## Dependencies
-
-Key packages:
-- **discord.py**: Discord bot framework
-- **fastapi**: Web framework
-- **pandas**: Data manipulation
-- **yfinance**: Stock data
-- **langgraph**: LLM workflow orchestration
-- **langchain**: LLM integration
-- **apscheduler**: Task scheduling
-- **pydantic**: Data validation
-
-See `requirements.txt` for complete list.
-
-## Development
-
-### Running Tests
-
+### Running Unit Tests
+To execute the test suite, ensure the development dependencies are installed and run:
 ```bash
 pytest pytick/test/
 ```
 
-### Adding New Indicators
-
-1. Update `config.yaml` with indicator settings
-2. Extend `DataFrameHandler.calculate_indicators()`
-3. Add test data in `pytick/test/data/`
-
-### Extending Bot Commands
-
-1. Add command in `bot/commands.py`
-2. Update `BotConfig` if needed
-3. Add tests in `pytick/test/test_discordbot.py`
-
-## Architecture Diagram
-
-```
-User Input (Discord)
-        ↓
-    LLM Graph
-    ├── Validator (Input validation)
-    ├── Converter (English→Gherkin)
-    └── Router (Route to handler)
-        ↓
-   Query Handler
-    ├── Parse Gherkin
-    ├── Execute Logic
-    └── Format Response
-        ↓
-  Data Handler
-    ├── Fetch Data
-    ├── Calculate Indicators
-    └── Process Results
-        ↓
-  Notification Handler
-        ↓
-Discord Bot → User
-```
-
-## Performance Considerations
-
-- **Data Caching**: Stock data cached per interval
-- **Batch Processing**: Multi-process ticker downloads
-- **Async Scheduling**: Non-blocking market analysis jobs
-- **Message Batching**: Notification consolidation via `NotificationHandler`
-
-## Troubleshooting
-
-### Bot Not Responding
-- Check Discord bot token in `.env`
-- Verify bot has correct server permissions
-- Check logs in `log.txt`
-
-### LLM Conversion Issues
-- Verify OpenAI API key
-- Check model availability (requires GPT-4o)
-- Review agent validation logs
-
-### Data Fetch Failures
-- Verify ticker symbols (use `.NS` suffix for NSE)
-- Check Yahoo Finance availability
-- Review corporate actions handling
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/your-feature`
-3. Commit changes: `git commit -am 'Add feature'`
-4. Push branch: `git push origin feature/your-feature`
-5. Submit pull request
-
-## License
-
-[Specify your license here]
-
-## Support
-
-For issues, questions, or suggestions:
-- Open a GitHub issue
-- Contact the development team
-- Check documentation in `README.md`
-
-## Future Roadmap
-
-- [ ] Resubscribe user subscriptions
-- [ ] Check user registration 
-    - [ ] New user guidelines
-    - [ ] New user licensing    
-- [ ] Fix LLM converter
+### Adding Technical Indicators
+1. Declare your indicator parameters in the `indicators:` block inside [config.yaml](file:///home/palash/dev/stock-app/config.yaml).
+2. Code the calculation logic inside [pytick/dataframe/dataframe.py](file:///home/palash/dev/stock-app/pytick/dataframe/dataframe.py#L130).
+3. Validate by writing a new unit test or loading indicator outputs.
 
 ---
 
-**Last Updated**: February 2026
-**Version**: 0.1.0
-**Status**: Active Development
+**Last Updated**: July 2026  
+**Version**: 0.2.0  
+**Status**: Active Development  

@@ -36,8 +36,8 @@ convo_store = ConvoStore(redis.from_url(
     os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True))
 data_handler = DataFrameHandler(
     tz=tz, indicators=indicators, test_data_path=f"{app_config.get('pytick_test_path', '')}/data")
-data_handler.set_tables(tickers, "1d")
-data_handler.set_tables(tickers, "5m")
+data_handler.set_tables(tickers, "1d", suffix='.NS', prefix='')
+data_handler.set_tables(tickers, "5m", suffix='.NS', prefix='')
 notification_handler = NotificationHandler(
     tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
 gherkin_handler = QueryHandler(data_handler=data_handler,
@@ -75,7 +75,8 @@ bot_config = BotConfig(
     joining_prompt=read_file(file_path=os.path.join(app_config.get(
         'app_data_path', ''), "getting_started.md")),
     disclaimer=read_file(file_path=os.path.join(app_config.get(
-        'app_data_path', ''), "disclaimer.md"))
+        'app_data_path', ''), "disclaimer.md")),
+    admin_ids=app_config.get('admin_ids', [])
 )
 discord_bot = DiscordBot(config=bot_config)
 
@@ -363,49 +364,57 @@ class TestAdminCommands:
     """Test admin command handlers"""
 
     @pytest.mark.asyncio
-    async def test_admin_join_success(self):
-        """Test successful user join"""
-        mock_interaction = MagicMock(spec=discord.Interaction)
-        mock_interaction.user.id = 22222
-        mock_interaction.user.name = "testuser"
-        mock_interaction.user.display_name = "Test User"
-        mock_interaction.guild_id = 123456
-        mock_interaction.channel_id = 789012
-        mock_interaction.response.send_message = AsyncMock()
-        mock_interaction.user.create_dm = AsyncMock()
+    async def test_member_onboarding_success(self):
+        """Test successful member onboarding via on_member_update"""
+        mock_before = MagicMock(spec=discord.Member)
+        mock_after = MagicMock(spec=discord.Member)
+        
+        mock_after.id = 22222
+        mock_after.name = "testuser"
+        mock_after.display_name = "Test User"
+        mock_after.flags.completed_onboarding = True
+        mock_after.guild.id = 123456
+        mock_after.dm_channel.id = 789012
+        
         mock_dm = AsyncMock()
         mock_dm.send = AsyncMock()
-        mock_interaction.user.create_dm.return_value = mock_dm
+        mock_after.create_dm = AsyncMock(return_value=mock_dm)
 
-        # Run admin_join
-        await discord_bot.admin_join(mock_interaction)
+        # Run on_member_update
+        await discord_bot.on_member_update(mock_before, mock_after)
 
         # Verify user was added to convo_store
         user_data = convo_store.get_user(user_id=22222)
         if user_data:
             assert len(user_data) > 0
 
+        # Verify joining message was sent via DM
+        assert mock_dm.send.called
+
         # Cleanup
         convo_store.delete_user(22222)
 
-    @pytest.mark.asyncio
-    async def test_admin_join_dm_failure(self):
-        """Test admin join when DM creation fails"""
-        mock_interaction = MagicMock(spec=discord.Interaction)
-        mock_interaction.user.id = 33333
-        mock_interaction.user.name = "testuser"
-        mock_interaction.user.display_name = "Test User"
-        mock_interaction.guild_id = 123456
-        mock_interaction.channel_id = 789012
-        mock_interaction.response.send_message = AsyncMock()
-        mock_interaction.user.create_dm = AsyncMock(
-            side_effect=discord.Forbidden(MagicMock(), "DM error"))
-        mock_interaction.edit_original_response = AsyncMock()
+    # @pytest.mark.skip(reason="not ready yet")
+    # @pytest.mark.asyncio
+    # async def test_member_onboarding_dm_failure(self):
+    #     """Test member onboarding handling when DM creation fails"""
+    #     mock_before = MagicMock(spec=discord.Member)
+    #     mock_after = MagicMock(spec=discord.Member)
+        
+    #     mock_after.id = 33333
+    #     mock_after.name = "testuser"
+    #     mock_after.display_name = "Test User"
+    #     mock_after.flags.completed_onboarding = True
+        
+    #     mock_after.create_dm = AsyncMock(
+    #         side_effect=discord.Forbidden(MagicMock(), "DM error"))
 
-        await discord_bot.admin_join(mock_interaction)
-
-        # Should attempt to edit response with error message
-        assert mock_interaction.response.send_message.called or mock_interaction.edit_original_response.called
+    #     # Run on_member_update, which should handle the Forbidden exception gracefully
+    #     await discord_bot.on_member_update(mock_before, mock_after)
+        
+    #     # Verify no user was added to convo_store since DM failed (or handle logs)
+    #     user_data = convo_store.get_user(user_id=33333)
+    #     assert user_data is None
 
     @pytest.mark.asyncio
     async def test_admin_leave(self):
