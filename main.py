@@ -166,7 +166,7 @@ if __name__ == "__main__":
             data_handler.set_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix)
             scheduler.add_periodic_job(func=lambda tickers=tickers,
                                     interval=interval: data_handler.set_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix),
-                                    params=params, job_id=f"yf_job_{interval}")
+                                    params=params, job_id=f"yf_setup_job_{interval}")
     
     def _add_to_data_handler(tickers: list, suffix: str, prefix: str):
         # Schedule ohlc fetching jobs
@@ -174,7 +174,7 @@ if __name__ == "__main__":
             data_handler.add_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix)
             scheduler.add_periodic_job(func=lambda tickers=tickers,
                                     interval=interval: data_handler.add_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix),
-                                    params=params, job_id=f"yf_job_{interval}")
+                                    params=params, job_id=f"yf_add_job_{interval}")
             
     _setup_data_handler(tickers=tickers, suffix='.NS', prefix='')
     _add_to_data_handler(tickers=indices, suffix='', prefix='^')

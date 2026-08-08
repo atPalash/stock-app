@@ -188,7 +188,7 @@ class DataFrameHandler:
                     timeout=100,
                 )
             clean_ohlc = {}
-            debug_tickers = ['SBIN.NS', 'TCS.NS', 'ENRIN.NS']  # Add more tickers here if needed
+            debug_tickers = ['SBIN.NS', '^INDIAVIX']  # Add more tickers here if needed
             for ticker in tickers_yf:
                 df = ohlc[ticker]  # .xs(ticker, axis=1, level=0)
                 if ticker in debug_tickers:
@@ -287,4 +287,4 @@ if __name__ == "__main__":
 
     # # Use asyncio.run to start the event loop and execute the main function
     # asyncio.run(main())
-    download_stock_data("^NSEI", "5m", "Asia/Kolkata")
+    download_stock_data("SBIN", "5m", "Asia/Kolkata", suffix=".NS")
