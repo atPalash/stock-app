@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Client - StockApp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .log {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+  </style>
+</head>
+
+<body class="bg-zinc-950 text-zinc-200">
+  <div class="max-w-4xl mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-3xl font-semibold">MCP Client</h1>
+        <p class="text-zinc-400 text-sm">StockApp • SSE Transport</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="status"
+          class="px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-400 flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-zinc-500"></div>
+          <span>Disconnected</span>
+        </div>
+        <button onclick="connect()"
+          class="px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-zinc-200 transition">
+          Connect
+        </button>
+      </div>
+    </div>
+
+    <!-- Server Info -->
+    <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-6">
+      <div class="flex gap-4 items-end">
+        <div class="flex-1">
+          <label class="text-xs text-zinc-400">SSE Endpoint</label>
+          <input id="sse-url" value="http://127.0.0.1:8765/sse"
+            class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm mt-1"
+            placeholder="Use 192.168.0.31:8765 for external access">
+        </div>
+        <div>
+          <button onclick="connect()"
+            class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition">
+            Connect to Server
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Tools -->
+      <div>
+        <h2 class="font-semibold mb-3 flex items-center gap-2">
+          Available Tools
+          <span id="tool-count" class="text-xs px-2 py-0.5 bg-zinc-800 rounded-full text-zinc-400">0</span>
+        </h2>
+
+        <div id="tools-list" class="space-y-2">
+          <div class="text-zinc-500 text-sm">Connect to server to load tools</div>
+        </div>
+      </div>
+
+      <!-- Call Tool -->
+      <div>
+        <h2 class="font-semibold mb-3">Call Tool</h2>
+
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <div class="mb-4">
+            <label class="text-xs text-zinc-400">Tool</label>
+            <select id="tool-select" onchange="updateToolForm()"
+              class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm mt-1">
+              <option value="">Select a tool...</option>
+            </select>
+          </div>
+
+          <!-- Dynamic form -->
+          <div id="tool-form"></div>
+
+          <button onclick="callTool()"
+            class="mt-4 w-full py-2.5 bg-white text-black rounded-xl font-medium hover:bg-zinc-200 transition disabled:opacity-50"
+            id="call-btn" disabled>
+            Execute Tool
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div class="mt-6">
+      <h2 class="font-semibold mb-3">Result</h2>
+      <div id="result"
+        class="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 min-h-[120px] text-sm log whitespace-pre-wrap text-emerald-400">
+        No result yet.
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="mt-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-semibold">Log</h2>
+        <button onclick="clearLog()" class="text-xs text-zinc-400 hover:text-white">Clear</button>
+      </div>
+      <div id="log"
+        class="bg-black border border-zinc-800 rounded-2xl p-4 h-48 overflow-auto text-xs log text-zinc-400"></div>
+    </div>
+  </div>
+
+  <script>
+    let sessionId = null;
+    let tools = [];
+
+    function log(msg, type = 'info') {
+      const logEl = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : 'text-zinc-400';
+      logEl.innerHTML += `<div class="${color}">[${time}] ${msg}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function updateStatus(text, connected = false) {
+      const status = document.getElementById('status');
+      status.innerHTML = `
+    <div class="w-2 h-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-zinc-500'}"></div>
+    <span>${text}</span>
+  `;
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = '';
+    }
+
+    let eventSource = null;
+
+    function connectToSSE(url) {
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      log(`Connecting to ${url}...`);
+      updateStatus('Connecting...');
+
+      eventSource = new EventSource(url);
+
+      eventSource.addEventListener('message', handleJsonRpcMessage);
+      eventSource.addEventListener('jsonrpc', handleJsonRpcMessage);
+
+      function handleJsonRpcMessage(event) {
+        try {
+          const msg = JSON.parse(event.data);
+          console.log('SSE message:', msg);
+
+          if (msg.id === 0 && msg.result) {
+            log('Initialize response received', 'success');
+            fetch(`${baseUrl}/messages/?session_id=${sessionId}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" })
+            }).then(() => {
+              log('notifications/initialized sent', 'info');
+              sendToolsListRequest();
+            });
+          }
+
+          if (msg.id === 1 && msg.result && msg.result.tools) {
+            tools = msg.result.tools;
+            renderTools();
+            log(`Loaded ${tools.length} tools`, 'success');
+          }
+
+          // Show only the inner structuredContent object
+          if (msg.id && msg.id !== 0 && msg.id !== 1) {
+            const resultEl = document.getElementById('result');
+            if (msg.result) {
+              let data = msg.result.structuredContent || msg.result;
+              if (typeof data === 'string') {
+                try { data = JSON.parse(data); } catch (_) { }
+              }
+              if (data && typeof data === 'object' && !Array.isArray(data)) {
+                resultEl.innerHTML = Object.entries(data)
+                  .map(([k, v]) => `<div class="mb-0.5"><span class="text-zinc-400">${k}:</span> <span class="text-emerald-400">${v}</span></div>`)
+                  .join('');
+              } else {
+                resultEl.innerHTML = String(data);
+              }
+              log('Tool result received via SSE', 'success');
+            } else if (msg.error) {
+              resultEl.innerHTML = `<span class="text-red-400">${JSON.stringify(msg.error)}</span>`;
+              log('Tool error received via SSE', 'error');
+            }
+          }
+        } catch (_) { }
+      }
+
+      eventSource.onopen = () => {
+        log(isReconnect ? 'SSE reconnected' : 'SSE connection opened', 'success');
+        updateStatus('Connected', true);
+        reconnectAttempts = 0;
+      };
+
+      eventSource.onerror = (e) => {
+        log('SSE connection error', 'error');
+        updateStatus('Disconnected', false);
+        eventSource.close();
+      };
+
+      eventSource.addEventListener('endpoint', async (event) => {
+        const data = event.data;
+        const match = data.match(/session_id=([^&]+)/);
+        if (match) {
+          sessionId = match[1];
+          log(`Session ID: ${sessionId}`, 'success');
+          await initializeSession();
+        }
+      });
+    }
+
+    async function connect() {
+      const url = document.getElementById('sse-url').value.trim();
+      if (!url) return alert('Please enter SSE URL');
+      connectToSSE(url);
+    }
+
+    function sendToolsListRequest() {
+      const payload = {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/list",
+        params: {}
+      };
+
+      fetch(`${baseUrl}/messages/?session_id=${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(res => {
+        if (res.ok || res.status === 202) {
+          log('tools/list request sent', 'info');
+        }
+      });
+    }
+
+    let baseUrl = '';
+
+    async function initializeSession() {
+      if (!sessionId) return;
+
+      // Derive base URL from the SSE URL the user entered
+      const sseUrl = document.getElementById('sse-url').value.trim();
+      baseUrl = sseUrl.replace(/\/sse$/, '');
+
+      log('Sending initialize request...');
+
+      const payload = {
+        jsonrpc: "2.0",
+        id: 0,
+        method: "initialize",
+        params: {
+          protocolVersion: "2024-11-05",
+          capabilities: {},
+          clientInfo: { name: "browser-client", version: "1.0.0" }
+        }
+      };
+
+      try {
+        const res = await fetch(`${baseUrl}/messages/?session_id=${sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok || res.status === 202) {
+          log('Initialize request sent. Waiting for response via SSE...', 'info');
+          // Do NOT call loadTools() here. Wait for initialize response in onmessage.
+        } else {
+          log(`Initialize failed: ${res.status}`, 'error');
+        }
+      } catch (err) {
+        log(`Initialize error: ${err.message}`, 'error');
+      }
+    }
+
+    // Store pending requests so we can match SSE responses
+    const pendingRequests = new Map();
+
+    async function loadTools() {
+      const payload = {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/list",
+        params: {}
+      };
+
+      try {
+        const res = await fetch(`${baseUrl}/messages/?session_id=${sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok || res.status === 202) {
+          log('tools/list request sent (response will arrive via SSE)', 'info');
+        } else {
+          log(`tools/list failed: ${res.status}`, 'error');
+        }
+      } catch (err) {
+        log(`tools/list error: ${err.message}`, 'error');
+      }
+    }
+
+    function renderTools() {
+      const container = document.getElementById('tools-list');
+      const select = document.getElementById('tool-select');
+
+      container.innerHTML = '';
+      select.innerHTML = '<option value="">Select a tool...</option>';
+
+      document.getElementById('tool-count').textContent = tools.length;
+
+      tools.forEach(tool => {
+        // Tool card
+        const card = document.createElement('div');
+        card.className = 'bg-zinc-900 border border-zinc-800 rounded-xl p-3 cursor-pointer hover:border-zinc-600 transition';
+        card.innerHTML = `
+      <div class="font-medium">${tool.name}</div>
+      <div class="text-xs text-zinc-400 mt-1">${tool.description || ''}</div>
+    `;
+        card.onclick = () => {
+          select.value = tool.name;
+          updateToolForm();
+        };
+        container.appendChild(card);
+
+        // Select option
+        const opt = document.createElement('option');
+        opt.value = tool.name;
+        opt.textContent = tool.name;
+        select.appendChild(opt);
+      });
+    }
+
+    function updateToolForm() {
+      const select = document.getElementById('tool-select');
+      const formContainer = document.getElementById('tool-form');
+      const callBtn = document.getElementById('call-btn');
+
+      formContainer.innerHTML = '';
+      callBtn.disabled = !select.value;
+
+      if (!select.value) return;
+
+      const tool = tools.find(t => t.name === select.value);
+      if (!tool || !tool.inputSchema) return;
+
+      const schema = tool.inputSchema;
+      const properties = schema.properties || {};
+
+      Object.keys(properties).forEach(key => {
+        const prop = properties[key];
+        const div = document.createElement('div');
+        div.className = 'mb-3';
+
+        let inputHTML = '';
+
+        if (prop.type === 'array') {
+          inputHTML = `<input type="text" id="param-${key}" placeholder="close,open,high" 
+                   class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm">`;
+        } else {
+          inputHTML = `<input type="text" id="param-${key}" 
+                   class="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm">`;
+        }
+
+        div.innerHTML = `
+      <label class="text-xs text-zinc-400">${key}</label>
+      ${inputHTML}
+    `;
+        formContainer.appendChild(div);
+      });
+    }
+
+    async function callTool() {
+      const toolName = document.getElementById('tool-select').value;
+      if (!toolName || !sessionId) return;
+
+      const args = {};
+      const formContainer = document.getElementById('tool-form');
+      const inputs = formContainer.querySelectorAll('input');
+
+      inputs.forEach(input => {
+        const key = input.id.replace('param-', '');
+        let value = input.value.trim();
+
+        // Handle array fields (comma separated)
+        const tool = tools.find(t => t.name === toolName);
+        if (tool?.inputSchema?.properties?.[key]?.type === 'array') {
+          value = value ? value.split(',').map(v => v.trim()) : [];
+        }
+
+        if (value !== '') args[key] = value;
+      });
+
+      const payload = {
+        jsonrpc: "2.0",
+        id: Date.now(),
+        method: "tools/call",
+        params: {
+          name: toolName,
+          arguments: args
+        }
+      };
+
+      document.getElementById('result').innerHTML = 'Calling tool...';
+
+      try {
+        const res = await fetch(`${baseUrl}/messages/?session_id=${sessionId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.status === 202) {
+          document.getElementById('result').innerHTML = 'Tool call accepted (result will arrive via SSE)';
+          log(`Tool ${toolName} accepted (waiting for SSE)`, 'info');
+        } else {
+          const data = await res.json();
+          document.getElementById('result').innerHTML = JSON.stringify(data, null, 2);
+          log(`Tool ${toolName} executed`, 'success');
+        }
+      } catch (err) {
+        document.getElementById('result').innerHTML = `Error: ${err.message}`;
+        log(`Tool call failed: ${err.message}`, 'error');
+      }
+    }
+
+    // Auto-connect hint
+    window.onload = () => {
+      log('Ready. Click "Connect to Server" to begin.');
+    };
+  </script>
+</body>
+
+</html>

@@ -98,6 +98,7 @@ pytz==2026.2
 pyyaml==6.0.2
 reactivex==4.0.4
 redis==7.2.1
+mcp
 regex==2026.5.9
 requests==2.34.1
 requests-toolbelt==1.0.0
