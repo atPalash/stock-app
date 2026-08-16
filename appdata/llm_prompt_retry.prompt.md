@@ -13,7 +13,7 @@ The gherkin scenario has errors. Please fix the errors and ensure the output is 
 Each pattern must match exactly:
 
 **Pattern:** `^stocks from index (.+)$`
-- Group 1 (<index_name>): nifty50, nifty100
+- Group 1 (<index_name>): nifty50, nifty100, options
 
 **Pattern:** `^stocks from list (.+)$`
 - Group 1 (<equity_names>): comma-separated stock symbols (sample: ADANIENT, ADANIPORTS, APOLLOHOSP, ASIANPAINT, AXISBANK)

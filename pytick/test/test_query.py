@@ -230,6 +230,25 @@ Then list spike = tickers with (close - prev_close) / prev_close > 0.02
     assert isinstance(result, dict), "Spike result should be a dict"
     assert result == expected_spike, f"Expected spike result {expected_spike} but got {result}"
     
+def test_query_backtest_5m():
+    gherkin = """
+Feature: pytick llm
+Scenario: Event tracker for sudden volume rise and price change
+Given stocks from index nifty100
+When let avg_volume = average in 20 samples of minute5 volume
+And let volume = latest in 1 samples of minute5 volume
+And let price_change = change in 2 samples of minute5 close
+Then list buy = tickers with (volume > avg_volume) & (price_change > 0.005)
+"""
+    trade_handler = TradeHandler()
+    query_handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='.NS', prefix='').getQueryHandler()
+    for itr in range(1000, 0, -1):
+        handler = copy.deepcopy(query_handler)
+        handler.get_backtest_result(
+            query=gherkin, trade_handler=trade_handler, window=itr, stop_loss_percent=0.5)
+        # print(trade_handler.open_df)
+
+    print(trade_handler.close_df)
 
 if __name__ == "__main__":
-    test_sudden_volatility_rise()
+    test_query_backtest_5m()

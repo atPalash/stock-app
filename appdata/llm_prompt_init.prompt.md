@@ -14,7 +14,7 @@ You are an expert in converting user input to gherkin. Your task is to understan
 Each pattern must match exactly:
 
 **Pattern:** `^stocks from index (.+)$`
-- Group 1 (<index_name>): nifty50, nifty100
+- Group 1 (<index_name>): nifty50, nifty100, options
 
 **Pattern:** `^stocks from list (.+)$`
 - Group 1 (<equity_names>): comma-separated stock symbols (sample: ADANIENT, ADANIPORTS, APOLLOHOSP, ASIANPAINT, AXISBANK)

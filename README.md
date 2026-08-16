@@ -115,7 +115,7 @@ podman compose up -d --build
 2. **[config.yaml](file:///home/palash/dev/stock-app/config.yaml)**: Contains global parameters:
    * `tz`: Active timezone (default: `Asia/Kolkata`).
    * `admin_ids`: List of Discord user IDs authorized to run administrative debug options.
-   * `indexes`: Lists of stock symbols grouped by index (e.g., `nifty50`, `nifty100`).
+   * `indexes`: Lists of stock symbols grouped by index (e.g., `nifty50`, `nifty100`, `options`).
    * `indicators`: Configuration definitions for indicators like `sma`, `ema`, `atr`, `vwap`.
    * `cron_schedules`: Execution intervals and rules for background data-fetching jobs.
 
