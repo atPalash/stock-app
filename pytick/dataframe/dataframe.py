@@ -135,10 +135,10 @@ class DataFrameHandler:
                 ohlc = {}
                 for ticker in tickers_yf:
                     cols = pd.read_csv(
-                        f"{self.test_data_path}/{ticker}_{interval}.csv", nrows=0).columns
+                        f"{self.test_data_path}/{ticker}.NS_{interval}.csv", nrows=0).columns
                     date_col = 'Date' if 'Date' in cols else 'Datetime' if 'Datetime' in cols else None
                     df = pd.read_csv(
-                        f"{self.test_data_path}/{ticker}_{interval}.csv", parse_dates=[date_col])
+                        f"{self.test_data_path}/{ticker}.NS_{interval}.csv", parse_dates=[date_col])
                     df.set_index(date_col, inplace=True)
                     ohlc[ticker] = df
             else:
