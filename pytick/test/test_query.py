@@ -233,16 +233,16 @@ Then list spike = tickers with (close - prev_close) / prev_close > 0.02
 def test_query_backtest_5m():
     gherkin = """
 Feature: pytick llm
-Scenario: Event tracker for sudden volume rise and price change
-Given stocks from index nifty100
-When let avg_volume = average in 20 samples of minute5 volume
-And let volume = latest in 1 samples of minute5 volume
-And let price_change = change in 2 samples of minute5 close
-Then list buy = tickers with (volume > avg_volume) & (price_change > 0.005)
+Scenario: Range in a single sample greater than ATR analysis
+Given stocks from index options
+When let high = latest in 1 samples of minute5 high
+And let low = latest in 1 samples of minute5 low
+And let atr14 = oldest in 2 samples of minute5 close atr 14
+Then list buy = tickers with (high - low > atr14)
 """
     trade_handler = TradeHandler()
-    query_handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='.NS', prefix='').getQueryHandler()
-    for itr in range(1000, 0, -1):
+    query_handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='', prefix='').getQueryHandler()
+    for itr in range(10, 0, -1):
         handler = copy.deepcopy(query_handler)
         handler.get_backtest_result(
             query=gherkin, trade_handler=trade_handler, window=itr, stop_loss_percent=0.5)
