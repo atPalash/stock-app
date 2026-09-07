@@ -25,8 +25,12 @@ def get_index_tickers(**kwargs) -> tuple:
         tuple: success flag, tickers list, errors list.
     """
     errors = []
-    index = kwargs.get('tickers', None)
-    tickers = read_config(config).get('indexes', {}).get(index, [])
+    temp = kwargs.get('tickers', None)
+    indexes = temp.replace(" ", "").split(",") if temp else None
+    tickers = []
+    for index in indexes:
+        tickers.extend(read_config(config).get('indexes', {}).get(index, []))
+    tickers = list(dict.fromkeys(tickers))
     if not tickers:
         errors.append(f"Index '{index}' not found. Available indexes: {list(read_config(config).get('indexes', {}).keys())}")
         return False, None, errors

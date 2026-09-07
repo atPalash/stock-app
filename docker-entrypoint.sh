@@ -10,6 +10,7 @@ if [ ! -d "$VENV_PATH" ]; then
     uv pip install -e /home/palash/stock-app
     echo "export PATH=\"$VENV_PATH/bin:\$PATH\"" >> /home/palash/.bashrc
     echo 'source /usr/share/bash-completion/completions/git' >> /home/palash/.bashrc
+    echo 'set -a; source /home/palash/stock-app/.env; set +a' >> /home/palash/.bashrc
 fi
 
 export PATH="$VENV_PATH/bin:$PATH"
