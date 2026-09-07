@@ -1,483 +1,501 @@
-# intervals: [1m, 2m, 5m, 15m, 30m] #1m, 2m, 5m, 15m, 30m, 60m, 90m, 1h, 4h, 1d, 5d, 1wk, 1mo, 3mo
 tz: Asia/Kolkata
 discord_llm_msg: "🤖 converting query. Please wait..."
 interval_translation:
-  # "1m": "minute"
-  # "2m": "minute2"
-  "5m": "minute5"
-  "15m": "minute15"
-  "30m": "minute30"
-  "60m": "hour"
-  "1h": "hour"
-  "1d": "day"
-  "1wk": "week"
-  "1mo": "month"
+  5m: minute5
+  15m: minute15
+  30m: minute30
+  60m: hour
+  1h: hour
+  1d: day
+  1wk: week
+  1mo: month
 interval_seconds:
-  # "minute": 60
-  # "minute2": 120
-  "minute5": 300
-  "minute15": 900
-  "minute30": 1800
-  "hour": 3600
-  "day": 86400
-  "week": 604800
-  "month": 2592000
+  minute5: 300
+  minute15: 900
+  minute30: 1800
+  hour: 3600
+  day: 86400
+  week: 604800
+  month: 2592000
 interval_limits:
-  # "1m": "7d"
-  # "2m": "60d"
-  "5m": "1mo"
-  "15m": "1mo"
-  "30m": "6mo"
-  "1h": "1y"
-  "1d": "5y"
-  "1wk": "10y"
-  "1mo": "max"
+  5m: 1mo
+  15m: 1mo
+  30m: 6mo
+  1h: 1y
+  1d: 5y
+  1wk: 10y
+  1mo: max
 cron_schedules:
-  # "1m": { "minute": "*/1", "second": "0", "day_of_week": "mon-fri" } # runs at 0 seconds of every minute
-  # "2m": { "minute": "*/2", "hour": 9-16, "second": "5", "day_of_week": "mon-fri" } # runs at 5 seconds of every 2nd minute
-  "5m": {
-      "minute": "*/5",
-      "hour": 9-16,
-      "second": "10",
-      "day_of_week": "mon-fri",
-    } # runs at 10 seconds of every 5th minute
-  "15m": {
-      "minute": "*/15",
-      "hour": 9-16,
-      "second": "15",
-      "day_of_week": "mon-fri",
-    } # runs at 15 seconds of every 15th minute
-  "30m": {
-      "minute": "*/30",
-      "hour": 9-16,
-      "second": "20",
-      "day_of_week": "mon-fri",
-    } # runs at 20 seconds of every 30th minute
-  "1h": {
-      "minute": "0",
-      "hour": "9-16",
-      "second": "25",
-      "day_of_week": "mon-fri",
-    } # runs at 25 seconds of the 0th minute each hour
-  "1d": {
-      "minute": "0",
-      "hour": "9-16",
-      "second": "30",
-      "day_of_week": "mon-fri",
-    } # runs at 16:06:30
-  "1wk": {
-      "minute": "0",
-      "hour": "9-16",
-      "second": "35",
-      "day_of_week": "mon-fri",
-    } # runs on Friday at 16:07
-  "1mo": {
-      "minute": "0",
-      "hour": "9-16",
-      "second": "40",
-      "day_of_week": "mon-fri",
-    } # runs on Friday at 16:07
-cron_notification: { "minute": "*/4", "second": "5", "day_of_week": "mon-fri" } # runs every 4th minute
-cron_news_alerts: { "minute": "*/17", "second": "5", "day_of_week": "mon-fri" } # runs every 17th minute, just some timer to distribute load
+  5m:
+    minute: "*/5"
+    hour: 9-16
+    second: "10"
+    day_of_week: mon-fri
+  15m:
+    minute: "*/15"
+    hour: 9-16
+    second: "15"
+    day_of_week: mon-fri
+  30m:
+    minute: "*/30"
+    hour: 9-16
+    second: "20"
+    day_of_week: mon-fri
+  1h:
+    minute: "0"
+    hour: 9-16
+    second: "25"
+    day_of_week: mon-fri
+  1d:
+    minute: "0"
+    hour: 9-16
+    second: "30"
+    day_of_week: mon-fri
+  1wk:
+    minute: "0"
+    hour: 9-16
+    second: "35"
+    day_of_week: mon-fri
+  1mo:
+    minute: "0"
+    hour: 9-16
+    second: "40"
+    day_of_week: mon-fri
+cron_notification:
+  minute: "*/4"
+  second: "5"
+  day_of_week: mon-fri
+cron_news_alerts:
+  minute: "*/17"
+  second: "5"
+  day_of_week: mon-fri
 backtest_iterations: 10
-app_data_path: "/home/palash/stock-app/appdata"
-pytick_test_path: "/home/palash/stock-app/pytick/test"
-zerodha_instrument_tokens_path: "/home/palash/stock-app/appdata/instruments.csv"
+app_data_path: /home/palash/stock-app/appdata
+pytick_test_path: /home/palash/stock-app/pytick/test
+zerodha_instrument_tokens_path: /home/palash/stock-app/appdata/instruments.csv
 trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
-zerodha_url: "https://kite.zerodha.com/markets/chart/web/tvc/NSE/"
+zerodha_url: https://kite.zerodha.com/markets/chart/web/tvc/NSE/
 link_type: zerodha
 indicators:
   sma:
-    periods: [5, 10, 20, 50, 100, 200]
-    sources: ["Open", "High", "Low", "Close"]
+    periods:
+      - 5
+      - 10
+      - 20
+      - 50
+      - 100
+      - 200
+    sources:
+      - Open
+      - High
+      - Low
+      - Close
   ema:
-    periods: [5, 10, 20, 50, 100, 200]
-    sources: ["Open", "High", "Low", "Close"]
+    periods:
+      - 5
+      - 10
+      - 20
+      - 50
+      - 100
+      - 200
+    sources:
+      - Open
+      - High
+      - Low
+      - Close
   atr:
-    periods: [10, 14]
-    sources: ["Close"]
+    periods:
+      - 10
+      - 14
+    sources:
+      - Close
   vwap:
-    periods: [10]
-    sources: ["Open", "High", "Low", "Close"]
+    periods:
+      - 10
+    sources:
+      - Open
+      - High
+      - Low
+      - Close
   rvol:
-    periods: [10, 20]
-    sources: ["Volume"]
+    periods:
+      - 10
+      - 20
+    sources:
+      - Volume
   rsi:
-    periods: [14]
-    sources: ["Close"]
+    periods:
+      - 14
+    sources:
+      - Close
 default_ticker: SBIN
-discord_invites: "https://discord.gg/WeS5TPV6yt"
-admin_ids: [686175319383736344]
+discord_invites: https://discord.gg/WeS5TPV6yt
+admin_ids:
+  - 686175319383736344
 indexes:
   nifty50:
-    [
-      "ADANIENT",
-      "ADANIPORTS",
-      "APOLLOHOSP",
-      "ASIANPAINT",
-      "AXISBANK",
-      "BAJAJ-AUTO",
-      "BAJFINANCE",
-      "BAJAJFINSV",
-      "BEL",
-      "BHARTIARTL",
-      "CIPLA",
-      "COALINDIA",
-      "DRREDDY",
-      "EICHERMOT",
-      "ETERNAL",
-      "GRASIM",
-      "HCLTECH",
-      "HDFCBANK",
-      "HDFCLIFE",
-      "HINDALCO",
-      "HINDUNILVR",
-      "ICICIBANK",
-      "ITC",
-      "INFY",
-      "INDIGO",
-      "JSWSTEEL",
-      "JIOFIN",
-      "KOTAKBANK",
-      "LT",
-      "M&M",
-      "MARUTI",
-      "MAXHEALTH",
-      "NTPC",
-      "NESTLEIND",
-      "ONGC",
-      "POWERGRID",
-      "RELIANCE",
-      "SBILIFE",
-      "SHRIRAMFIN",
-      "SBIN",
-      "SUNPHARMA",
-      "TCS",
-      "TATACONSUM",
-      "TMPV",
-      "TATASTEEL",
-      "TECHM",
-      "TITAN",
-      "TRENT",
-      "ULTRACEMCO",
-      "WIPRO",
-    ]
+    - ADANIENT
+    - ADANIPORTS
+    - APOLLOHOSP
+    - ASIANPAINT
+    - AXISBANK
+    - BAJAJ-AUTO
+    - BAJFINANCE
+    - BAJAJFINSV
+    - BEL
+    - BHARTIARTL
+    - CIPLA
+    - COALINDIA
+    - DRREDDY
+    - EICHERMOT
+    - ETERNAL
+    - GRASIM
+    - HCLTECH
+    - HDFCBANK
+    - HDFCLIFE
+    - HINDALCO
+    - HINDUNILVR
+    - ICICIBANK
+    - ITC
+    - INFY
+    - INDIGO
+    - JSWSTEEL
+    - JIOFIN
+    - KOTAKBANK
+    - LT
+    - M&M
+    - MARUTI
+    - MAXHEALTH
+    - NTPC
+    - NESTLEIND
+    - ONGC
+    - POWERGRID
+    - RELIANCE
+    - SBILIFE
+    - SHRIRAMFIN
+    - SBIN
+    - SUNPHARMA
+    - TCS
+    - TATACONSUM
+    - TMPV
+    - TATASTEEL
+    - TECHM
+    - TITAN
+    - TRENT
+    - ULTRACEMCO
+    - WIPRO
   nifty100:
-    [
-      "ABB",
-      "ADANIENSOL",
-      "ADANIENT",
-      "ADANIGREEN",
-      "ADANIPORTS",
-      "ADANIPOWER",
-      "AMBUJACEM",
-      "APOLLOHOSP",
-      "ASIANPAINT",
-      "DMART",
-      "AXISBANK",
-      "BAJAJ-AUTO",
-      "BAJFINANCE",
-      "BAJAJFINSV",
-      "BAJAJHLDNG",
-      "BANKBARODA",
-      "BEL",
-      "BPCL",
-      "BHARTIARTL",
-      "BOSCHLTD",
-      "BRITANNIA",
-      "CGPOWER",
-      "CANBK",
-      "CHOLAFIN",
-      "CIPLA",
-      "COALINDIA",
-      "CUMMINSIND",
-      "DLF",
-      "DIVISLAB",
-      "DRREDDY",
-      "EICHERMOT",
-      "ETERNAL",
-      "GAIL",
-      "GODREJCP",
-      "GRASIM",
-      "HCLTECH",
-      "HDFCAMC",
-      "HDFCBANK",
-      "HDFCLIFE",
-      "HINDALCO",
-      "HAL",
-      "HINDUNILVR",
-      "HINDZINC",
-      "HYUNDAI",
-      "ICICIBANK",
-      "ITC",
-      "INDHOTEL",
-      "IOC",
-      "IRFC",
-      "INFY",
-      "INDIGO",
-      "JSWSTEEL",
-      "JINDALSTEL",
-      "JIOFIN",
-      "KOTAKBANK",
-      "LTM",
-      "LT",
-      "LODHA",
-      "M&M",
-      "MARUTI",
-      "MAXHEALTH",
-      "MAZDOCK",
-      "MUTHOOTFIN",
-      "NTPC",
-      "NESTLEIND",
-      "ONGC",
-      "PIDILITIND",
-      "PFC",
-      "POWERGRID",
-      "PNB",
-      "RECLTD",
-      "RELIANCE",
-      "SBILIFE",
-      "MOTHERSON",
-      "SHREECEM",
-      "SHRIRAMFIN",
-      "ENRIN",
-      "SIEMENS",
-      "SOLARINDS",
-      "SBIN",
-      "SUNPHARMA",
-      "TVSMOTOR",
-      "TATACAP",
-      "TCS",
-      "TATACONSUM",
-      "TMCV",
-      "TMPV",
-      "TATAPOWER",
-      "TATASTEEL",
-      "TECHM",
-      "TITAN",
-      "TORNTPHARM",
-      "TRENT",
-      "ULTRACEMCO",
-      "UNIONBANK",
-      "UNITDSPR",
-      "VBL",
-      "VEDL",
-      "WIPRO",
-      "ZYDUSLIFE",
-    ]
+    - ABB
+    - ADANIENSOL
+    - ADANIENT
+    - ADANIGREEN
+    - ADANIPORTS
+    - ADANIPOWER
+    - AMBUJACEM
+    - APOLLOHOSP
+    - ASIANPAINT
+    - DMART
+    - AXISBANK
+    - BAJAJ-AUTO
+    - BAJFINANCE
+    - BAJAJFINSV
+    - BAJAJHLDNG
+    - BANKBARODA
+    - BEL
+    - BPCL
+    - BHARTIARTL
+    - BOSCHLTD
+    - BRITANNIA
+    - CGPOWER
+    - CANBK
+    - CHOLAFIN
+    - CIPLA
+    - COALINDIA
+    - CUMMINSIND
+    - DLF
+    - DIVISLAB
+    - DRREDDY
+    - EICHERMOT
+    - ETERNAL
+    - GAIL
+    - GODREJCP
+    - GRASIM
+    - HCLTECH
+    - HDFCAMC
+    - HDFCBANK
+    - HDFCLIFE
+    - HINDALCO
+    - HAL
+    - HINDUNILVR
+    - HINDZINC
+    - HYUNDAI
+    - ICICIBANK
+    - ITC
+    - INDHOTEL
+    - IOC
+    - IRFC
+    - INFY
+    - INDIGO
+    - JSWSTEEL
+    - JINDALSTEL
+    - JIOFIN
+    - KOTAKBANK
+    - LTM
+    - LT
+    - LODHA
+    - M&M
+    - MARUTI
+    - MAXHEALTH
+    - MAZDOCK
+    - MUTHOOTFIN
+    - NTPC
+    - NESTLEIND
+    - ONGC
+    - PIDILITIND
+    - PFC
+    - POWERGRID
+    - PNB
+    - RECLTD
+    - RELIANCE
+    - SBILIFE
+    - MOTHERSON
+    - SHREECEM
+    - SHRIRAMFIN
+    - ENRIN
+    - SIEMENS
+    - SOLARINDS
+    - SBIN
+    - SUNPHARMA
+    - TVSMOTOR
+    - TATACAP
+    - TCS
+    - TATACONSUM
+    - TMCV
+    - TMPV
+    - TATAPOWER
+    - TATASTEEL
+    - TECHM
+    - TITAN
+    - TORNTPHARM
+    - TRENT
+    - ULTRACEMCO
+    - UNIONBANK
+    - UNITDSPR
+    - VBL
+    - VEDL
+    - WIPRO
+    - ZYDUSLIFE
   options:
-    [
-      "360ONE",
-      "BANDHANBNK",
-      "COFORGE",
-      "HCLTECH",
-      "IDEA",
-      "JSWENERGY",
-      "KFINTECH",
-      "PNB",
-      "SHRIRAMFIN",
-      "UNIONBANK",
-      "ADANIGREEN",
-      "BAJFINANCE",
-      "BSE",
-      "EICHERMOT",
-      "HDFCBANK",
-      "IEX",
-      "JSWSTEEL",
-      "MAHABANK",
-      "MAZDOCK",
-      "NAM-INDIA",
-      "ONGC",
-      "RECLTD",
-      "TATACONSUM",
-      "VEDL",
-      "AUBANK",
-      "BPCL",
-      "CROMPTON",
-      "ABB",
-      "AMBER",
-      "GODREJCP",
-      "HINDALCO",
-      "ATHERENERG",
-      "BANKBARODA",
-      "LICI",
-      "BDL",
-      "CANBK",
-      "COCHINSHIP",
-      "DELHIVERY",
-      "GAIL",
-      "INDHOTEL",
-      "IRFC",
-      "RVNL",
-      "SUNPHARMA",
-      "TMPV",
-      "TRENT",
-      "M&M",
-      "NAUKRI",
-      "PAGEIND",
-      "PIDILITIND",
-      "POWERINDIA",
-      "RELIANCE",
-      "TATAELXSI",
-      "VMM",
-      "APOLLOHOSP",
-      "BANKINDIA",
-      "DIVISLAB",
-      "HINDUNILVR",
-      "IDFCFIRSTB",
-      "JUBLFOOD",
-      "LICHSGFIN",
-      "POLYCAB",
-      "SUPREMEIND",
-      "UNITDSPR",
-      "ADANIPOWER",
-      "BHEL",
-      "CDSL",
-      "GLENMARK",
-      "HINDPETRO",
-      "INDIGO",
-      "LODHA",
-      "MARICO",
-      "MCX",
-      "NBCC",
-      "PAYTM",
-      "SAIL",
-      "TATASTEEL",
-      "VOLTAS",
-      "AUROPHARMA",
-      "CGPOWER",
-      "DLF",
-      "ADANIENSOL",
-      "ANGELONE",
-      "HAL",
-      "ICICIGI",
-      "AXISBANK",
-      "JINDALSTEL",
-      "LT",
-      "BEL",
-      "CHOLAFIN",
-      "COLPAL",
-      "DIXON",
-      "GRASIM",
-      "INDUSINDBK",
-      "OIL",
-      "SBICARD",
-      "SWIGGY",
-      "KAYNES",
-      "ULTRACEMCO",
-      "MANKIND",
-      "NYKAA",
-      "PATANJALI",
-      "PIIND",
-      "PRESTIGE",
-      "SAGILITY",
-      "TIINDIA",
-      "WIPRO",
-      "ASHOKLEY",
-      "BHARTIARTL",
-      "DRREDDY",
-      "HYUNDAI",
-      "INOXWIND",
-      "KALYANKJIL",
-      "LTF",
-      "PREMIERENE",
-      "SUZLON",
-      "ABCAPITAL",
-      "AMBUJACEM",
-      "BIOCON",
-      "CIPLA",
-      "GODREJPROP",
-      "HINDZINC",
-      "INDUSTOWER",
-      "LTM",
-      "MARUTI",
-      "MOTHERSON",
-      "NMDC",
-      "PERSISTENT",
-      "SHREECEM",
-      "TCS",
-      "WAAREEENER",
-      "BAJAJHLDNG",
-      "COALINDIA",
-      "FORTIS",
-      "ADANIPORTS",
-      "APLAPOLLO",
-      "HAVELLS",
-      "INDIANB",
-      "BAJAJ-AUTO",
-      "KOTAKBANK",
-      "MANAPPURAM",
-      "BOSCHLTD",
-      "NATIONALUM",
-      "CUMMINSIND",
-      "ETERNAL",
-      "HDFCLIFE",
-      "INFY",
-      "PHOENIXLTD",
-      "SOLARINDS",
-      "TATAPOWER",
-      "LAURUSLABS",
-      "UPL",
-      "MPHASIS",
-      "OBEROIRLTY",
-      "PETRONET",
-      "PNBHOUSING",
-      "RADICO",
-      "SBILIFE",
-      "TVSMOTOR",
-      "ASIANPAINT",
-      "BLUESTARCO",
-      "FEDERALBNK",
-      "ICICIPRULI",
-      "JIOFIN",
-      "KEI",
-      "NESTLEIND",
-      "SBIN",
-      "TITAN",
-      "ADANIENT",
-      "ASTRAL",
-      "BRITANNIA",
-      "DMART",
-      "GVT&D",
-      "ICICIBANK",
-      "IREDA",
-      "LUPIN",
-      "MAXHEALTH",
-      "MOTILALOFS",
-      "NTPC",
-      "PFC",
-      "SRF",
-      "VBL",
-      "YESBANK",
-      "BHARATFORG",
-      "CONCOR",
-      "GMRAIRPORT",
-      "ALKEM",
-      "GODFRYPHLP",
-      "HDFCAMC",
-      "ITC",
-      "BAJAJFINSV",
-      "KPITTECH",
-      "MFSL",
-      "CAMS",
-      "NHPC",
-      "DABUR",
-      "FORCEMOT",
-      "HEROMOTOCO",
-      "IOC",
-      "POWERGRID",
-      "SONACOMS",
-      "TECHM",
-      "TORNTPHARM",
-      "ZYDUSLIFE",
-      "MUTHOOTFIN",
-      "OFSS",
-      "PGEL",
-      "POLICYBZR",
-      "RBLBANK",
-      "SIEMENS",
-      "UNOMINDA",
-    ]
+    - 360ONE
+    - ABB
+    - ABCAPITAL
+    - ADANIENSOL
+    - ADANIENT
+    - ADANIGREEN
+    - ADANIPORTS
+    - ADANIPOWER
+    - ALKEM
+    - AMBER
+    - AMBUJACEM
+    - ANGELONE
+    - APLAPOLLO
+    - APOLLOHOSP
+    - ASHOKLEY
+    - ASIANPAINT
+    - ASTRAL
+    - ATHERENERG
+    - AUBANK
+    - AUROPHARMA
+    - AXISBANK
+    - BAJAJ-AUTO
+    - BAJAJFINSV
+    - BAJAJHLDNG
+    - BAJFINANCE
+    - BANDHANBNK
+    - BANKBARODA
+    - BANKINDIA
+    - BDL
+    - BEL
+    - BHARATFORG
+    - BHARTIARTL
+    - BHEL
+    - BIOCON
+    - BLUESTARCO
+    - BOSCHLTD
+    - BPCL
+    - BRITANNIA
+    - BSE
+    - CAMS
+    - CANBK
+    - CDSL
+    - CGPOWER
+    - CHOLAFIN
+    - CIPLA
+    - COALINDIA
+    - COCHINSHIP
+    - COFORGE
+    - COLPAL
+    - CONCOR
+    - CROMPTON
+    - CUMMINSIND
+    - DABUR
+    - DELHIVERY
+    - DIVISLAB
+    - DIXON
+    - DLF
+    - DMART
+    - DRREDDY
+    - EICHERMOT
+    - ETERNAL
+    - FEDERALBNK
+    - FORCEMOT
+    - FORTIS
+    - GAIL
+    - GLENMARK
+    - GMRAIRPORT
+    - GODFRYPHLP
+    - GODREJCP
+    - GODREJPROP
+    - GRASIM
+    - GVT&D
+    - HAL
+    - HAVELLS
+    - HCLTECH
+    - HDFCAMC
+    - HDFCBANK
+    - HDFCLIFE
+    - HEROMOTOCO
+    - HINDALCO
+    - HINDPETRO
+    - HINDUNILVR
+    - HINDZINC
+    - HYUNDAI
+    - ICICIBANK
+    - ICICIGI
+    - ICICIPRULI
+    - IDEA
+    - IDFCFIRSTB
+    - IEX
+    - INDHOTEL
+    - INDIANB
+    - INDIGO
+    - INDUSINDBK
+    - INDUSTOWER
+    - INFY
+    - INOXWIND
+    - IOC
+    - IREDA
+    - IRFC
+    - ITC
+    - JINDALSTEL
+    - JIOFIN
+    - JSWENERGY
+    - JSWSTEEL
+    - JUBLFOOD
+    - KALYANKJIL
+    - KAYNES
+    - KEI
+    - KFINTECH
+    - KOTAKBANK
+    - KPITTECH
+    - LAURUSLABS
+    - LICHSGFIN
+    - LICI
+    - LODHA
+    - LT
+    - LTF
+    - LTM
+    - LUPIN
+    - M&M
+    - MAHABANK
+    - MANAPPURAM
+    - MANKIND
+    - MARICO
+    - MARUTI
+    - MAXHEALTH
+    - MAZDOCK
+    - MCX
+    - MFSL
+    - MOTHERSON
+    - MOTILALOFS
+    - MPHASIS
+    - MUTHOOTFIN
+    - NAM-INDIA
+    - NATIONALUM
+    - NAUKRI
+    - NBCC
+    - NESTLEIND
+    - NHPC
+    - NMDC
+    - NTPC
+    - NYKAA
+    - OBEROIRLTY
+    - OFSS
+    - OIL
+    - ONGC
+    - PAGEIND
+    - PATANJALI
+    - PAYTM
+    - PERSISTENT
+    - PETRONET
+    - PFC
+    - PGEL
+    - PHOENIXLTD
+    - PIDILITIND
+    - PIIND
+    - PNB
+    - PNBHOUSING
+    - POLICYBZR
+    - POLYCAB
+    - POWERGRID
+    - POWERINDIA
+    - PREMIERENE
+    - PRESTIGE
+    - RADICO
+    - RBLBANK
+    - RECLTD
+    - RELIANCE
+    - RVNL
+    - SAGILITY
+    - SAIL
+    - SBICARD
+    - SBILIFE
+    - SBIN
+    - SHREECEM
+    - SHRIRAMFIN
+    - SIEMENS
+    - SOLARINDS
+    - SONACOMS
+    - SRF
+    - SUNPHARMA
+    - SUPREMEIND
+    - SUZLON
+    - SWIGGY
+    - TATACONSUM
+    - TATAELXSI
+    - TATAPOWER
+    - TATASTEEL
+    - TCS
+    - TECHM
+    - TIINDIA
+    - TITAN
+    - TMPV
+    - TORNTPHARM
+    - TRENT
+    - TVSMOTOR
+    - ULTRACEMCO
+    - UNIONBANK
+    - UNITDSPR
+    - UNOMINDA
+    - UPL
+    - VBL
+    - VEDL
+    - VMM
+    - VOLTAS
+    - WAAREEENER
+    - WIPRO
+    - YESBANK
+    - ZYDUSLIFE
 indices:
-  - "INDIAVIX"
-  - "NSEI"
+  - INDIAVIX
+  - NSEI
