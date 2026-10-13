@@ -153,6 +153,30 @@ Then list buy = tickers with (ema10_rate > 0) & (ema20_rate > 0) & (abs(close - 
     assert isinstance(bull, dict), "Bull result should be a dict"
     assert bull == expected_bull, f"Expected bull result {expected_bull} but got {bull}"
 
+def test_change():
+    # This test assumes StepData and step regexes are set up to validate allowed values
+    # You may need to adjust this test based on your StepData implementation
+    gherkin = """
+Feature: pytick llm
+Scenario: KQ Trend following (Sell Setup)
+Given stocks from index nifty50
+When let close = latest in 1 samples of day close
+And let prev_close = oldest in 2 samples of day close
+And let sma10 = latest in 1 samples of day close sma 10
+And let sma20 = latest in 1 samples of day close sma 20
+And let sma50 = latest in 1 samples of day close sma 50
+And let mth_change = change in 20 samples of day close
+And let three_mth_change = change in 60 samples of day close
+And let six_mth_change = change in 120 samples of day close
+Then list sell = tickers with (close < sma10) & (sma10 < sma20) & (sma20 < sma50) & (close < prev_close) & ((mth_change < -0.02) | (three_mth_change < -0.03) | (six_mth_change < -0.04))
+"""
+    handler = DummyQueryHandler(tickers=['BEL', 'TCS', 'TMPV', 'SBIN'], suffix='', prefix='').getQueryHandler()
+    result = handler.get_gherkin_result(gherkin_str=gherkin)[1]
+    sell = result[0]
+    expected_sell = {'sell': ['TMPV']}
+    assert isinstance(sell, dict), "sell result should be a dict"
+    assert sell == expected_sell, f"Expected sell result {expected_sell} but got {sell}"
+
 
 def test_query_backtest():
     gherkin = """
@@ -251,4 +275,4 @@ Then list buy = tickers with (high - low > atr14)
     print(trade_handler.close_df)
 
 if __name__ == "__main__":
-    test_query_backtest_5m()
+    test_change()

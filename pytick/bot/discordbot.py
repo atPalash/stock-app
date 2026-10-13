@@ -706,22 +706,24 @@ Or use: Feature → Scenario → Given/When/Then",
             # Already in gherkin format, no need to convert
             if result.status:
                 return RetVal(status=True, message='Query valid', data={'gherkin': query})
+            else:
+                return RetVal(status=False, message='Query not valid gherkin', errors=result.errors)
 
-            query = clean_gherkin(input)
+            # query = clean_gherkin(input)
 
-            # Will send result from either else timeout
-            ret = self.__do_llm_conversion(
-                llm_handler=self.ollama_handler, query=query)
-            if allow_openai and not ret.status:
-                daily_count = self.convo_store.get_daily_llm(user_id)
-                if daily_count > 10:
-                    return RetVal(status=False, message=f"🚫 Limit reached: {daily_count} premium guided messages used today. 🤖 Free AI is still here.")
-                self.convo_store.incr_daily_llm(
-                    user_id=user_id)
-                logger.info(f'{user_id} used premium for {query}')
-                ret = self.__do_llm_conversion(
-                    llm_handler=self.openai_handler, query=query)
-            return ret
+            # # Will send result from either else timeout
+            # ret = self.__do_llm_conversion(
+            #     llm_handler=self.ollama_handler, query=query)
+            # if allow_openai and not ret.status:
+            #     daily_count = self.convo_store.get_daily_llm(user_id)
+            #     if daily_count > 10:
+            #         return RetVal(status=False, message=f"🚫 Limit reached: {daily_count} premium guided messages used today. 🤖 Free AI is still here.")
+            #     self.convo_store.incr_daily_llm(
+            #         user_id=user_id)
+            #     logger.info(f'{user_id} used premium for {query}')
+            #     ret = self.__do_llm_conversion(
+            #         llm_handler=self.openai_handler, query=query)
+            # return ret
         except Exception as e:
             logger.warning(f"{e}")
             return RetVal(status=False, message=f"{e}", errors=[str(e)])
