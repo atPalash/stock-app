@@ -188,20 +188,20 @@ class DiscordBot(commands.Bot):
         self.modal_timeout = config.modal_timeout
         self.llm_timeout = config.llm_timeout
         self.convo_store = config.convo_store
-        self.ollama_handler = Graph(
-            system_prompt=config.llm_prompt,
-            retry_prompt=config.retry_prompt,
-            converter_agent=gherkin_converter,
-            validator_agent=gherkin_validator,
-            router_agent=gherkin_router,
-            ollama_model=config.ollama_model)
-        self.openai_handler = Graph(
-            system_prompt=config.llm_prompt,
-            retry_prompt=config.retry_prompt,
-            converter_agent=gherkin_converter,
-            validator_agent=gherkin_validator,
-            router_agent=gherkin_router,
-            openai_model=config.openai_model)
+        # self.ollama_handler = Graph(
+        #     system_prompt=config.llm_prompt,
+        #     retry_prompt=config.retry_prompt,
+        #     converter_agent=gherkin_converter,
+        #     validator_agent=gherkin_validator,
+        #     router_agent=gherkin_router,
+        #     ollama_model=config.ollama_model)
+        # self.openai_handler = Graph(
+        #     system_prompt=config.llm_prompt,
+        #     retry_prompt=config.retry_prompt,
+        #     converter_agent=gherkin_converter,
+        #     validator_agent=gherkin_validator,
+        #     router_agent=gherkin_router,
+        #     openai_model=config.openai_model)
 
         classifier_system_prompt = f"""You are a classfier to route user instructions
 

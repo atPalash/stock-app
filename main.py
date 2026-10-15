@@ -59,7 +59,7 @@ generate_prompt(config=app_config,
                 )
 
 bot_config = BotConfig(
-    token=os.getenv('DISCORD_BOT_TOKEN', ''),
+    token=os.getenv('DISCORD_BOT_TOKEN_KOLKATA', ''),
     command_prefix='/',
     query_handler=gherkin_handler,
     notification_handler=notification_handler,
