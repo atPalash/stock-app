@@ -18,7 +18,7 @@ from pytick.query import query
 from pytick.query.trade import TradeHandler
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.convo_store import ConvoStore
-from pytick.utility.utility import get_logger, read_config, read_file
+from pytick.utility.utility import get_discord_token, get_logger, read_config, read_file, get_app_config
 import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
 from pytick.query.comparator import run as comparator_run
@@ -28,11 +28,7 @@ app = FastAPI()
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
-config = os.environ.get("CONFIG_FILE")
-app_config = read_config(file_path=config)
-tickers = list(set(app_config.get('indexes', {}).get('nifty50', []))
-               | set(app_config.get('indexes', {}).get('nifty100', []))
-               | set(app_config.get('indexes', {}).get('options', [])))
+app_config, tickers = get_app_config()
 indices = app_config.get('indices', {})
 indicators = app_config.get('indicators', {})
 cron_schedules = app_config.get('cron_schedules', {})
@@ -40,7 +36,7 @@ cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
  
 convo_store = ConvoStore(redis.from_url(
-    os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True))
+    os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True), tz=tz)
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators, interval_limits=app_config.get('interval_limits', {}))
 notification_handler = notification.NotificationHandler(
     tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
@@ -59,7 +55,7 @@ generate_prompt(config=app_config,
                 )
 
 bot_config = BotConfig(
-    token=os.getenv('DISCORD_BOT_TOKEN_KOLKATA', ''),
+    token=get_discord_token(),
     command_prefix='/',
     query_handler=gherkin_handler,
     notification_handler=notification_handler,
@@ -69,10 +65,11 @@ bot_config = BotConfig(
     zerodha_df=pandas.read_csv(app_config.get(
         "zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
+    google_finance_url=app_config.get(
+        'google_finance_url', 'https://www.google.com/finance/quote/{t}:NSE'),
     zerodha_url=app_config.get('zerodha_url', ''),
     link_type=app_config.get('link_type', 'zerodha'),
     backtest_iterations=app_config.get('backtest_iterations', 10),
-    default_ticker=app_config.get('default_ticker', 'SBIN'),
     convo_store=convo_store,
     convo_ttl_seconds=int(os.getenv('CONVO_TTL_SECONDS', '900')),
     guild_id=int(os.getenv('DISCORD_GUILD_ID', '0')),
@@ -176,10 +173,12 @@ if __name__ == "__main__":
             scheduler.add_periodic_job(func=lambda tickers=tickers,
                                     interval=interval: data_handler.add_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix),
                                     params=params, job_id=f"yf_add_job_{interval}")
-            
-    _setup_data_handler(tickers=tickers, suffix='.NS', prefix='')
-    _add_to_data_handler(tickers=indices, suffix='', prefix='^')
+
     
+    _setup_data_handler(tickers=tickers, suffix=app_config.get('equity_suffix', ''), prefix=app_config.get('equity_prefix', ''))
+    if len(indices) > 0:
+        _add_to_data_handler(tickers=indices, suffix=app_config.get('index_suffix', ''), prefix=app_config.get('index_prefix', '^'))
+
     # Schedule corporate actions fetching job in 5 minutes interval
     notification_handler.set_corporate_actions(tickers=tickers)
     scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),

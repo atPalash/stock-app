@@ -97,7 +97,7 @@ class QueryHandler:
                 interval=interval, trim_rows=window)
             end_datetime = None
             try:
-                end_datetime = self.data_handler.tables[interval]['SBIN'].iloc[-1]['datetime']
+                end_datetime = self.data_handler.tables[interval][self.data_handler.default_ticker].iloc[-1]['datetime']
             except Exception as e:
                 raise e
             for interval in translated_intervals:

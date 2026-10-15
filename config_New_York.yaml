@@ -1,0 +1,93 @@
+tz: America/New_York
+trading_view_url: "https://www.tradingview.com/chart/?symbol=NASDAQ:"
+google_finance_url: "https://www.google.com/finance/quote/{t}:NASDAQ"
+default_ticker: AAPL
+equity_suffix: ""
+equity_prefix: ""
+index_suffix: ""
+index_prefix: ""
+indexes:
+  nasdaq100:
+    - AAPL
+    - ADBE
+    - AMD
+    - AMZN
+    - ARM
+    - ASML
+    - AVGO
+    - BBNI
+    - BKNG
+    - CDNS
+    - CEG
+    - CHKP
+    - CHTR
+    - CMCSA
+    - COST
+    - CPRT
+    - CRWD
+    - CSCO
+    - CSX
+    - CTAS
+    - CTSH
+    - DASH
+    - DDOG
+    - DLTR
+    - DXCM
+    - EA
+    - EXC
+    - FAST
+    - FTNT
+    - GILD
+    - GOOG
+    - GOOGL
+    - HON
+    - IDXX
+    - ILMN
+    - INTC
+    - INTU
+    - ISRG
+    - KDP
+    - KLAC
+    - LLY
+    - LRCX
+    - LULU
+    - MAR
+    - MCHP
+    - MDLZ
+    - MELI
+    - META
+    - MNST
+    - MRVL
+    - MSFT
+    - MU
+    - NFLX
+    - NVDA
+    - NXPI
+    - ORLY
+    - PANW
+    - PAYX
+    - PCAR
+    - PDD
+    - PEP
+    - PLTR
+    - PYPL
+    - QCOM
+    - REGN
+    - ROP
+    - ROST
+    - SBUX
+    # - SGEN
+    - SIRI
+    - SNPS
+    # - SPLK
+    - STX
+    - TEAM
+    - TMUS
+    - TSLA
+    - TXN
+    - VRSK
+    - VRTX
+    # - WBA
+    - WDC
+    - WMT
+    - XCEL

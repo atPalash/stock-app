@@ -5,13 +5,12 @@ from dotenv import load_dotenv
 import pandas as pd
 import yfinance as yf
 
-from pytick.utility.utility import get_logger, read_config
+from pytick.utility.utility import get_app_config, get_logger, read_config
 
 
 load_dotenv()
 logger = get_logger(__file__, logging.DEBUG)
-config = os.environ.get("CONFIG_FILE")
-app_config = read_config(file_path=config)
+app_config, _ = get_app_config()
 
 def download_stock_data(ticker: str, interval: str, tz: str, suffix: str="") -> pd.DataFrame:
     """Download stock data from Yahoo Finance.

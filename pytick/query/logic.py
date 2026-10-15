@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 import numpy
 import pandas
 from pytick import dataframe
-from pytick.utility.utility import get_logger, read_config
+from pytick.utility.utility import get_app_config, get_logger, read_config
 from pytick.dataframe.dataframe import calculate_indicators
 
 load_dotenv()
 
-config = os.environ.get("CONFIG_FILE")
+config, _ = get_app_config()
 logger = get_logger(__name__, logging.DEBUG)
 
 def get_index_tickers(**kwargs) -> tuple:
@@ -29,10 +29,10 @@ def get_index_tickers(**kwargs) -> tuple:
     indexes = temp.replace(" ", "").split(",") if temp else None
     tickers = []
     for index in indexes:
-        tickers.extend(read_config(config).get('indexes', {}).get(index, []))
+        tickers.extend(config.get('indexes', {}).get(index, []))
     tickers = list(dict.fromkeys(tickers))
     if not tickers:
-        errors.append(f"Index '{index}' not found. Available indexes: {list(read_config(config).get('indexes', {}).keys())}")
+        errors.append(f"Index '{index}' not found. Available indexes: {list(config.get('indexes', {}).keys())}")
         return False, None, errors
     return True, tickers, errors
 

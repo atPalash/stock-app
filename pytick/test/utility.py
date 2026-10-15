@@ -10,11 +10,11 @@ import pandas as pd
 from pytick.dataframe.dataframe import DataFrameHandler
 from pytick.dataframe.dataframe import DataFrameHandler
 from pytick.query.query import QueryHandler
-from pytick.utility.utility import read_config, get_logger
+from pytick.utility.utility import get_app_config, read_config, get_logger
 
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
-app_config = read_config(file_path=os.environ.get("CONFIG_FILE"))
+app_config, _ = get_app_config()
 
 
 class DummyNotificationHandler:

@@ -8,7 +8,7 @@ import yfinance as yf
 import pandas_ta as ta
 
 # from main import mp_process_ticker
-from pytick.utility.utility import get_logger, normalize_index_to_tz, read_config, request_server
+from pytick.utility.utility import get_app_config, get_logger, normalize_index_to_tz, read_config, request_server
 
 # Set multiprocessing start method once at module level
 try:
@@ -18,8 +18,7 @@ except RuntimeError:
 
 load_dotenv()
 logger = get_logger(__file__, logging.DEBUG)
-config = os.environ.get("CONFIG_FILE")
-app_config = read_config(file_path=config)
+app_config, _ = get_app_config()
 
 
 
@@ -87,6 +86,7 @@ class DataFrameHandler:
         self.indicators = indicators
         self.test_data_path = test_data_path
         self.interval_limits = interval_limits 
+        self.default_ticker = app_config.get('default_ticker', 'SBIN')
 
     def get_tables(self, tickers: list, interval: str) -> dict:
         """Get the OHLC tables for the specified tickers and interval.
@@ -159,7 +159,7 @@ class DataFrameHandler:
                     timeout=100,
                 )
             clean_ohlc = {}
-            debug_tickers = ['SBIN.NS', '^INDIAVIX']  # Add more tickers here if needed
+            debug_tickers = tickers[0:2] # Add more tickers here if needed
             for ticker in tickers_yf:
                 df = ohlc[ticker]  # .xs(ticker, axis=1, level=0)
                 if ticker in debug_tickers:
