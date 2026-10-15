@@ -18,7 +18,7 @@ from pytick.query import query
 from pytick.query.trade import TradeHandler
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.convo_store import ConvoStore
-from pytick.utility.utility import get_logger, read_config, read_file, get_app_config
+from pytick.utility.utility import get_discord_token, get_logger, read_config, read_file, get_app_config
 import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
 from pytick.query.comparator import run as comparator_run
@@ -55,7 +55,7 @@ generate_prompt(config=app_config,
                 )
 
 bot_config = BotConfig(
-    token=os.getenv('DISCORD_BOT_TOKEN_KOLKATA', ''),
+    token=get_discord_token(),
     command_prefix='/',
     query_handler=gherkin_handler,
     notification_handler=notification_handler,
@@ -65,10 +65,11 @@ bot_config = BotConfig(
     zerodha_df=pandas.read_csv(app_config.get(
         "zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
+    google_finance_url=app_config.get(
+        'google_finance_url', 'https://www.google.com/finance/quote/{t}:NSE'),
     zerodha_url=app_config.get('zerodha_url', ''),
     link_type=app_config.get('link_type', 'zerodha'),
     backtest_iterations=app_config.get('backtest_iterations', 10),
-    default_ticker=app_config.get('default_ticker', 'SBIN'),
     convo_store=convo_store,
     convo_ttl_seconds=int(os.getenv('CONVO_TTL_SECONDS', '900')),
     guild_id=int(os.getenv('DISCORD_GUILD_ID', '0')),

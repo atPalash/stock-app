@@ -47,7 +47,7 @@ gherkin_handler = QueryHandler(data_handler=data_handler,
                                interval_seconds=app_config.get('interval_seconds', {}))
 
 bot_config = BotConfig(
-    token=os.getenv('DISCORD_BOT_TOKEN', ''),
+    token=os.getenv('DISCORD_BOT_TOKEN_IND', ''),
     command_prefix='/',
     query_handler=gherkin_handler,
     notification_handler=notification_handler,
@@ -57,6 +57,8 @@ bot_config = BotConfig(
     zerodha_df=pandas.read_csv(app_config.get(
         "zerodha_instrument_tokens_path", "")),
     trading_view_url=app_config.get('trading_view_url', ''),
+    google_finance_url=app_config.get(
+        'google_finance_url', 'https://www.google.com/finance/quote/{t}:NSE'),
     zerodha_url=app_config.get('zerodha_url', ''),
     link_type=app_config.get('link_type', 'zerodha'),
     backtest_iterations=app_config.get('backtest_iterations', 10),

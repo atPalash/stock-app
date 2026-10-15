@@ -62,10 +62,10 @@ class BotConfig:
     schedules: dict
     zerodha_df: pandas.DataFrame
     trading_view_url: str
+    google_finance_url: str
     zerodha_url: str
     link_type: str
     backtest_iterations: int
-    default_ticker: str
     convo_store: ConvoStore
     convo_ttl_seconds: int
     modal_timeout: int
@@ -245,6 +245,8 @@ CRITICAL INSTRUCTIONS:
         self.admin_group = app_commands.Group(
             name="admin", description="Admin related commands",
             default_permissions=discord.Permissions(administrator=True))
+        self.admin_group.command(
+            name="join", description="Join bot service in server")(self.admin_join)
         self.admin_group.command(
             name="debug", description="Debug bot service")(self.admin_debug)
         self.admin_group.command(
@@ -488,6 +490,28 @@ Or use: Feature → Scenario → Given/When/Then",
                           ephemeral=False,
                           debug=True)
         await interaction.response.send_modal(modal)
+
+    async def admin_join(self, interaction: discord.Interaction):
+        """
+        Handles joining request from user to join server and bot services. The
+        Bot will add the user to the database
+
+        Usage:
+            Typically invoked in response to a Discord slash command
+            when a user wants to join server
+        """
+        await interaction.response.send_message("Joining conversation.", ephemeral=True)
+        user = interaction.user
+        self.convo_store.set_user(
+            user_id=user.id,
+            user_name=user.name,
+            display_name=user.display_name,
+            chart="tradingview",
+            joined_at=datetime.now().strftime("%Y-%m-%d"),
+            origin_guild_id=interaction.guild.id if interaction.guild else 0,
+            origin_channel_id=interaction.channel.id if interaction.channel else 0
+        )
+        logger.info(f"Registered {user.id}-{user.display_name} via /admin join")
         
     async def admin_leave(self, interaction: discord.Interaction):
         """
@@ -499,7 +523,8 @@ Or use: Feature → Scenario → Given/When/Then",
             when a user wants to leave server
         """
         await interaction.response.send_message("Leaving conversation.", ephemeral=True)
-        await self.convo_store.delete_user(interaction.user.id)
+        self.convo_store.delete_user(interaction.user.id)
+        logger.info(f"Removed {interaction.user.id} via /admin leave")
 
     async def query_run(self, interaction: discord.Interaction):
         """
@@ -925,7 +950,7 @@ Or use: Feature → Scenario → Given/When/Then",
                             recent_action = ticker_action.tail(
                                 1)['file'].values[0]
                             corporate_action_link = f"[action]({recent_action})"
-                        news_link = f"[news](https://www.google.com/finance/quote/{t}:NSE)"
+                        news_link = f"[news]({self.config.google_finance_url.format(t=t)})"
                         changed = ""
                         if len(new_tickers) > 0 and len(previous_results) > 0:
                             changed = "🟢" if t in new_tickers[i][qid] and len(
