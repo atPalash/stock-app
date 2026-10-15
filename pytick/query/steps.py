@@ -7,18 +7,16 @@ from dotenv import load_dotenv
 import numpy
 import pandas
 from pytick.query import logic
-from pytick.utility.utility import get_logger, read_config
+from pytick.utility.utility import get_app_config, get_logger, read_config
 load_dotenv()
 
-config = os.environ.get("CONFIG_FILE")
-index_map = read_config(config).get('indexes', {})
+config, all_tickers = get_app_config()
+index_map = config.get('indexes', {})
 indexes = list(index_map.keys())
-all_tickers = list(set(index_map.get('nifty50', []))
-               | set(index_map.get('nifty100', []))
-               | set(index_map.get('options', [])))
-tickers = all_tickers + read_config(config).get('indices', [])
-indicators = read_config(config).get('indicators', {})
-tz = read_config(config).get('tz', 'Asia/Kolkata')
+
+tickers = all_tickers + config.get('indices', [])
+indicators = config.get('indicators', {})
+tz = config.get('tz', 'Asia/Kolkata')
 logger = get_logger(__name__, logging.DEBUG)
 
 
@@ -75,7 +73,7 @@ class StepData:
         "change",
         # "slope",
     ]
-    interval = list(read_config(config).get('interval_seconds', {}).keys())
+    interval = list(config.get('interval_seconds', {}).keys())
 
     def __init__(
         self,

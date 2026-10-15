@@ -9,6 +9,22 @@ import pandas as pd
 import fcntl
 
 
+def get_app_config() -> tuple[dict, list]:
+    city = os.environ.get("TZ").split("/")[-1]
+    app_config = read_config(file_path=os.environ.get("CONFIG_FILE"))
+    app_config |= read_config(file_path=f"config_{city}.yaml")  
+    tickers = []
+    for k, v in app_config.get('indexes', {}).items():
+        tickers.extend(v)
+    tickers = list(set(tickers))
+    tickers.sort()
+    return app_config, tickers
+
+def get_discord_token() -> str:
+    city = os.environ.get("TZ").split("/")[-1].upper()
+    token_env_var = f"DISCORD_BOT_TOKEN_{city}"
+    return os.getenv(token_env_var, '')
+
 def read_config(file_path):
     logger = get_logger('utility', logging.DEBUG)
     try:
@@ -127,3 +143,9 @@ async def request_server(port, endpoint: str, data: dict, timeout=1*60*60, metho
         except asyncio.CancelledError:
             print("Request was cancelled by the client-side logic.")
             raise
+
+if __name__ == "__main__":
+    # Example usage of the utility functions
+    config, tickers = get_app_config()
+    print("Loaded configuration:", config)
+    print("Tickers:", tickers)

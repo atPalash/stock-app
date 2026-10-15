@@ -1,4 +1,3 @@
-tz: Asia/Kolkata
 discord_llm_msg: "🤖 converting query. Please wait..."
 interval_translation:
   5m: minute5
@@ -31,36 +30,36 @@ cron_schedules:
     hour: 9-16
     second: "10"
     day_of_week: mon-fri
-  15m:
-    minute: "*/15"
-    hour: 9-16
-    second: "15"
-    day_of_week: mon-fri
-  30m:
-    minute: "*/30"
-    hour: 9-16
-    second: "20"
-    day_of_week: mon-fri
-  1h:
-    minute: "0"
-    hour: 9-16
-    second: "25"
-    day_of_week: mon-fri
+  # 15m:
+  #   minute: "*/15"
+  #   hour: 9-16
+  #   second: "15"
+  #   day_of_week: mon-fri
+  # 30m:
+  #   minute: "*/30"
+  #   hour: 9-16
+  #   second: "20"
+  #   day_of_week: mon-fri
+  # 1h:
+  #   minute: "0"
+  #   hour: 9-16
+  #   second: "25"
+  #   day_of_week: mon-fri
   1d:
     minute: "0"
     hour: 9-16
     second: "30"
     day_of_week: mon-fri
-  1wk:
-    minute: "0"
-    hour: 9-16
-    second: "35"
-    day_of_week: mon-fri
-  1mo:
-    minute: "0"
-    hour: 9-16
-    second: "40"
-    day_of_week: mon-fri
+  # 1wk:
+  #   minute: "0"
+  #   hour: 9-16
+  #   second: "35"
+  #   day_of_week: mon-fri
+  # 1mo:
+  #   minute: "0"
+  #   hour: 9-16
+  #   second: "40"
+  #   day_of_week: mon-fri
 cron_notification:
   minute: "*/4"
   second: "5"
@@ -74,8 +73,7 @@ app_data_path: /home/palash/stock-app/appdata
 pytick_test_path: /home/palash/stock-app/pytick/test
 zerodha_instrument_tokens_path: /home/palash/stock-app/appdata/instruments.csv
 trading_view_url: "https://www.tradingview.com/chart/?symbol=NSE:"
-zerodha_url: https://kite.zerodha.com/markets/chart/web/tvc/NSE/
-link_type: zerodha
+google_finance_url: "https://www.google.com/finance/quote/{t}:NSE"
 indicators:
   sma:
     periods:
@@ -128,374 +126,6 @@ indicators:
       - 14
     sources:
       - Close
-default_ticker: SBIN
 discord_invites: https://discord.gg/WeS5TPV6yt
 admin_ids:
   - 686175319383736344
-indexes:
-  nifty50:
-    - ADANIENT
-    - ADANIPORTS
-    - APOLLOHOSP
-    - ASIANPAINT
-    - AXISBANK
-    - BAJAJ-AUTO
-    - BAJFINANCE
-    - BAJAJFINSV
-    - BEL
-    - BHARTIARTL
-    - CIPLA
-    - COALINDIA
-    - DRREDDY
-    - EICHERMOT
-    - ETERNAL
-    - GRASIM
-    - HCLTECH
-    - HDFCBANK
-    - HDFCLIFE
-    - HINDALCO
-    - HINDUNILVR
-    - ICICIBANK
-    - ITC
-    - INFY
-    - INDIGO
-    - JSWSTEEL
-    - JIOFIN
-    - KOTAKBANK
-    - LT
-    - M&M
-    - MARUTI
-    - MAXHEALTH
-    - NTPC
-    - NESTLEIND
-    - ONGC
-    - POWERGRID
-    - RELIANCE
-    - SBILIFE
-    - SHRIRAMFIN
-    - SBIN
-    - SUNPHARMA
-    - TCS
-    - TATACONSUM
-    - TMPV
-    - TATASTEEL
-    - TECHM
-    - TITAN
-    - TRENT
-    - ULTRACEMCO
-    - WIPRO
-  nifty100:
-    - ABB
-    - ADANIENSOL
-    - ADANIENT
-    - ADANIGREEN
-    - ADANIPORTS
-    - ADANIPOWER
-    - AMBUJACEM
-    - APOLLOHOSP
-    - ASIANPAINT
-    - DMART
-    - AXISBANK
-    - BAJAJ-AUTO
-    - BAJFINANCE
-    - BAJAJFINSV
-    - BAJAJHLDNG
-    - BANKBARODA
-    - BEL
-    - BPCL
-    - BHARTIARTL
-    - BOSCHLTD
-    - BRITANNIA
-    - CGPOWER
-    - CANBK
-    - CHOLAFIN
-    - CIPLA
-    - COALINDIA
-    - CUMMINSIND
-    - DLF
-    - DIVISLAB
-    - DRREDDY
-    - EICHERMOT
-    - ETERNAL
-    - GAIL
-    - GODREJCP
-    - GRASIM
-    - HCLTECH
-    - HDFCAMC
-    - HDFCBANK
-    - HDFCLIFE
-    - HINDALCO
-    - HAL
-    - HINDUNILVR
-    - HINDZINC
-    - HYUNDAI
-    - ICICIBANK
-    - ITC
-    - INDHOTEL
-    - IOC
-    - IRFC
-    - INFY
-    - INDIGO
-    - JSWSTEEL
-    - JINDALSTEL
-    - JIOFIN
-    - KOTAKBANK
-    - LTM
-    - LT
-    - LODHA
-    - M&M
-    - MARUTI
-    - MAXHEALTH
-    - MAZDOCK
-    - MUTHOOTFIN
-    - NTPC
-    - NESTLEIND
-    - ONGC
-    - PIDILITIND
-    - PFC
-    - POWERGRID
-    - PNB
-    - RECLTD
-    - RELIANCE
-    - SBILIFE
-    - MOTHERSON
-    - SHREECEM
-    - SHRIRAMFIN
-    - ENRIN
-    - SIEMENS
-    - SOLARINDS
-    - SBIN
-    - SUNPHARMA
-    - TVSMOTOR
-    - TATACAP
-    - TCS
-    - TATACONSUM
-    - TMCV
-    - TMPV
-    - TATAPOWER
-    - TATASTEEL
-    - TECHM
-    - TITAN
-    - TORNTPHARM
-    - TRENT
-    - ULTRACEMCO
-    - UNIONBANK
-    - UNITDSPR
-    - VBL
-    - VEDL
-    - WIPRO
-    - ZYDUSLIFE
-  options:
-    - 360ONE
-    - ABB
-    - ABCAPITAL
-    - ADANIENSOL
-    - ADANIENT
-    - ADANIGREEN
-    - ADANIPORTS
-    - ADANIPOWER
-    - ALKEM
-    - AMBER
-    - AMBUJACEM
-    - ANGELONE
-    - APLAPOLLO
-    - APOLLOHOSP
-    - ASHOKLEY
-    - ASIANPAINT
-    - ASTRAL
-    - ATHERENERG
-    - AUBANK
-    - AUROPHARMA
-    - AXISBANK
-    - BAJAJ-AUTO
-    - BAJAJFINSV
-    - BAJAJHLDNG
-    - BAJFINANCE
-    - BANDHANBNK
-    - BANKBARODA
-    - BANKINDIA
-    - BDL
-    - BEL
-    - BHARATFORG
-    - BHARTIARTL
-    - BHEL
-    - BIOCON
-    - BLUESTARCO
-    - BOSCHLTD
-    - BPCL
-    - BRITANNIA
-    - BSE
-    - CAMS
-    - CANBK
-    - CDSL
-    - CGPOWER
-    - CHOLAFIN
-    - CIPLA
-    - COALINDIA
-    - COCHINSHIP
-    - COFORGE
-    - COLPAL
-    - CONCOR
-    - CROMPTON
-    - CUMMINSIND
-    - DABUR
-    - DELHIVERY
-    - DIVISLAB
-    - DIXON
-    - DLF
-    - DMART
-    - DRREDDY
-    - EICHERMOT
-    - ETERNAL
-    - FEDERALBNK
-    - FORCEMOT
-    - FORTIS
-    - GAIL
-    - GLENMARK
-    - GMRAIRPORT
-    - GODFRYPHLP
-    - GODREJCP
-    - GODREJPROP
-    - GRASIM
-    - GVT&D
-    - HAL
-    - HAVELLS
-    - HCLTECH
-    - HDFCAMC
-    - HDFCBANK
-    - HDFCLIFE
-    - HEROMOTOCO
-    - HINDALCO
-    - HINDPETRO
-    - HINDUNILVR
-    - HINDZINC
-    - HYUNDAI
-    - ICICIBANK
-    - ICICIGI
-    - ICICIPRULI
-    - IDEA
-    - IDFCFIRSTB
-    - IEX
-    - INDHOTEL
-    - INDIANB
-    - INDIGO
-    - INDUSINDBK
-    - INDUSTOWER
-    - INFY
-    - INOXWIND
-    - IOC
-    - IREDA
-    - IRFC
-    - ITC
-    - JINDALSTEL
-    - JIOFIN
-    - JSWENERGY
-    - JSWSTEEL
-    - JUBLFOOD
-    - KALYANKJIL
-    - KAYNES
-    - KEI
-    - KFINTECH
-    - KOTAKBANK
-    - KPITTECH
-    - LAURUSLABS
-    - LICHSGFIN
-    - LICI
-    - LODHA
-    - LT
-    - LTF
-    - LTM
-    - LUPIN
-    - M&M
-    - MAHABANK
-    - MANAPPURAM
-    - MANKIND
-    - MARICO
-    - MARUTI
-    - MAXHEALTH
-    - MAZDOCK
-    - MCX
-    - MFSL
-    - MOTHERSON
-    - MOTILALOFS
-    - MPHASIS
-    - MUTHOOTFIN
-    - NAM-INDIA
-    - NATIONALUM
-    - NAUKRI
-    - NBCC
-    - NESTLEIND
-    - NHPC
-    - NMDC
-    - NTPC
-    - NYKAA
-    - OBEROIRLTY
-    - OFSS
-    - OIL
-    - ONGC
-    - PAGEIND
-    - PATANJALI
-    - PAYTM
-    - PERSISTENT
-    - PETRONET
-    - PFC
-    - PGEL
-    - PHOENIXLTD
-    - PIDILITIND
-    - PIIND
-    - PNB
-    - PNBHOUSING
-    - POLICYBZR
-    - POLYCAB
-    - POWERGRID
-    - POWERINDIA
-    - PREMIERENE
-    - PRESTIGE
-    - RADICO
-    - RBLBANK
-    - RECLTD
-    - RELIANCE
-    - RVNL
-    - SAGILITY
-    - SAIL
-    - SBICARD
-    - SBILIFE
-    - SBIN
-    - SHREECEM
-    - SHRIRAMFIN
-    - SIEMENS
-    - SOLARINDS
-    - SONACOMS
-    - SRF
-    - SUNPHARMA
-    - SUPREMEIND
-    - SUZLON
-    - SWIGGY
-    - TATACONSUM
-    - TATAELXSI
-    - TATAPOWER
-    - TATASTEEL
-    - TCS
-    - TECHM
-    - TIINDIA
-    - TITAN
-    - TMPV
-    - TORNTPHARM
-    - TRENT
-    - TVSMOTOR
-    - ULTRACEMCO
-    - UNIONBANK
-    - UNITDSPR
-    - UNOMINDA
-    - UPL
-    - VBL
-    - VEDL
-    - VMM
-    - VOLTAS
-    - WAAREEENER
-    - WIPRO
-    - YESBANK
-    - ZYDUSLIFE
-indices:
-  - INDIAVIX
-  - NSEI

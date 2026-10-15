@@ -5,23 +5,28 @@ from typing import Optional
 
 
 class ConvoStore:
-    def __init__(self, redis):
+    def __init__(self, redis, tz):
         self.redis = redis
+        self.tz = tz
+        self.prefix = f"{tz.split('/')[-1].upper()}"
 
     def set_user(self, user_id: int,  **kwargs) -> None:
-        self.redis.hset(f"user:{user_id}", mapping=kwargs)
+        if not kwargs:
+            raise ValueError(
+                f"set_user requires at least one field for user {user_id}")
+        self.redis.hset(f"{self.prefix}:user:{user_id}", mapping=kwargs)
 
     def get_user(self, user_id: int) -> dict:
-        return self.redis.hgetall(f"user:{user_id}")
+        return self.redis.hgetall(f"{self.prefix}:user:{user_id}")
 
     def delete_user(self, user_id: int):
-        self.redis.delete(f"llm_count:{user_id}")
-        key = f"user:{user_id}"
+        self.redis.delete(f"{self.prefix}:llm_count:{user_id}")
+        key = f"{self.prefix}:user:{user_id}"
         return self.redis.delete(key)  # Returns 1 (deleted) or 0 (not found)
 
     def incr_rate(self, user_id: int) -> int:
         """Increment per-second counter for user and return the count."""
-        key = f"rate:{user_id}"
+        key = f"{self.prefix}:rate:{user_id}"
         count = self.redis.incr(key)
         # ensure key expires after 1 second
         self.redis.expire(key, 10)
@@ -29,7 +34,7 @@ class ConvoStore:
 
     def get_daily_llm(self, user_id: int) -> int:
         """Get daily LLM usage counter (UTC date) and return count."""
-        key = f"llm_count:{user_id}"
+        key = f"{self.prefix}:llm_count:{user_id}"
         count = self.redis.get(key)
         if count is None:
             return 0
@@ -37,7 +42,7 @@ class ConvoStore:
 
     def incr_daily_llm(self, user_id: int) -> int:
         """Increment daily LLM usage counter (UTC date) and return count."""
-        key = f"llm_count:{user_id}"
+        key = f"{self.prefix}:llm_count:{user_id}"
         count = self.redis.incr(key)
         # set expiry to midnight UTC if not set
         ttl = self.redis.ttl(key)
@@ -50,21 +55,21 @@ class ConvoStore:
 
     def subscribe_query(self, user_id: int, query: str, data: dict, sub_type="subs") -> None:
         """Subscribe user to a persistent query."""
-        key = f"{sub_type}:{user_id}"
+        key = f"{self.prefix}:{sub_type}:{user_id}"
         self.redis.hset(key, query, json.dumps(data))
 
     def unsubscribe_query(self, user_id: int, query: str, sub_type="subs") -> bool:
         """Unsubscribe from specific query. Returns True if existed."""
-        key = f"{sub_type}:{user_id}"
+        key = f"{self.prefix}:{sub_type}:{user_id}"
         return self.redis.hdel(key, query) > 0
 
     def get_user_subs(self, user_id: int, sub_type="subs") -> dict[str, str]:
         """Get {query: guild/dm} for user."""
-        key = f"{sub_type}:{user_id}"
+        key = f"{self.prefix}:{sub_type}:{user_id}"
         return self.redis.hgetall(key)
 
     def get_all_user_sub_ids(self, sub_type="subs") -> list[int]:
-        subs_keys = self.redis.keys(f"{sub_type}:*")
+        subs_keys = self.redis.keys(f"{self.prefix}:{sub_type}:*")
         ret = []
         for key in subs_keys:
             id = int(key.split(':')[1])
@@ -73,5 +78,5 @@ class ConvoStore:
 
     def clear_user_subs(self, user_id: int, sub_type="subs") -> int:
         """Clear all user subscriptions. Returns count deleted."""
-        key = f"{sub_type}:{user_id}"
+        key = f"{self.prefix}:{sub_type}:{user_id}"
         return self.redis.delete(key)

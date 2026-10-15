@@ -18,7 +18,7 @@ from pytick.query import query
 from pytick.query.trade import TradeHandler
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.convo_store import ConvoStore
-from pytick.utility.utility import get_logger, read_config, read_file
+from pytick.utility.utility import get_logger, read_config, read_file, get_app_config
 import pytick.dataframe.dataframe as dataframe
 import pytick.dataframe.notification as notification
 from pytick.query.comparator import run as comparator_run
@@ -28,11 +28,7 @@ app = FastAPI()
 logger = get_logger(__file__, logging.DEBUG)
 load_dotenv()
 
-config = os.environ.get("CONFIG_FILE")
-app_config = read_config(file_path=config)
-tickers = list(set(app_config.get('indexes', {}).get('nifty50', []))
-               | set(app_config.get('indexes', {}).get('nifty100', []))
-               | set(app_config.get('indexes', {}).get('options', [])))
+app_config, tickers = get_app_config()
 indices = app_config.get('indices', {})
 indicators = app_config.get('indicators', {})
 cron_schedules = app_config.get('cron_schedules', {})
@@ -40,7 +36,7 @@ cron_notification = app_config.get('cron_notification', {})
 tz = app_config.get('tz', 'Asia/Kolkata')
  
 convo_store = ConvoStore(redis.from_url(
-    os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True))
+    os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True), tz=tz)
 data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators, interval_limits=app_config.get('interval_limits', {}))
 notification_handler = notification.NotificationHandler(
     tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
@@ -176,10 +172,12 @@ if __name__ == "__main__":
             scheduler.add_periodic_job(func=lambda tickers=tickers,
                                     interval=interval: data_handler.add_tables(tickers=tickers, interval=interval, suffix=suffix, prefix=prefix),
                                     params=params, job_id=f"yf_add_job_{interval}")
-            
-    _setup_data_handler(tickers=tickers, suffix='.NS', prefix='')
-    _add_to_data_handler(tickers=indices, suffix='', prefix='^')
+
     
+    _setup_data_handler(tickers=tickers, suffix=app_config.get('equity_suffix', ''), prefix=app_config.get('equity_prefix', ''))
+    if len(indices) > 0:
+        _add_to_data_handler(tickers=indices, suffix=app_config.get('index_suffix', ''), prefix=app_config.get('index_prefix', '^'))
+
     # Schedule corporate actions fetching job in 5 minutes interval
     notification_handler.set_corporate_actions(tickers=tickers)
     scheduler.add_periodic_job(func=lambda tickers=tickers: notification_handler.set_corporate_actions(tickers=tickers),
