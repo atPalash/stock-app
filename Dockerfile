@@ -1,9 +1,9 @@
 FROM ubuntu:24.04 AS base
 
-ARG USERNAME=palash
 ARG DEBIAN_FRONTEND=noninteractive
-ARG USERID=1000
-ARG GROUPID=1000
+ARG USERNAME
+ARG USERID
+ARG GROUPID
 
 ENV USERNAME=${USERNAME}
 ENV USERID=${USERID}
@@ -35,7 +35,8 @@ RUN apt update && apt upgrade --no-install-recommends -y \
     && apt clean && rm -rf /var/lib/apt/lists/*
 
 RUN userdel -r ubuntu 2>/dev/null || true && \
-    useradd -u 1000 -ms /bin/bash ${USERNAME} && \
+    groupadd -g ${GROUPID} ${USERNAME} 2>/dev/null || true && \
+    useradd -u ${USERID} -g ${GROUPID} -ms /bin/bash ${USERNAME} && \
     usermod -aG sudo ${USERNAME} && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} && \
     chmod 0440 /etc/sudoers.d/${USERNAME}
@@ -64,9 +65,8 @@ RUN echo ${USERNAME} ${USERID} ${GROUPID}
 FROM base AS dev
 CMD [ "bash" ]
 
-FROM base AS rel
+FROM base AS ind
 CMD [ "python3", "main.py" ]
 
-FROM base AS sp100
-COPY --chown=${USERID}:${GROUPID} . /home/${USERNAME}/stock-app
-CMD [ "bash" ]
+FROM base AS us
+CMD [ "python3", "main.py" ]
