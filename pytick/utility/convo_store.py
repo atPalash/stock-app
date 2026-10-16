@@ -72,7 +72,7 @@ class ConvoStore:
         subs_keys = self.redis.keys(f"{self.prefix}:{sub_type}:*")
         ret = []
         for key in subs_keys:
-            id = int(key.split(':')[1])
+            id = int(key.split(':')[2])
             ret.append(id)
         return ret
 
