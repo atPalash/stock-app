@@ -28,37 +28,37 @@ cron_schedules:
   5m:
     minute: "*/5"
     hour: 9-16
-    second: "10"
+    second: "40"
     day_of_week: mon-fri
   # 15m:
   #   minute: "*/15"
   #   hour: 9-16
-  #   second: "15"
+  #   second: "50"
   #   day_of_week: mon-fri
   # 30m:
   #   minute: "*/30"
   #   hour: 9-16
-  #   second: "20"
+  #   second: "40"
   #   day_of_week: mon-fri
   1h:
     minute: "0"
     hour: 9-16
-    second: "25"
+    second: "30"
     day_of_week: mon-fri
   1d:
     minute: "0"
     hour: 9-16
-    second: "30"
+    second: "20"
     day_of_week: mon-fri
   1wk:
     minute: "0"
     hour: 9-16
-    second: "35"
+    second: "10"
     day_of_week: mon-fri
   1mo:
     minute: "0"
     hour: 9-16
-    second: "40"
+    second: "0"
     day_of_week: mon-fri
 cron_notification:
   minute: "*/4"
