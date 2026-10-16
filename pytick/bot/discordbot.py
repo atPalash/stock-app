@@ -1,31 +1,20 @@
-import argparse
 from collections.abc import Callable
 import asyncio
 from datetime import datetime, tzinfo
-import functools
 import inspect
 import json
 import logging
 import os
 import shlex
-from urllib.parse import quote_plus
 from unittest.mock import MagicMock, Mock
-import concurrent
 from numpy.strings import title
-
-import io
-import trafilatura
 import pytz
 from attr import dataclass
 import discord
 from discord import app_commands
 from discord.ext import commands
 import pandas
-from pydantic import BaseModel, typing
-from pygooglenews import GoogleNews
-import redis
 from func_timeout import func_timeout, FunctionTimedOut
-from ddgs import DDGS
 from pytick.bot.utility import ThrowingArgumentParser, format_table, send_csv, send_image
 from pytick.scheduler.event_handler import EventHandler, EventType
 from pytick.utility.convo_store import ConvoStore
@@ -44,7 +33,6 @@ from pytick.llm.search_agents.converter import converter_agent as search_convert
 from pytick.llm.graph import Graph
 from pytick.llm.multi_graph import MultiGraph
 from pytick.query.query import QueryHandler
-from pytick.scheduler.scheduler import Scheduler
 from discord.app_commands import Range
 from pytick.utility.utility import RetVal, clean_gherkin, get_logger, request_server
 
@@ -241,7 +229,7 @@ CRITICAL INSTRUCTIONS:
                 router_agent=common_router,
                 ollama_model='gemma3',
                 openai_model=''))
-        self.scheduler = Scheduler(config.tz, is_async=True)
+        self._subscribers_registered = False
 
         # set up command groups
         self.admin_group = app_commands.Group(
@@ -292,7 +280,7 @@ CRITICAL INSTRUCTIONS:
 
     async def on_ready(self):
         logger.info(f'Logged in as {self.user}\nSubscribing to queries')
-        self.__set_schedulers()
+        self.__set_subscribers()
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         # Membership screening/onboarding completed when pending flips True -> False.
@@ -780,12 +768,14 @@ Or use: Feature → Scenario → Given/When/Then",
         """
         return self.__is_gherkin_format(input=input)
 
-    def __set_schedulers(self):
+    def __set_subscribers(self):
         """Register event handlers that schedule subscription runs on the bot loop."""
+        if self._subscribers_registered:
+            return
+
         loop = asyncio.get_running_loop()
 
-        def subscribe_handler(event: str):
-            interval = event.split(':')[1]
+        def subscribe_handler(event: EventType, interval: str):
             future = asyncio.run_coroutine_threadsafe(
                 self.do_sub_run(interval=interval), loop)
 
@@ -798,22 +788,8 @@ Or use: Feature → Scenario → Given/When/Then",
 
             future.add_done_callback(log_failure)
 
-        for interval, _ in self.config.schedules.items():
-            self.config.event_handler.subscribe(f"{EventType.TABLES_UPDATED}:{interval}", subscribe_handler)
-
-        '''
-        self.scheduler.start()  # Start the scheduler before adding jobs
-        for interval, params in self.config.schedules.items():
-            try:
-                self.scheduler.add_periodic_job(
-                    func=functools.partial(
-                        subscribe_handler, interval=interval),
-                    params=params,
-                    job_id=f"discord_subscription_job_{interval}")
-            except Exception as e:
-                logger.error(
-                    f"Error setting up scheduler for interval {interval}: {e}")
-        '''
+        self.config.event_handler.subscribe(EventType.TABLES_UPDATED, subscribe_handler)
+        self._subscribers_registered = True
 
     def __do_run(self, interaction: discord.Interaction, query: str, timeout: int, previous_results: list = []) -> RetVal:
         try:
@@ -983,7 +959,7 @@ Or use: Feature → Scenario → Given/When/Then",
         return parts
 
     async def do_sub_run(self, interval: str):
-        """Run scheduler job for subscription. This is used to set tables for subscription
+        """Run subscribed job. This is used to set tables for subscription
         queries based on interval.
         """
         await self.__run_query(interval, self.convo_store.get_all_user_sub_ids(), 'subs', self.__sub_logic)

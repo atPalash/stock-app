@@ -211,10 +211,10 @@ class DataFrameHandler:
 
             ret['data'] = result
             ret['success'] = True
+            self.event_handler.notify(EventType.TABLES_UPDATED, interval)
         except Exception as e:
             logger.warning(
                 f"Exception setting DataFrame for interval {interval}: {e}")
-        self.event_handler.notify(f"{EventType.TABLES_UPDATED}:{interval}")
         return ret
 
     def trim_tables(self, interval: str, trim_rows: int):
