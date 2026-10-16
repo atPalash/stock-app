@@ -16,6 +16,7 @@ from pytick.bot.discordbot import BotConfig, DiscordBot
 from pytick.llm.prompt import generate_prompt
 from pytick.query import query
 from pytick.query.trade import TradeHandler
+from pytick.scheduler.event_handler import EventHandler
 from pytick.scheduler.scheduler import Scheduler
 from pytick.utility.convo_store import ConvoStore
 from pytick.utility.utility import get_discord_token, get_logger, read_config, read_file, get_app_config
@@ -37,7 +38,8 @@ tz = app_config.get('tz', 'Asia/Kolkata')
  
 convo_store = ConvoStore(redis.from_url(
     os.getenv('REDIS_URL', 'redis://localhost:6379/0'), encoding="utf-8", decode_responses=True), tz=tz)
-data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators, interval_limits=app_config.get('interval_limits', {}))
+event_handler = EventHandler()
+data_handler = dataframe.DataFrameHandler(tz=tz, indicators=indicators, interval_limits=app_config.get('interval_limits', {}), event_handler=event_handler)
 notification_handler = notification.NotificationHandler(
     tz=tz, max_rows=1000, app_data_path=app_config.get('app_data_path', ''))
 gherkin_handler = query.QueryHandler(data_handler=data_handler,
@@ -85,7 +87,8 @@ bot_config = BotConfig(
         'app_data_path', ''), "getting_started.md")),
     disclaimer=read_file(file_path=os.path.join(app_config.get(
         'app_data_path', ''), "disclaimer.md")),
-    admin_ids=app_config.get('admin_ids', [])
+    admin_ids=app_config.get('admin_ids', []),
+    event_handler=event_handler
 )
 discord_bot = DiscordBot(config=bot_config)
 

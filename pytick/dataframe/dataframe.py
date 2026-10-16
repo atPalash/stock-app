@@ -8,6 +8,7 @@ import yfinance as yf
 import pandas_ta as ta
 
 # from main import mp_process_ticker
+from pytick.scheduler.event_handler import EventHandler, EventType
 from pytick.utility.utility import get_app_config, get_logger, normalize_index_to_tz, read_config, request_server
 
 # Set multiprocessing start method once at module level
@@ -80,13 +81,14 @@ def get_nifty_tickers(filename: str) -> list:
 
 
 class DataFrameHandler:
-    def __init__(self, tz: str, indicators: dict, test_data_path: str = None, interval_limits: dict = None):
+    def __init__(self, tz: str, indicators: dict, test_data_path: str = None, interval_limits: dict = None, event_handler: EventHandler = None):
         self.tables = {}
         self.tz = tz
         self.indicators = indicators
         self.test_data_path = test_data_path
         self.interval_limits = interval_limits 
         self.default_ticker = app_config.get('default_ticker', 'SBIN')
+        self.event_handler = event_handler
 
     def get_tables(self, tickers: list, interval: str) -> dict:
         """Get the OHLC tables for the specified tickers and interval.
@@ -212,6 +214,7 @@ class DataFrameHandler:
         except Exception as e:
             logger.warning(
                 f"Exception setting DataFrame for interval {interval}: {e}")
+        self.event_handler.notify(f"{EventType.TABLES_UPDATED}:{interval}")
         return ret
 
     def trim_tables(self, interval: str, trim_rows: int):

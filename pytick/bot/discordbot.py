@@ -27,6 +27,7 @@ import redis
 from func_timeout import func_timeout, FunctionTimedOut
 from ddgs import DDGS
 from pytick.bot.utility import ThrowingArgumentParser, format_table, send_csv, send_image
+from pytick.scheduler.event_handler import EventHandler, EventType
 from pytick.utility.convo_store import ConvoStore
 from pytick.query.trade import TradeHandler
 from pytick.query.comparator import run as comparator_run
@@ -78,6 +79,7 @@ class BotConfig:
     joining_prompt: str
     disclaimer: str
     admin_ids: list[int]
+    event_handler: EventHandler
 
 
 INVISIBLE = "\u200b"
@@ -779,11 +781,27 @@ Or use: Feature → Scenario → Given/When/Then",
         return self.__is_gherkin_format(input=input)
 
     def __set_schedulers(self):
-        '''Set up periodic jobs for each subscription interval defined in the configuration.'''
-        async def subscribe_handler(interval):
-            """Async wrapper for _sub_handler to ensure proper coroutine handling."""
-            await self.do_sub_run(interval=interval)
+        """Register event handlers that schedule subscription runs on the bot loop."""
+        loop = asyncio.get_running_loop()
 
+        def subscribe_handler(event: str):
+            interval = event.split(':')[1]
+            future = asyncio.run_coroutine_threadsafe(
+                self.do_sub_run(interval=interval), loop)
+
+            def log_failure(future):
+                try:
+                    future.result()
+                except Exception:
+                    logger.exception(
+                        "Subscription run failed for interval %s", interval)
+
+            future.add_done_callback(log_failure)
+
+        for interval, _ in self.config.schedules.items():
+            self.config.event_handler.subscribe(f"{EventType.TABLES_UPDATED}:{interval}", subscribe_handler)
+
+        '''
         self.scheduler.start()  # Start the scheduler before adding jobs
         for interval, params in self.config.schedules.items():
             try:
@@ -795,6 +813,7 @@ Or use: Feature → Scenario → Given/When/Then",
             except Exception as e:
                 logger.error(
                     f"Error setting up scheduler for interval {interval}: {e}")
+        '''
 
     def __do_run(self, interaction: discord.Interaction, query: str, timeout: int, previous_results: list = []) -> RetVal:
         try:
