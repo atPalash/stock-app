@@ -189,26 +189,30 @@ class DataFrameHandler:
                 logger.warning(f"Exception during multiprocessing: {e}")
                 return ret
             for point in results:
-                if suffix and point['ticker'].endswith(suffix):
-                    ticker = point['ticker'][:-len(suffix)]
-                elif prefix and point['ticker'].startswith(prefix):
-                    ticker = point['ticker'][len(prefix):]
-                else:
-                    ticker = point['ticker']
-                df = point['df']
-                # Convert columns to lowercase for consistency
-                # df = df.replace({np.nan: None})
-                df = normalize_index_to_tz(df, self.tz)
-                df = df.reset_index()
-                df.columns = [c.lower() for c in df.columns]
-                if 'date' in df.columns:
-                    df = df.rename(columns={'date': 'datetime'})
-                result[ticker] = df
-                if df is None or df.empty:
-                    logger.warning(f"No data found for ticker: {ticker} interval: {interval}")
-                if ticker in debug_tickers:
-                    logger.debug(f"Indicators {ticker} interval={interval}: rows={len(df)}, last 5 dates={df.datetime[-5:].tolist()}")
-
+                try:
+                    if suffix and point['ticker'].endswith(suffix):
+                        ticker = point['ticker'][:-len(suffix)]
+                    elif prefix and point['ticker'].startswith(prefix):
+                        ticker = point['ticker'][len(prefix):]
+                    else:
+                        ticker = point['ticker']
+                    df = point['df']
+                    # Convert columns to lowercase for consistency
+                    # df = df.replace({np.nan: None})
+                    df = normalize_index_to_tz(df, self.tz)
+                    df = df.reset_index()
+                    df.columns = [c.lower() for c in df.columns]
+                    if 'date' in df.columns:
+                        df = df.rename(columns={'date': 'datetime'})
+                    if self.tz == 'America/New_York' and 'index' in df.columns:
+                        df = df.rename(columns={'index': 'datetime'})
+                    result[ticker] = df
+                    if df is None or df.empty:
+                        logger.warning(f"No data found for ticker: {ticker} interval: {interval}")
+                    if ticker in debug_tickers:
+                        logger.debug(f"Indicators {ticker} interval={interval}: rows={len(df)}, last 5 dates={df.datetime[-5:].tolist()}")
+                except Exception as e:
+                    logger.warning(f"Exception processing ticker {point['ticker']}: {e}")
             ret['data'] = result
             ret['success'] = True
             self.event_handler.notify(EventType.TABLES_UPDATED, interval)
@@ -244,22 +248,6 @@ class DataFrameHandler:
         return self
 
 
-if __name__ == "__main__":
-    # config_path = "config_debug.yaml"
-    # indicators = read_config(config_path).get('indicators', {})
-    # set_tables(["BEL", "TCS", "HONASA"], "1d", "Asia/Kolkata", indicators)
-    # print(get_nifty_tickers('ind_nifty100list.csv'))
-    # import asyncio
-    # import json
-    # async def main():
-    #     # Your async logic goes here
-    #     try:
-    #         response = await request_server(8000, 'df/SBIN/1mo', {}, timeout=30, method='GET')
-    #         print(json.loads(response.text)['data'][-5:])  # Print the last 5 records
-    #     except Exception as e:
-    #         print(f"An error occurred: {e}")
-
-    # # Use asyncio.run to start the event loop and execute the main function
-    # asyncio.run(main())
-    # download_stock_data("SBIN", "5m", "Asia/Kolkata", suffix=".NS")
-    pass
+# if __name__ == "__main__":
+#     download_stock_data("AAPL", "5m", "Asia/Kolkata", suffix=".NS")
+#     pass

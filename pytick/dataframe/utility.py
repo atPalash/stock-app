@@ -12,33 +12,34 @@ load_dotenv()
 logger = get_logger(__file__, logging.DEBUG)
 app_config, _ = get_app_config()
 
-def download_stock_data(ticker: str, interval: str, tz: str, suffix: str="") -> pd.DataFrame:
+def download_stock_data(tickers: list, interval: str, period: str, suffix: str="") -> pd.DataFrame:
     """Download stock data from Yahoo Finance.
 
     Args:
-        ticker (str): ticker symbol.
+        tickers (list): list of ticker symbols.
         interval (str): interval for the data. e.g., '1d', '1h'.
-        tz (str): timezone, e.g., 'Asia/Kolkata'.
+        period (str): period for the data. e.g., '1mo', '3mo'.
         suffix (str): suffix for the ticker symbol.
 
     Returns:
         pd.DataFrame: Stock data for the specified ticker and interval.
     """
-    ticker_symbol = f"{ticker}{suffix}"
+    tickers_yf = [f"{ticker}{suffix}" for ticker in tickers]
     data = yf.download(
-        tickers=[ticker_symbol],
-        period="1mo",
-        interval=interval,
-        progress=False,
-        group_by="ticker",
-        rounding=True,
-        actions=True,
-        threads=True,
-        multi_level_index=False,
-        ignore_tz=True,
-        auto_adjust=True,
-    )   
-    data.to_csv(f"{ticker}_{interval}.csv")
+                    tickers=tickers_yf,
+                    period=period,
+                    interval=interval,
+                    progress=False,
+                    group_by="ticker",
+                    rounding=True,
+                    actions=True,
+                    threads=True,
+                    multi_level_index=False,
+                    ignore_tz=True,
+                    auto_adjust=True,
+                    timeout=100,
+                )
+    # data.to_csv(f"{ticker}_{interval}.csv")
     return data
 
 def get_nse_option_symbols():
@@ -48,4 +49,5 @@ def get_nse_option_symbols():
     print(all_options_symbols)
 
 if __name__ == "__main__":
-    get_nse_option_symbols()
+    # get_nse_option_symbols()
+    download_stock_data(["AAPL", "MSFT"], "5m", "1mo")
